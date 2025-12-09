@@ -1,0 +1,132 @@
+.org-content {
+    height: 80vh; /* Trohi menshe shob tochno vlizalo */
+    display: flex;
+    flex-direction: column;
+    padding: 20px; /* Menshe padding shob bilshe miscya */
+    overflow: hidden; /* Zapobigaye vilazannyu samogo modala */
+}
+
+.org-chart-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden; /* Hovayemo gorizontalniy skroll yaksho ne kritichno */
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    border: 1px solid #333;
+    margin-top: 8px;
+}
+
+/* Custom Scrollbar */
+.org-chart-container::-webkit-scrollbar {
+    width: 6px;
+}
+.org-chart-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1); 
+}
+.org-chart-container::-webkit-scrollbar-thumb {
+    background: #444; 
+    border-radius: 3px;
+}
+
+.org-node-wrapper {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%; /* Garantiye shob ne vilazilo */
+}
+
+.org-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 10px; /* Kompaktniye */
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    position: relative;
+    transition: background 0.2s;
+    min-width: 0; /* Vazhlivo dlya flexbox shob text truncating pracyuvav */
+}
+
+/* Indentation Lines - Compact */
+.org-children {
+    padding-left: 16px; /* Zmenshiv vidstup */
+    border-left: 2px solid rgba(255, 255, 255, 0.1);
+    margin-left: 14px; /* Zmenshiv vidstup */
+}
+
+.org-info {
+    flex: 1;
+    min-width: 0; /* Dozvolyaye textu zmenshuvatis */
+    overflow: hidden;
+}
+
+.org-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Tri krapki yaksho ne vlazit */
+}
+
+.org-role {
+    font-size: 10px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.toggle-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.toggle-btn:hover {
+    color: #fff;
+}
+
+/* Highlight different levels */
+.depth-0 { border-left: 4px solid var(--accent-gold); }
+.depth-1 { border-left: 4px solid var(--accent-blue); }
+.depth-2 { border-left: 4px solid #ef4444; }
+
+/* Search Styles */
+.org-search-container {
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.org-search-input {
+    width: 100%;
+    box-sizing: border-box; /* Fix width calculation */
+    padding: 12px 12px 12px 40px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #444;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.org-search-input:focus {
+    border-color: var(--accent-gold);
+}
+
+.org-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    pointer-events: none;
+}

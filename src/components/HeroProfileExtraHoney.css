@@ -1,0 +1,27 @@
+.honey-send-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    color: var(--accent-gold);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.honey-send-btn:hover {
+    background: var(--accent-gold);
+    color: #000;
+    transform: scale(1.1);
+}
+
+.honey-send-btn:active {
+    transform: scale(0.9);
+}
+

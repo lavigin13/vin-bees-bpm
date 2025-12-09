@@ -1,0 +1,203 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    padding: 16px;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border: 1px solid var(--accent-gold);
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 400px;
+    position: relative;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 4px;
+}
+
+.modal-title {
+    font-size: 20px;
+    color: var(--accent-gold);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rpg-select,
+.rpg-input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+.craft-settings {
+    margin-bottom: 20px;
+}
+
+.ing-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ing-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    width: 60px;
+    text-align: right;
+    font-size: 13px;
+}
+
+.ing-input:focus {
+    border-color: var(--accent-gold);
+    outline: none;
+}
+
+.preview-quantity {
+    font-size: 12px;
+    color: var(--accent-gold);
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.additional-cost-section {
+    margin-bottom: 20px;
+}
+
+.output-preview {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.preview-icon {
+    border: 2px solid;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 120px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.preview-rarity {
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.preview-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ingredients-list {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+}
+
+.ingredient-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 13px;
+}
+
+.ingredient-row:last-child {
+    border-bottom: none;
+}
+
+.ingredient-row.enough {
+    color: #4ade80;
+}
+
+.ingredient-row.missing {
+    color: #ef4444;
+}
+
+.ing-name {
+    color: var(--text-primary);
+}
+
+.craft-submit-btn {
+    width: 100%;
+    background: var(--accent-gold);
+    color: #000;
+    font-weight: 700;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+
+.craft-submit-btn:disabled {
+    background: var(--card-border);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.craft-submit-btn:not(:disabled):active {
+    transform: scale(0.98);
+}

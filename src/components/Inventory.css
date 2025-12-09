@@ -1,0 +1,207 @@
+@import './InventoryExtra.css';
+
+.inventory-container {
+    margin-bottom: 32px;
+}
+
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 18px;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inventory-tabs {
+    display: flex;
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 2px;
+    border: 1px solid var(--card-border);
+}
+
+.tab-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    background: var(--accent-gold);
+    color: #000;
+    font-weight: 700;
+}
+
+.section-title::before {
+    content: '';
+    width: 4px;
+    height: 18px;
+    background: var(--accent-gold);
+    border-radius: 2px;
+    display: block;
+}
+
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+}
+
+.inventory-item {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px 8px; /* Less horizontal padding */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    /* aspect-ratio: 1; REMOVED to allow height growth */
+    min-height: 150px; /* Fixed min height for consistency */
+    justify-content: flex-start; /* Align to top */
+    position: relative;
+}
+
+.item-icon-wrapper {
+    margin-top: 12px; /* Push down a bit */
+    margin-bottom: 8px;
+    opacity: 0.8;
+    flex-shrink: 0; /* Don't shrink icon */
+}
+
+.item-name {
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+
+.item-rarity {
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    /* Rarity colors are handled by specific classes below */
+}
+
+/* Rarity Colors */
+.rarity-common .item-icon-wrapper {
+    color: var(--rarity-common);
+}
+
+.rarity-common .item-rarity {
+    color: var(--rarity-common);
+}
+
+.rarity-common {
+    border-color: rgba(168, 168, 179, 0.3);
+}
+
+.rarity-rare .item-icon-wrapper {
+    color: var(--rarity-rare);
+}
+
+.rarity-rare .item-rarity {
+    color: var(--rarity-rare);
+}
+
+.rarity-rare {
+    border-color: rgba(10, 132, 255, 0.3);
+    background: rgba(10, 132, 255, 0.05);
+}
+
+.rarity-epic .item-icon-wrapper {
+    color: var(--rarity-epic);
+}
+
+.rarity-epic .item-rarity {
+    color: var(--rarity-epic);
+}
+
+.rarity-epic {
+    border-color: rgba(191, 90, 242, 0.3);
+    background: rgba(191, 90, 242, 0.05);
+}
+
+.rarity-legendary .item-icon-wrapper {
+    color: var(--rarity-legendary);
+}
+
+.rarity-legendary .item-rarity {
+    color: var(--rarity-legendary);
+}
+
+.rarity-legendary {
+    border-color: rgba(255, 215, 0, 0.3);
+    background: rgba(255, 215, 0, 0.05);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.1);
+}
+
+/* Empty Slot */
+.empty-slot {
+    border-style: dashed;
+    opacity: 0.5;
+    cursor: default;
+}
+
+.empty-plus {
+    font-size: 24px;
+    color: var(--card-border);
+}
+
+/* Restored Styles */
+.item-quantity {
+    position: absolute;
+    top: 6px;
+    left: 6px; /* Changed from right to left */
+    right: auto;
+    background: var(--card-bg);
+    border: 1px solid var(--text-secondary);
+    color: var(--text-primary);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    z-index: 5;
+}
+
+.craft-btn {
+    width: 100%;
+    margin-top: 16px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px dashed var(--accent-gold);
+    color: var(--accent-gold);
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.craft-btn:active {
+    background: rgba(255, 215, 0, 0.2);
+    transform: scale(0.98);
+}
+
+.craft-btn:hover {
+    background: rgba(255, 215, 0, 0.15);
+}
