@@ -1,0 +1,174 @@
+/* Reusing basic modal styles from CraftingModal.css where possible via className composition */
+.trips-container {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* List View */
+.trip-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.trip-card:hover {
+    background: rgba(255, 215, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.trip-info h3 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.trip-dates {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.trip-status {
+    font-size: 10px;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+}
+
+.status-draft { background: rgba(128, 128, 128, 0.2); color: #ccc; }
+.status-pending { background: rgba(255, 165, 0, 0.2); color: orange; }
+.status-approved { background: rgba(0, 255, 0, 0.2); color: #4ade80; }
+.status-rejected { background: rgba(255, 0, 0, 0.2); color: #ef4444; }
+
+.new-trip-btn {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px dashed var(--accent-gold);
+    color: var(--accent-gold);
+    border-radius: 12px;
+    cursor: pointer;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.new-trip-btn:hover {
+    background: rgba(255, 215, 0, 0.2);
+}
+
+/* Edit Form */
+.form-section {
+    margin-bottom: 20px;
+}
+
+.date-row {
+    display: flex;
+    gap: 12px;
+}
+
+.expenses-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+
+.expenses-table th {
+    text-align: left;
+    color: var(--text-secondary);
+    padding: 8px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.expenses-table td {
+    padding: 8px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.expense-input {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    width: 100%;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.expense-input:focus {
+    border-bottom-color: var(--accent-gold);
+    outline: none;
+}
+
+/* Fix for select elements text visibility */
+select.expense-input option {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.add-expense-btn {
+    font-size: 12px;
+    color: var(--accent-gold);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+}
+
+.file-btn {
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.file-btn.attached {
+    color: var(--accent-gold);
+}
+
+.delete-row-btn {
+    color: #ef4444;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.action-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-save {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.btn-submit {
+    background: var(--accent-gold);
+    color: #000;
+}
+

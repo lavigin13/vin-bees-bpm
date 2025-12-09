@@ -1,0 +1,231 @@
+.requests-modal-content {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--accent-gold);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.1);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 500px;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.requests-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.requests-title {
+    font-size: 20px;
+    color: var(--accent-gold);
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.requests-toggle-container {
+    display: flex;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 20px;
+}
+
+.toggle-btn {
+    flex: 1;
+    border: none;
+    background: none;
+    padding: 8px 16px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+}
+
+.toggle-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.requests-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.request-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.request-card:hover {
+    background: rgba(255, 215, 0, 0.1);
+    transform: translateY(-2px);
+    border-color: var(--accent-gold);
+}
+
+.request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.request-category {
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 14px;
+}
+
+.request-status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: capitalize;
+}
+
+.request-status.new { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+.request-status.draft { background: rgba(156, 163, 175, 0.2); color: #9ca3af; }
+.request-status.pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+.request-status.approved { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.request-status.rejected { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+.request-desc {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.request-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.create-request-btn {
+    width: 100%;
+    padding: 16px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px dashed var(--accent-gold);
+    color: var(--accent-gold);
+    border-radius: 16px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.create-request-btn:hover {
+    background: rgba(255, 215, 0, 0.2);
+}
+
+/* Form Styles */
+.request-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.form-input, .form-textarea, .form-select {
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.dates-row {
+    display: flex;
+    gap: 12px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 16px;
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-primary {
+    background: var(--accent-gold);
+    color: #000;
+}
+
+.action-btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Fix for select options visibility */
+.form-select option {
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+

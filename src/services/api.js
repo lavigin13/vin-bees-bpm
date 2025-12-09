@@ -1,3 +1,4 @@
+// ... existing imports ...
 import { getTelegramWebApp } from '../utils/telegram';
 import { COLLEAGUES } from '../data/mockData';
 
@@ -14,19 +15,7 @@ const getHeaders = () => {
     return headers;
 };
 
-export const fetchColleagues = async () => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/colleagues`, { method: 'GET', headers: getHeaders() });
-        if (!response.ok) {
-            console.warn('Colleagues API not ready, using mock');
-            return null;
-        }
-        return await response.json();
-    } catch (e) {
-        console.error('Failed to fetch colleagues:', e);
-        return null; 
-    }
-};
+// ... existing functions ...
 
 export const fetchProfile = async () => {
     try {
@@ -45,7 +34,6 @@ export const fetchInventory = async () => {
 };
 
 export const updateProfile = async (profileData) => {
-    // ... existing updateProfile logic ...
     const headers = getHeaders();
     try {
         const response = await fetch(`${API_BASE_URL}/profile`, {
@@ -153,6 +141,20 @@ export const respondToTransfer = async (transferId, action) => {
     }
 };
 
+export const fetchColleagues = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/colleagues`, { method: 'GET', headers: getHeaders() });
+        if (!response.ok) {
+            console.warn('Colleagues API not ready, using mock');
+            return null;
+        }
+        return await response.json();
+    } catch (e) {
+        console.error('Failed to fetch colleagues:', e);
+        return null; 
+    }
+};
+
 // --- Marketplace ---
 
 export const getMarketplaceItems = async () => {
@@ -202,6 +204,155 @@ export const createListing = async (itemData) => {
         return await response.json();
     } catch (error) {
         console.error('Listing failed:', error);
+        throw error;
+    }
+};
+
+// --- Business Trips ---
+
+export const fetchTrips = async () => {
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/trips`, { method: 'GET', headers: headers });
+        if (!response.ok) {
+            console.warn('Trips API not ready');
+            return null;
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch trips:', error);
+        return null;
+    }
+};
+
+export const createOrUpdateTrip = async (tripData) => {
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/trips`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(tripData)
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Save trip failed:', error);
+        throw error;
+    }
+};
+
+export const submitTrip = async (tripId) => {
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/trips/submit`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ tripId })
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Submit trip failed:', error);
+        throw error;
+    }
+};
+
+// --- Requests ---
+
+export const fetchRequests = async (view = 'my') => {
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/requests?view=${view}`, { method: 'GET', headers: headers });
+        if (!response.ok) {
+            console.warn('Requests API not ready');
+            return null;
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch requests:', error);
+        return null;
+    }
+};
+
+export const createOrUpdateRequest = async (requestData) => {
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/requests`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(requestData)
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Save request failed:', error);
+        throw error;
+    }
+};
+
+export const submitRequest = async (requestId) => {
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/requests/submit`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ requestId })
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Submit request failed:', error);
+        throw error;
+    }
+};
+
+export const respondToRequest = async (requestId, action) => {
+    // action: 'approve' or 'reject'
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/requests/respond`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ requestId, action })
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error(`Request response (${action}) failed:`, error);
+        throw error;
+    }
+};
+
+// --- Timesheet ---
+
+export const fetchTimesheet = async (monthStr) => {
+    // monthStr: YYYY-MM
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/timesheet?month=${monthStr}`, { method: 'GET', headers: headers });
+        if (!response.ok) {
+            console.warn('Timesheet API not ready');
+            return null;
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch timesheet:', error);
+        return null;
+    }
+};
+
+export const saveDailyReport = async (dateStr, reportData) => {
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/timesheet/day`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ date: dateStr, ...reportData })
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Save daily report failed:', error);
         throw error;
     }
 };

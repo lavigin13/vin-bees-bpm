@@ -147,3 +147,105 @@ export const RECIPES = [
         ]
     }
 ];
+
+export const MOCK_TRIPS = [
+    {
+        id: 'trip_1',
+        status: 'approved',
+        dateFrom: '2023-11-01',
+        dateTo: '2023-11-05',
+        destination: 'Paris, Hive Branch',
+        goal: 'Strategy Meeting',
+        expenses: [
+            { id: 1, type: 'Flight', currency: 'EUR', amount: 450, fileName: 'ticket.pdf' },
+            { id: 2, type: 'Hotel', currency: 'EUR', amount: 800, fileName: 'hotel_invoice.pdf' }
+        ]
+    },
+    {
+        id: 'trip_2',
+        status: 'draft',
+        dateFrom: '2023-12-10',
+        dateTo: '2023-12-12',
+        destination: 'Kyiv, HQ',
+        goal: 'Annual Audit',
+        expenses: []
+    }
+];
+
+export const MOCK_DAILY_REPORTS = {
+    // Format: "YYYY-MM-DD": { type: "Work", tasks: [...] }
+    "2023-10-25": {
+        type: "Work",
+        tasks: [
+            { id: 1, workType: "Development", comment: "Built new feature", quantity: 1, hours: 6 },
+            { id: 2, workType: "Meeting", comment: "Daily standup", quantity: 1, hours: 0.5 }
+        ]
+    },
+    "2023-10-26": {
+        type: "Work",
+        tasks: [
+            { id: 3, workType: "Bugfix", comment: "Fixed critical bug #123", quantity: 3, hours: 7 }
+        ]
+    },
+    "2023-10-27": {
+        type: "Work",
+        tasks: []
+    }
+};
+
+export const WORK_TYPES = [
+    "Development",
+    "Meeting",
+    "Bugfix",
+    "Testing",
+    "Design",
+    "Management",
+    "Other"
+];
+
+export const DAY_TYPES = [
+    "Work",
+    "Vacation",
+    "Sick Leave",
+    "Day Off",
+    "Public Holiday"
+];
+
+export const REQUEST_CATEGORIES = [
+    "Hardware",
+    "Software License",
+    "Office Supplies",
+    "Furniture",
+    "Access/Permissions",
+    "Other"
+];
+
+export const MOCK_REQUESTS = [
+    {
+        id: 'req_1',
+        status: 'approved',
+        date: '2023-11-10',
+        category: 'Hardware',
+        shortDesc: 'Need new mouse',
+        fullDesc: 'My current mouse is double-clicking unexpectedly. Need a replacement.',
+        createdBy: 999 // Current user
+    },
+    {
+        id: 'req_2',
+        status: 'pending',
+        date: '2023-11-15',
+        category: 'Software License',
+        shortDesc: 'WebStorm License',
+        fullDesc: 'Renewal for annual WebStorm license.',
+        createdBy: 999
+    },
+    {
+        id: 'req_3',
+        status: 'new',
+        date: '2023-11-12',
+        category: 'Office Supplies',
+        shortDesc: 'Notebooks for team',
+        fullDesc: '5 notebooks for new interns.',
+        createdBy: 103 // Subordinate (Worker Bee)
+    }
+];

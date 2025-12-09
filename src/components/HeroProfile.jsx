@@ -1,13 +1,21 @@
 import React from 'react';
-import { Hexagon, Award, Bell, ShoppingBag, Send, Network } from 'lucide-react';
+import { Hexagon, Award, Bell, ShoppingBag, Send, Network, Rocket, Calendar } from 'lucide-react';
 import './HeroProfile.css';
 
-const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgChartClick, incomingCount = 0 }) => {
+const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgChartClick, onTripsClick, onRequestsClick, onTimesheetClick, incomingCount = 0 }) => {
     return (
         <div className="hero-container">
-            <button className="inbox-btn" onClick={onInboxClick} style={{right: 64}}>
+            <button className="inbox-btn" onClick={onInboxClick} style={{right: 160}}>
                 <Bell size={20} color={incomingCount > 0 ? "#fff" : "rgba(255,255,255,0.5)"} />
                 {incomingCount > 0 && <span className="inbox-badge">{incomingCount}</span>}
+            </button>
+
+            <button className="inbox-btn" onClick={onTripsClick} style={{right: 112}}>
+                <span style={{ fontSize: 20 }}>🐝</span>
+            </button>
+
+            <button className="inbox-btn" onClick={onRequestsClick} style={{right: 64}}>
+                <span style={{ fontSize: 20 }}>🍯</span>
             </button>
 
             <button className="inbox-btn" onClick={onOrgChartClick} style={{right: 16}}>
@@ -55,12 +63,13 @@ const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgC
                     </button>
                 </div>
 
-                <div className="stat-card reputation-card">
+                <div className="stat-card reputation-card" onClick={onTimesheetClick} style={{cursor: 'pointer'}}>
                     <div className="stat-icon">
-                        <Award size={24} color="var(--rarity-epic)" />
+                        <Calendar size={24} color="#60a5fa" />
                     </div>
-                    <div className="stat-value">{user.reputation}</div>
-                    <div className="stat-label">Reputation</div>
+                    {/* Placeholder for monthly stats */}
+                    <div className="stat-value" style={{fontSize: 16}}>15 / 22</div>
+                    <div className="stat-label">Timesheet</div>
                 </div>
 
                 <div className="stat-card shop-btn-card" onClick={onShopClick}>

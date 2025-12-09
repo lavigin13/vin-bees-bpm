@@ -9,8 +9,22 @@ import ShopModal from './components/ShopModal';
 import CreateListingModal from './components/CreateListingModal';
 import SendHoneyModal from './components/SendHoneyModal';
 import OrgChartModal from './components/OrgChartModal';
-import { fetchProfile, fetchInventory, updateProfile, sendAuditResult, transferHoney, transferItem, getMarketplaceItems, buyItem, createListing, fetchPendingTransfers, respondToTransfer, fetchColleagues } from './services/api';
-import { INITIAL_USER, INVENTORY_ITEMS, RECIPES, MOCK_INCOMING_TRANSFERS, MARKETPLACE_ITEMS, COLLEAGUES as MOCK_COLLEAGUES } from './data/mockData';
+import BusinessTripsModal from './components/BusinessTripsModal';
+import TimesheetModal from './components/TimesheetModal';
+import RequestsModal from './components/RequestsModal';
+
+import { 
+  fetchProfile, fetchInventory, updateProfile, sendAuditResult, transferHoney, 
+  transferItem, getMarketplaceItems, buyItem, createListing, fetchPendingTransfers, 
+  respondToTransfer, fetchColleagues, fetchTrips, createOrUpdateTrip, submitTrip, respondToRequest
+} from './services/api';
+
+import { 
+  INITIAL_USER, INVENTORY_ITEMS, RECIPES, MOCK_INCOMING_TRANSFERS, 
+  MARKETPLACE_ITEMS, COLLEAGUES as MOCK_COLLEAGUES, MOCK_TRIPS, MOCK_DAILY_REPORTS,
+  MOCK_REQUESTS
+} from './data/mockData';
+
 import './index.css';
 
 function App() {
@@ -36,6 +50,26 @@ function App() {
 
   // Org Chart State
   const [isOrgChartOpen, setIsOrgChartOpen] = useState(false);
+
+  // Business Trips State
+  const [isTripsOpen, setIsTripsOpen] = useState(false);
+  const [trips, setTrips] = useState(MOCK_TRIPS);
+
+  // Timesheet State
+  const [isTimesheetOpen, setIsTimesheetOpen] = useState(false);
+  const [dailyReports, setDailyReports] = useState(MOCK_DAILY_REPORTS);
+
+  // Requests State
+  const [isRequestsOpen, setIsRequestsOpen] = useState(false);
+  const [requests, setRequests] = useState(MOCK_REQUESTS);
+  const [initialRequestsFilter, setInitialRequestsFilter] = useState('my');
+
+  // Helper to count pending requests (simulated for team members)
+  // In a real app, backend would filter this. Here we just assume non-current-user requests are team requests.
+  const pendingRequestsCount = requests.filter(r => 
+      r.createdBy !== (user ? user.id : 999) && 
+      (r.status === 'new' || r.status === 'pending')
+  ).length;
 
   useEffect(() => {
     // Expand Telegram WebApp if available
@@ -108,6 +142,25 @@ function App() {
         if (colleaguesData) {
             setColleagues(colleaguesData);
         }
+
+        // Load Trips
+        const tripsData = await fetchTrips();
+        if (tripsData) {
+            setTrips(tripsData);
+        } else if (!isTelegramAuth) {
+            setTrips(MOCK_TRIPS);
+        } else {
+            setTrips([]);
+        }
+
+        // Load Requests (API not ready yet, using mock)
+        if (!isTelegramAuth) {
+            setRequests(MOCK_REQUESTS);
+        } else {
+            // Placeholder: setRequests([]);
+            setRequests(MOCK_REQUESTS); // Temporary fallback
+        }
+
       } catch (e) {
         console.error("Error loading data", e);
       } finally {
@@ -464,6 +517,138 @@ function App() {
     }
   };
 
+  // --- Trips Logic ---
+
+  const handleSaveTrip = async (trip) => {
+      // 1. Optimistic Update or Local State
+      setTrips(prev => {
+          const exists = prev.find(t => t.id === trip.id);
+          if (exists) {
+              return prev.map(t => t.id === trip.id ? trip : t);
+          }
+          return [...prev, trip];
+      });
+
+      // 2. API Call
+      try {
+          await createOrUpdateTrip(trip);
+          if (window.Telegram && window.Telegram.WebApp) {
+              window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          }
+      } catch (e) {
+          console.error("Failed to save trip", e);
+          alert("Failed to save trip.");
+      }
+  };
+
+  const handleSubmitTrip = async (trip) => {
+      // 1. Update status locally
+      const updatedTrip = { ...trip, status: 'pending' };
+      setTrips(prev => prev.map(t => t.id === trip.id ? updatedTrip : t));
+
+      // 2. API Call
+      try {
+          // If it's a new trip, save it first? Assuming API handles update-then-submit or we just submit ID
+          if (String(trip.id).startsWith('new_')) {
+              // Usually backend replaces temp ID, but for now we just save content
+              await createOrUpdateTrip(updatedTrip);
+          } else {
+              await createOrUpdateTrip(updatedTrip); // Ensure latest changes are saved
+              await submitTrip(trip.id);
+          }
+          
+          if (window.Telegram && window.Telegram.WebApp) {
+              window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+              window.Telegram.WebApp.showAlert("Trip submitted for approval!");
+          } else {
+              alert("Trip submitted!");
+          }
+      } catch (e) {
+          console.error("Failed to submit trip", e);
+          alert("Failed to submit trip.");
+      }
+  };
+
+  // --- Timesheet Logic ---
+
+  const handleSaveDailyReport = (dateStr, reportData) => {
+      setDailyReports(prev => ({
+          ...prev,
+          [dateStr]: reportData
+      }));
+
+      // In a real app: await api.saveDailyReport(dateStr, reportData);
+      
+      if (window.Telegram && window.Telegram.WebApp) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+      }
+  };
+
+  // --- Requests Logic ---
+
+  const handleSaveRequest = (req) => {
+      setRequests(prev => {
+          if (req.id) {
+              return prev.map(r => r.id === req.id ? req : r);
+          }
+          const newReq = { ...req, id: `new_${Date.now()}` };
+          return [newReq, ...prev];
+      });
+      if (window.Telegram && window.Telegram.WebApp) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+      }
+  };
+
+  const handleSubmitRequest = (req) => {
+      const updatedReq = { ...req, status: 'pending' };
+      setRequests(prev => {
+          if (req.id) {
+              return prev.map(r => r.id === req.id ? updatedReq : r);
+          }
+          const newReq = { ...updatedReq, id: `new_${Date.now()}` };
+          return [newReq, ...prev];
+      });
+
+      if (window.Telegram && window.Telegram.WebApp) {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          window.Telegram.WebApp.showAlert("Request submitted!");
+      }
+  };
+
+  const handleApproveRequest = async (req) => {
+      // 1. Optimistic Update
+      const updatedReq = { ...req, status: 'approved' };
+      setRequests(prev => prev.map(r => r.id === req.id ? updatedReq : r));
+
+      // 2. API Call
+      try {
+          await respondToRequest(req.id, 'approve');
+          if (window.Telegram && window.Telegram.WebApp) {
+              window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          }
+      } catch (e) {
+          console.error("Failed to approve request", e);
+          // Revert?
+      }
+  };
+
+  const handleRejectRequest = async (req) => {
+      // 1. Optimistic Update
+      const updatedReq = { ...req, status: 'rejected' };
+      setRequests(prev => prev.map(r => r.id === req.id ? updatedReq : r));
+
+      // 2. API Call
+      try {
+          await respondToRequest(req.id, 'reject');
+          if (window.Telegram && window.Telegram.WebApp) {
+              window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+          }
+      } catch (e) {
+          console.error("Failed to reject request", e);
+      }
+  };
+
+
   return (
     <div className="app-container">
       <HeroProfile 
@@ -471,9 +656,11 @@ function App() {
         onInboxClick={() => setIsInboxOpen(true)}
         onShopClick={() => setIsShopOpen(true)}
         onSendHoneyClick={() => setIsSendHoneyOpen(true)}
-        onPvPClick={() => setIsPvPOpen(true)}
         onOrgChartClick={() => setIsOrgChartOpen(true)}
-        incomingCount={incomingTransfers.length}
+        onTripsClick={() => setIsTripsOpen(true)}
+        onTimesheetClick={() => setIsTimesheetOpen(true)}
+        onRequestsClick={() => { setInitialRequestsFilter('my'); setIsRequestsOpen(true); }}
+        incomingCount={incomingTransfers.length + pendingRequestsCount}
       />
       <Inventory
         items={inventory}
@@ -506,6 +693,12 @@ function App() {
         transfers={incomingTransfers}
         onAccept={handleAcceptTransfer}
         onReject={handleRejectTransfer}
+        pendingRequestsCount={pendingRequestsCount}
+        onOpenTeamRequests={() => {
+            setIsInboxOpen(false);
+            setInitialRequestsFilter('subordinates');
+            setIsRequestsOpen(true);
+        }}
       />
 
       <ShopModal
@@ -537,8 +730,35 @@ function App() {
         colleagues={colleagues}
       />
 
+      <BusinessTripsModal
+        isOpen={isTripsOpen}
+        onClose={() => setIsTripsOpen(false)}
+        trips={trips}
+        onSave={handleSaveTrip}
+        onSubmit={handleSubmitTrip}
+      />
+
+      <RequestsModal
+        isOpen={isRequestsOpen}
+        onClose={() => setIsRequestsOpen(false)}
+        requests={requests}
+        onSave={handleSaveRequest}
+        onSubmit={handleSubmitRequest}
+        onApprove={handleApproveRequest}
+        onReject={handleRejectRequest}
+        currentUserId={user ? user.id : 999}
+        initialFilter={initialRequestsFilter}
+      />
+
+      <TimesheetModal
+        isOpen={isTimesheetOpen}
+        onClose={() => setIsTimesheetOpen(false)}
+        dailyReports={dailyReports}
+        onSaveReport={handleSaveDailyReport}
+      />
+
       <div style={{ textAlign: 'center', marginTop: 32, opacity: 0.5, fontSize: 10 }}>
-        VinBees RPG v1.6
+        VinBees RPG v1.8
       </div>
     </div>
   );
