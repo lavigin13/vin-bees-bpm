@@ -141,8 +141,8 @@ Returns list of all colleagues for selection lists and org chart.
 **Response:**
 ```json
 [
-  { "id": 100, "name": "Queen Bee (CEO)", "role": "CEO", "avatar": "👑", "managerId": null },
-  { "id": 101, "name": "Bumble Bee (QA Lead)", "role": "QA Lead", "avatar": "🐝", "managerId": 100 }
+  { "id": "uuid-string-36-chars", "name": "Queen Bee (CEO)", "role": "CEO", "avatar": "👑", "managerId": null },
+  { "id": "uuid-string-36-chars-2", "name": "Bumble Bee (QA Lead)", "role": "QA Lead", "avatar": "🐝", "managerId": "uuid-string-36-chars" }
 ]
 ```
 

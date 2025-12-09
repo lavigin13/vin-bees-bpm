@@ -201,3 +201,39 @@
 .craft-submit-btn:not(:disabled):active {
     transform: scale(0.98);
 }
+
+/* Search Dropdown Styles */
+.search-dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    margin-top: -15px; /* Overlap with input margin */
+    margin-bottom: 20px;
+}
+
+.search-option {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.search-option:last-child {
+    border-bottom: none;
+}
+
+.search-option:hover {
+    background: rgba(255, 215, 0, 0.1);
+}

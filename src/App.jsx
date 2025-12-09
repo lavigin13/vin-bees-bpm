@@ -211,6 +211,12 @@ function App() {
   };
 
   const handleSendRequest = async (item, quantity, recipient) => {
+    if (!recipient || !recipient.id) {
+        console.error("Invalid recipient:", recipient);
+        alert("Please select a valid recipient.");
+        return;
+    }
+
     // 1. Optimistic Update
     const newInventory = inventory.map(invItem => {
       if (invItem.id === item.id) {

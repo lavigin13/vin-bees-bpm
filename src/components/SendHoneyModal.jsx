@@ -1,24 +1,62 @@
-import React, { useState } from 'react';
-import { X, Send, User, Coins } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Send, User, Coins, Search } from 'lucide-react';
 import './CraftingModal.css'; // Reusing styles
 
 const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] }) => {
-    const [selectedColleague, setSelectedColleague] = useState('');
+    const [selectedColleagueId, setSelectedColleagueId] = useState('');
     const [amount, setAmount] = useState('');
+
+    // Search state
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    // Reset state when modal opens/closes
+    useEffect(() => {
+        if (!isOpen) {
+            setSearchTerm('');
+            setIsDropdownOpen(false);
+            setSelectedColleagueId('');
+            setAmount('');
+        }
+    }, [isOpen]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     if (!isOpen) return null;
 
+    // Filter colleagues
+    const filteredColleagues = colleagues.filter(c => 
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.role.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleSelectColleague = (colleague) => {
+        setSelectedColleagueId(colleague.id);
+        setSearchTerm(colleague.name);
+        setIsDropdownOpen(false);
+    };
+
     const handleSend = () => {
         const val = parseInt(amount);
-        if (!selectedColleague || !val || val <= 0 || val > userBalance) return;
+        if (!selectedColleagueId || !val || val <= 0 || val > userBalance) return;
         
-        const colleague = colleagues.find(c => c.id === parseInt(selectedColleague));
+        const colleague = colleagues.find(c => String(c.id) === String(selectedColleagueId));
+        if (!colleague) return;
+
         onSend(colleague, val);
         
         // Reset
         onClose();
-        setSelectedColleague('');
-        setAmount('');
     };
 
     const handleMax = () => {
@@ -34,18 +72,50 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
                     <Coins size={20} color="var(--accent-gold)" /> Send Honey
                 </h2>
 
-                <div className="craft-settings" style={{ marginTop: 24 }}>
+                <div className="craft-settings" style={{ marginTop: 24, position: 'relative' }} ref={dropdownRef}>
                     <label className="label">Recipient</label>
-                    <select 
-                        className="rpg-select"
-                        value={selectedColleague}
-                        onChange={(e) => setSelectedColleague(e.target.value)}
-                    >
-                        <option value="">-- Choose Colleague --</option>
-                        {colleagues.map(c => (
-                            <option key={c.id} value={c.id}>{c.avatar} {c.name}</option>
-                        ))}
-                    </select>
+                    
+                    <div style={{ position: 'relative' }}>
+                        <Search size={16} style={{ position: 'absolute', top: 12, right: 12, opacity: 0.5, pointerEvents: 'none' }} />
+                        <input
+                            className="rpg-input"
+                            placeholder="Search by name or role..."
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setIsDropdownOpen(true);
+                                if (selectedColleagueId) setSelectedColleagueId(''); // Clear selection on type
+                            }}
+                            onFocus={() => setIsDropdownOpen(true)}
+                            style={{ paddingRight: 36 }}
+                        />
+                    </div>
+
+                    {isDropdownOpen && filteredColleagues.length > 0 && (
+                        <div className="search-dropdown-list">
+                            {filteredColleagues.map(c => (
+                                <div 
+                                    key={c.id} 
+                                    onClick={() => handleSelectColleague(c)} 
+                                    className="search-option"
+                                >
+                                    <span style={{ fontSize: 18 }}>{c.avatar}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontWeight: 600 }}>{c.name}</span>
+                                        <span style={{ fontSize: 10, opacity: 0.7 }}>{c.role}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    
+                    {isDropdownOpen && filteredColleagues.length === 0 && (
+                        <div className="search-dropdown-list">
+                            <div className="search-option" style={{ justifyContent: 'center', opacity: 0.5, cursor: 'default' }}>
+                                No colleagues found
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="craft-settings">
@@ -76,7 +146,7 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
 
                 <button 
                     className="craft-submit-btn"
-                    disabled={!selectedColleague || !amount || parseInt(amount) > userBalance || parseInt(amount) <= 0}
+                    disabled={!selectedColleagueId || !amount || parseInt(amount) > userBalance || parseInt(amount) <= 0}
                     onClick={handleSend}
                 >
                     Send {amount ? `${amount} Honey` : ''}
@@ -87,4 +157,3 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
 };
 
 export default SendHoneyModal;
-
