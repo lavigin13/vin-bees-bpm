@@ -9,13 +9,14 @@ import ShopModal from './components/ShopModal';
 import CreateListingModal from './components/CreateListingModal';
 import SendHoneyModal from './components/SendHoneyModal';
 import OrgChartModal from './components/OrgChartModal';
-import { fetchProfile, fetchInventory, updateProfile, sendAuditResult, transferHoney, transferItem, getMarketplaceItems, buyItem, createListing } from './services/api';
-import { INITIAL_USER, INVENTORY_ITEMS, RECIPES, MOCK_INCOMING_TRANSFERS, MARKETPLACE_ITEMS } from './data/mockData';
+import { fetchProfile, fetchInventory, updateProfile, sendAuditResult, transferHoney, transferItem, getMarketplaceItems, buyItem, createListing, fetchPendingTransfers, respondToTransfer, fetchColleagues } from './services/api';
+import { INITIAL_USER, INVENTORY_ITEMS, RECIPES, MOCK_INCOMING_TRANSFERS, MARKETPLACE_ITEMS, COLLEAGUES as MOCK_COLLEAGUES } from './data/mockData';
 import './index.css';
 
 function App() {
   const [user, setUser] = useState(null);
   const [inventory, setInventory] = useState(null);
+  const [colleagues, setColleagues] = useState(MOCK_COLLEAGUES);
   const [isCraftingOpen, setIsCraftingOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -92,6 +93,20 @@ function App() {
         } else if (!isTelegramAuth) {
           console.log('Using Mock Inventory Data (Local Dev)');
           setInventory(INVENTORY_ITEMS);
+        }
+
+        const pendingTransfers = await fetchPendingTransfers();
+        if (pendingTransfers) {
+            setIncomingTransfers(pendingTransfers);
+        } else if (!isTelegramAuth) {
+             setIncomingTransfers(MOCK_INCOMING_TRANSFERS);
+        } else {
+             setIncomingTransfers([]);
+        }
+        
+        const colleaguesData = await fetchColleagues();
+        if (colleaguesData) {
+            setColleagues(colleaguesData);
         }
       } catch (e) {
         console.error("Error loading data", e);
@@ -226,8 +241,17 @@ function App() {
     }
   };
 
-  const handleAcceptTransfer = (transfer) => {
-    // 1. Add Item to Inventory
+  const handleAcceptTransfer = async (transfer) => {
+    // 1. API Call
+    try {
+        await respondToTransfer(transfer.id, 'accept');
+    } catch (e) {
+        console.error("Accept transfer failed", e);
+        alert("Failed to accept transfer.");
+        return;
+    }
+
+    // 2. Add Item to Inventory (Optimistic)
     const newInventory = [...inventory];
     const existingItemIndex = newInventory.findIndex(i => i.name === transfer.item.name);
     
@@ -242,20 +266,30 @@ function App() {
     }
     setInventory(newInventory);
 
-    // 2. Remove from Inbox
+    // 3. Remove from Inbox
     setIncomingTransfers(prev => prev.filter(t => t.id !== transfer.id));
 
-    // 3. Feedback
+    // 4. Feedback
     if (window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     }
   };
 
-  const handleRejectTransfer = (transferId) => {
-    // 1. Remove from Inbox
+  const handleRejectTransfer = async (transferId) => {
+    // 1. API Call
+    try {
+        await respondToTransfer(transferId, 'reject');
+    } catch (e) {
+        console.error("Reject transfer failed", e);
+        // Continue to remove locally even if API fails? Maybe safer to alert.
+        alert("Failed to reject transfer.");
+        return;
+    }
+
+    // 2. Remove from Inbox
     setIncomingTransfers(prev => prev.filter(t => t.id !== transferId));
     
-    // 2. Feedback
+    // 3. Feedback
     if (window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
     }
@@ -306,7 +340,22 @@ function App() {
   };
 
   const processMissingItem = async (item) => {
-    // ... existing missing item logic ...
+    // 1. Optimistic Update
+    const newInventory = inventory.map(i => {
+      if (i.id === item.id) {
+        return { ...i, auditRequired: false, status: 'missing' };
+      }
+      return i;
+    });
+    setInventory(newInventory);
+
+    // 2. Send to Backend
+    try {
+        await sendAuditResult(item.id, false); // false = missing
+    } catch (e) {
+        console.error("Failed to report missing item", e);
+    }
+
     // 3. Feedback
     const message = `Reported ${item.name} as MISSING. Admin notified.`;
     if (window.Telegram && window.Telegram.WebApp) {
@@ -441,6 +490,7 @@ function App() {
         isOpen={isTransferOpen}
         onClose={() => setIsTransferOpen(false)}
         item={itemToTransfer}
+        colleagues={colleagues}
         onSend={handleSendRequest}
       />
 
@@ -471,12 +521,14 @@ function App() {
         isOpen={isSendHoneyOpen}
         onClose={() => setIsSendHoneyOpen(false)}
         userBalance={user ? user.honey : 0}
+        colleagues={colleagues}
         onSend={handleSendHoney}
       />
 
       <OrgChartModal
         isOpen={isOrgChartOpen}
         onClose={() => setIsOrgChartOpen(false)}
+        colleagues={colleagues}
       />
 
       <div style={{ textAlign: 'center', marginTop: 32, opacity: 0.5, fontSize: 10 }}>

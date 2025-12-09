@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { X, Network, ChevronDown, ChevronRight, Search } from 'lucide-react';
-import { COLLEAGUES } from '../data/mockData';
 import './CraftingModal.css';
 import './OrgChartModal.css';
 
@@ -56,12 +55,12 @@ const OrgTreeNode = ({ node, depth = 0, visibleNodeIds, forceExpand }) => {
     );
 };
 
-const OrgChartModal = ({ isOpen, onClose }) => {
+const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
     const [searchQuery, setSearchQuery] = useState('');
 
     // Build Tree from Flat List (Memoized to avoid rebuilding on every render)
     const tree = useMemo(() => {
-        const nodes = JSON.parse(JSON.stringify(COLLEAGUES)); // Deep clone
+        const nodes = JSON.parse(JSON.stringify(colleagues)); // Deep clone
         const map = {};
         const roots = [];
 
@@ -79,7 +78,7 @@ const OrgChartModal = ({ isOpen, onClose }) => {
         });
 
         return roots;
-    }, []);
+    }, [colleagues]);
 
     // Calculate Visible Nodes based on Search
     const visibleNodeIds = useMemo(() => {
@@ -88,7 +87,7 @@ const OrgChartModal = ({ isOpen, onClose }) => {
         const ids = new Set();
         const lowerQuery = searchQuery.toLowerCase();
         const nodeMap = {};
-        COLLEAGUES.forEach(c => nodeMap[c.id] = c);
+        colleagues.forEach(c => nodeMap[c.id] = c);
 
         // Helper to mark node and all ancestors as visible
         const markVisible = (id) => {
@@ -101,7 +100,7 @@ const OrgChartModal = ({ isOpen, onClose }) => {
             }
         };
 
-        COLLEAGUES.forEach(node => {
+        colleagues.forEach(node => {
             if (node.name.toLowerCase().includes(lowerQuery) || 
                 node.role.toLowerCase().includes(lowerQuery)) {
                 markVisible(node.id);
@@ -109,7 +108,7 @@ const OrgChartModal = ({ isOpen, onClose }) => {
         });
 
         return ids;
-    }, [searchQuery]);
+    }, [searchQuery, colleagues]);
 
     if (!isOpen) return null;
 

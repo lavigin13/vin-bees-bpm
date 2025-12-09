@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { X, Send, User, Coins } from 'lucide-react';
-import { COLLEAGUES } from '../data/mockData';
 import './CraftingModal.css'; // Reusing styles
 
-const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend }) => {
+const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] }) => {
     const [selectedColleague, setSelectedColleague] = useState('');
     const [amount, setAmount] = useState('');
 
@@ -13,7 +12,7 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend }) => {
         const val = parseInt(amount);
         if (!selectedColleague || !val || val <= 0 || val > userBalance) return;
         
-        const colleague = COLLEAGUES.find(c => c.id === parseInt(selectedColleague));
+        const colleague = colleagues.find(c => c.id === parseInt(selectedColleague));
         onSend(colleague, val);
         
         // Reset
@@ -43,7 +42,7 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend }) => {
                         onChange={(e) => setSelectedColleague(e.target.value)}
                     >
                         <option value="">-- Choose Colleague --</option>
-                        {COLLEAGUES.map(c => (
+                        {colleagues.map(c => (
                             <option key={c.id} value={c.id}>{c.avatar} {c.name}</option>
                         ))}
                     </select>

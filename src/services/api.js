@@ -14,6 +14,20 @@ const getHeaders = () => {
     return headers;
 };
 
+export const fetchColleagues = async () => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/colleagues`, { method: 'GET', headers: getHeaders() });
+        if (!response.ok) {
+            console.warn('Colleagues API not ready, using mock');
+            return null;
+        }
+        return await response.json();
+    } catch (e) {
+        console.error('Failed to fetch colleagues:', e);
+        return null; 
+    }
+};
+
 export const fetchProfile = async () => {
     try {
         const response = await fetch(`${API_BASE_URL}/profile`, { method: 'GET', headers: getHeaders() });
@@ -51,8 +65,12 @@ export const sendAuditResult = async (itemId, status) => {
     // status: boolean (true=present, false=missing) or string ('present'/'missing')
     const headers = getHeaders();
     try {
-        const statusStr = typeof status === 'boolean' ? (status ? 'present' : 'missing') : status;
-        
+        // Ensure status is explicitly converted to string if it's not already
+        let statusStr = status;
+        if (typeof status === 'boolean') {
+             statusStr = status ? 'present' : 'missing';
+        }
+
         const response = await fetch(`${API_BASE_URL}/inventory/audit`, {
             method: 'POST',
             headers: headers,
@@ -96,6 +114,41 @@ export const transferItem = async (recipientId, itemId, quantity) => {
         return await response.json();
     } catch (error) {
         console.error('Item transfer failed:', error);
+        throw error;
+    }
+};
+
+export const fetchPendingTransfers = async () => {
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/inventory/transfer`, {
+            method: 'GET',
+            headers: headers
+        });
+        if (!response.ok) {
+            console.warn('Pending transfers API not ready');
+            return null;
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch pending transfers:', error);
+        return null;
+    }
+};
+
+export const respondToTransfer = async (transferId, action) => {
+    // action: 'accept' or 'reject'
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/inventory/transfer/respond`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ transferId, action })
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error(`Transfer response (${action}) failed:`, error);
         throw error;
     }
 };

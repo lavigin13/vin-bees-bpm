@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { X, Send, User } from 'lucide-react';
-import { COLLEAGUES } from '../data/mockData';
 import './CraftingModal.css'; // Reusing styles
 
-const TransferModal = ({ isOpen, onClose, item, onSend }) => {
+const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
     const [selectedColleague, setSelectedColleague] = useState('');
     const [quantity, setQuantity] = useState(1);
 
@@ -12,7 +11,7 @@ const TransferModal = ({ isOpen, onClose, item, onSend }) => {
     const handleSend = () => {
         if (!selectedColleague) return;
         
-        const colleague = COLLEAGUES.find(c => c.id === parseInt(selectedColleague));
+        const colleague = colleagues.find(c => c.id === parseInt(selectedColleague));
         onSend(item, parseInt(quantity), colleague);
         onClose();
         setSelectedColleague('');
@@ -44,7 +43,7 @@ const TransferModal = ({ isOpen, onClose, item, onSend }) => {
                             onChange={(e) => setSelectedColleague(e.target.value)}
                         >
                             <option value="">-- Select Colleague --</option>
-                            {COLLEAGUES.map(c => (
+                            {colleagues.map(c => (
                                 <option key={c.id} value={c.id}>{c.avatar} {c.name}</option>
                             ))}
                         </select>
