@@ -1,153 +1,293 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { X, Network, ChevronDown, ChevronRight, Search } from 'lucide-react';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Network, Search, Users, X } from 'lucide-react';
 import './CraftingModal.css';
 import './OrgChartModal.css';
 
-const OrgTreeNode = ({ node, depth = 0, visibleNodeIds, forceExpand }) => {
-    const [isExpanded, setIsExpanded] = useState(true);
-    
-    // Filter visibility
-    const isVisible = !visibleNodeIds || visibleNodeIds.has(node.id);
-    
-    // Auto-expand when searching
+const SEARCH_LIMIT = 150;
+const ROW_HEIGHT = 68;
+const OVERSCAN = 6;
+const MAX_LIST_HEIGHT = 420;
+
+const sortByName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+
+const VirtualizedList = ({ items, onNodeClick, childrenCountById, emptyText }) => {
+    const [scrollTop, setScrollTop] = useState(0);
+
     useEffect(() => {
-        if (forceExpand) {
-            setIsExpanded(true);
-        }
-    }, [forceExpand]);
+        setScrollTop(0);
+    }, [items]);
 
-    if (!isVisible) return null;
+    if (!items.length) {
+        return <div className="org-empty">{emptyText}</div>;
+    }
 
-    const hasChildren = node.children && node.children.length > 0;
+    const viewportHeight = Math.min(MAX_LIST_HEIGHT, Math.max(ROW_HEIGHT * 2, items.length * ROW_HEIGHT));
+    const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
+    const visibleCount = Math.ceil(viewportHeight / ROW_HEIGHT) + OVERSCAN * 2;
+    const endIndex = Math.min(items.length, startIndex + visibleCount);
+    const offsetY = startIndex * ROW_HEIGHT;
+    const visibleItems = items.slice(startIndex, endIndex);
 
     return (
-        <div className="org-node-wrapper">
-            <div className={`org-card depth-${depth} ${hasChildren ? 'has-children' : ''}`}>
-                <div className="org-avatar">{node.avatar}</div>
-                <div className="org-info">
-                    <div className="org-name">{node.name}</div>
-                    <div className="org-role">{node.role}</div>
+        <div
+            className="org-list-viewport"
+            style={{ height: viewportHeight }}
+            onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+        >
+            <div className="org-list-inner" style={{ height: items.length * ROW_HEIGHT }}>
+                <div className="org-list-offset" style={{ transform: `translateY(${offsetY}px)` }}>
+                    {visibleItems.map((node) => {
+                        const reportsCount = childrenCountById.get(node.id) || 0;
+                        return (
+                            <button
+                                key={node.id}
+                                className="org-card"
+                                onClick={() => onNodeClick(node.id)}
+                                type="button"
+                            >
+                                <span className="card-avatar">{node.avatar || '👤'}</span>
+                                <span className="card-info">
+                                    <span className="card-name">{node.name}</span>
+                                    <span className="card-role">{node.role || 'No role'}</span>
+                                </span>
+                                {reportsCount > 0 && (
+                                    <span className="card-reports-count">
+                                        <Users size={12} />
+                                        {reportsCount}
+                                    </span>
+                                )}
+                                <ChevronRight size={16} className="card-arrow" />
+                            </button>
+                        );
+                    })}
                 </div>
-                {hasChildren && (
-                    <button 
-                        className="toggle-btn"
-                        onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-                    >
-                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    </button>
-                )}
             </div>
-            
-            {hasChildren && isExpanded && (
-                <div className="org-children">
-                    {node.children.map(child => (
-                        <OrgTreeNode 
-                            key={child.id} 
-                            node={child} 
-                            depth={depth + 1} 
-                            visibleNodeIds={visibleNodeIds}
-                            forceExpand={forceExpand}
-                        />
-                    ))}
-                </div>
-            )}
         </div>
     );
 };
 
 const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+    const [currentNodeId, setCurrentNodeId] = useState(null);
+    const deferredQuery = useDeferredValue(searchInput.trim().toLowerCase());
 
-    // Build Tree from Flat List (Memoized to avoid rebuilding on every render)
-    const tree = useMemo(() => {
-        const nodes = JSON.parse(JSON.stringify(colleagues)); // Deep clone
-        const map = {};
-        const roots = [];
+    const graph = useMemo(() => {
+        const nodesById = new Map();
+        const childrenById = new Map();
+        const rootNodes = [];
 
-        nodes.forEach(node => {
-            node.children = [];
-            map[node.id] = node;
-        });
+        for (const raw of colleagues) {
+            const node = {
+                ...raw,
+                id: raw?.id,
+                managerId: raw?.managerId ?? null,
+                searchKey: `${raw?.name || ''} ${raw?.role || ''}`.toLowerCase()
+            };
+            nodesById.set(node.id, node);
+            childrenById.set(node.id, []);
+        }
 
-        nodes.forEach(node => {
-            if (node.managerId && map[node.managerId]) {
-                map[node.managerId].children.push(node);
+        for (const node of nodesById.values()) {
+            if (node.managerId && node.managerId !== node.id && nodesById.has(node.managerId)) {
+                childrenById.get(node.managerId).push(node);
             } else {
-                roots.push(node);
+                rootNodes.push(node);
             }
-        });
+        }
 
-        return roots;
+        for (const list of childrenById.values()) {
+            list.sort(sortByName);
+        }
+        rootNodes.sort(sortByName);
+
+        return {
+            nodesById,
+            childrenById,
+            rootNodes,
+            allNodes: Array.from(nodesById.values())
+        };
     }, [colleagues]);
 
-    // Calculate Visible Nodes based on Search
-    const visibleNodeIds = useMemo(() => {
-        if (!searchQuery.trim()) return null; // null means show all
+    const defaultRoot = graph.rootNodes[0] || graph.allNodes[0] || null;
 
-        const ids = new Set();
-        const lowerQuery = searchQuery.toLowerCase();
-        const nodeMap = {};
-        colleagues.forEach(c => nodeMap[c.id] = c);
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+        setSearchInput('');
+        setCurrentNodeId(defaultRoot?.id ?? null);
+    }, [isOpen, defaultRoot?.id]);
 
-        // Helper to mark node and all ancestors as visible
-        const markVisible = (id) => {
-            let currentId = id;
-            while (currentId) {
-                if (ids.has(currentId)) break; // Optimization: already processed path
-                ids.add(currentId);
-                const node = nodeMap[currentId];
-                currentId = node ? node.managerId : null;
+    const currentNode = graph.nodesById.get(currentNodeId) || defaultRoot;
+    const directReports = currentNode ? graph.childrenById.get(currentNode.id) || [] : [];
+    const currentManager = currentNode?.managerId ? graph.nodesById.get(currentNode.managerId) : null;
+
+    const breadcrumb = useMemo(() => {
+        if (!currentNode) return [];
+        const chain = [];
+        const visited = new Set();
+        let node = currentNode;
+        while (node && !visited.has(node.id)) {
+            chain.unshift(node);
+            visited.add(node.id);
+            node = node.managerId ? graph.nodesById.get(node.managerId) : null;
+        }
+        return chain;
+    }, [currentNode, graph.nodesById]);
+    const currentTopRoot = breadcrumb[0] || defaultRoot;
+
+    const searchState = useMemo(() => {
+        if (!deferredQuery) {
+            return { results: [], total: 0, isLimited: false };
+        }
+
+        let total = 0;
+        const results = [];
+        for (const node of graph.allNodes) {
+            if (node.searchKey.includes(deferredQuery)) {
+                total += 1;
+                if (results.length < SEARCH_LIMIT) {
+                    results.push(node);
+                }
             }
-        };
+        }
+        return { results, total, isLimited: total > SEARCH_LIMIT };
+    }, [deferredQuery, graph.allNodes]);
 
-        colleagues.forEach(node => {
-            if (node.name.toLowerCase().includes(lowerQuery) || 
-                node.role.toLowerCase().includes(lowerQuery)) {
-                markVisible(node.id);
-            }
-        });
+    const onNodeClick = (nodeId) => {
+        if (!graph.nodesById.has(nodeId)) return;
+        setCurrentNodeId(nodeId);
+        setSearchInput('');
+    };
 
-        return ids;
-    }, [searchQuery, colleagues]);
+    if (!isOpen || !currentNode) return null;
 
-    if (!isOpen) return null;
+    const showingSearch = deferredQuery.length > 0;
+    const childrenCountById = graph.childrenById;
+    const topLeaders = graph.rootNodes;
+    const hasMultipleTopLeaders = topLeaders.length > 1;
 
     return (
-        <div className="modal-overlay" style={{ zIndex: 1400 }}>
-            <div className="modal-content org-content">
-                <button className="close-btn" onClick={onClose}><X size={24} /></button>
-                
-                <h2 className="modal-title">
-                    <Network size={20} /> Organization Structure
-                </h2>
+        <div className="modal-overlay" style={{ zIndex: 1400 }} onClick={onClose}>
+            <div className="modal-content org-content" onClick={(event) => event.stopPropagation()}>
+                <div className="org-header">
+                    <h2 className="modal-title">
+                        <Network size={18} className="text-gold" />
+                        <span>Org Chart</span>
+                    </h2>
+                    <button className="close-btn" onClick={onClose} type="button">
+                        <X size={24} />
+                    </button>
+                </div>
 
                 <div className="org-search-container">
                     <Search size={16} className="org-search-icon" />
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         className="org-search-input"
-                        placeholder="Search colleague or role..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        autoFocus
+                        placeholder="Search by name or role..."
+                        value={searchInput}
+                        onChange={(event) => setSearchInput(event.target.value)}
                     />
                 </div>
 
-                <div className="org-chart-container">
-                    {tree.map(root => (
-                        <OrgTreeNode 
-                            key={root.id} 
-                            node={root} 
-                            visibleNodeIds={visibleNodeIds}
-                            forceExpand={!!searchQuery}
-                        />
-                    ))}
-                    {visibleNodeIds && visibleNodeIds.size === 0 && (
-                        <div style={{ textAlign: 'center', padding: 20, color: '#888' }}>
-                            No colleagues found
+                {!showingSearch && (
+                    <>
+                        {hasMultipleTopLeaders && (
+                            <div className="org-top-leaders">
+                                <div className="section-label">Top Leaders</div>
+                                <div className="org-top-leaders-list">
+                                    {topLeaders.map((leader) => {
+                                        const isActive = currentTopRoot?.id === leader.id;
+                                        return (
+                                            <button
+                                                key={leader.id}
+                                                className={`top-leader-chip ${isActive ? 'active' : ''}`}
+                                                onClick={() => onNodeClick(leader.id)}
+                                                type="button"
+                                            >
+                                                <span className="top-leader-avatar">{leader.avatar || '👤'}</span>
+                                                <span className="top-leader-name">{leader.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="org-breadcrumbs">
+                            {breadcrumb.map((node, index) => {
+                                const isCurrent = index === breadcrumb.length - 1;
+                                return (
+                                    <button
+                                        key={node.id}
+                                        className={`breadcrumb-item ${isCurrent ? 'breadcrumb-current' : ''}`}
+                                        onClick={() => !isCurrent && onNodeClick(node.id)}
+                                        type="button"
+                                    >
+                                        {node.name}
+                                        {!isCurrent && <span className="breadcrumb-separator">/</span>}
+                                    </button>
+                                );
+                            })}
                         </div>
-                    )}
-                </div>
+
+                        <div className="org-current-node-hero">
+                            <div className="hero-avatar">{currentNode.avatar || '👤'}</div>
+                            <div className="hero-info">
+                                <h3>{currentNode.name}</h3>
+                                <div className="hero-role">{currentNode.role || 'No role'}</div>
+                                <div className="hero-stats">
+                                    <Users size={14} />
+                                    <span>{directReports.length} direct reports</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="org-toolbar">
+                            <button
+                                className="org-nav-btn"
+                                type="button"
+                                onClick={() => currentManager && onNodeClick(currentManager.id)}
+                                disabled={!currentManager}
+                            >
+                                <ChevronLeft size={14} />
+                                Manager
+                            </button>
+                            <button
+                                className="org-nav-btn"
+                                type="button"
+                                onClick={() => currentTopRoot && onNodeClick(currentTopRoot.id)}
+                                disabled={!currentTopRoot || currentNode.id === currentTopRoot.id}
+                            >
+                                Top
+                            </button>
+                        </div>
+
+                        <div className="section-label">Direct Reports</div>
+                        <VirtualizedList
+                            items={directReports}
+                            onNodeClick={onNodeClick}
+                            childrenCountById={childrenCountById}
+                            emptyText="No direct reports"
+                        />
+                    </>
+                )}
+
+                {showingSearch && (
+                    <>
+                        <div className="section-label">
+                            {searchState.total} result{searchState.total === 1 ? '' : 's'}
+                            {searchState.isLimited ? ` (showing first ${SEARCH_LIMIT})` : ''}
+                        </div>
+                        <VirtualizedList
+                            items={searchState.results}
+                            onNodeClick={onNodeClick}
+                            childrenCountById={childrenCountById}
+                            emptyText={`No results found for "${searchInput.trim()}"`}
+                        />
+                    </>
+                )}
             </div>
         </div>
     );

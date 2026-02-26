@@ -12,15 +12,19 @@ import OrgChartModal from './components/OrgChartModal';
 import BusinessTripsModal from './components/BusinessTripsModal';
 import TimesheetModal from './components/TimesheetModal';
 import RequestsModal from './components/RequestsModal';
+import RewardReportModal from './components/RewardReportModal';
+import WarehouseInventoryModal from './components/WarehouseInventoryModal';
+import ComingSoonModal from './components/ComingSoonModal';
 
-import { 
-  fetchProfile, fetchInventory, updateProfile, sendAuditResult, transferHoney, 
-  transferItem, getMarketplaceItems, buyItem, createListing, fetchPendingTransfers, 
-  respondToTransfer, fetchColleagues, fetchTrips, createOrUpdateTrip, submitTrip, respondToRequest
+import {
+  fetchProfile, fetchInventory, updateProfile, sendAuditResult, transferHoney,
+  transferItem, getMarketplaceItems, buyItem, createListing, fetchPendingTransfers,
+  respondToTransfer, fetchColleagues, fetchTrips, createOrUpdateTrip, submitTrip, respondToRequest,
+  saveWarehouseInventory, fetchRequests, createOrUpdateRequest, submitRequest
 } from './services/api';
 
-import { 
-  INITIAL_USER, INVENTORY_ITEMS, RECIPES, MOCK_INCOMING_TRANSFERS, 
+import {
+  INITIAL_USER, INVENTORY_ITEMS, RECIPES, MOCK_INCOMING_TRANSFERS,
   MARKETPLACE_ITEMS, COLLEAGUES as MOCK_COLLEAGUES, MOCK_TRIPS, MOCK_DAILY_REPORTS,
   MOCK_REQUESTS
 } from './data/mockData';
@@ -64,12 +68,49 @@ function App() {
   const [requests, setRequests] = useState(MOCK_REQUESTS);
   const [initialRequestsFilter, setInitialRequestsFilter] = useState('my');
 
+  // Warehouse Inventory State
+  const [isWarehouseInventoryOpen, setIsWarehouseInventoryOpen] = useState(false);
+
+  // Reward Report State
+  const [isRewardReportOpen, setIsRewardReportOpen] = useState(false);
+
+  // Coming Soon State
+  const [isComingSoonOpen, setIsComingSoonOpen] = useState(false);
+  const [comingSoonFeature, setComingSoonFeature] = useState('');
+
+  const handleComingSoon = (featureName) => {
+    setComingSoonFeature(featureName);
+    setIsComingSoonOpen(true);
+  };
+
   // Helper to count pending requests (simulated for team members)
-  // In a real app, backend would filter this. Here we just assume non-current-user requests are team requests.
-  const pendingRequestsCount = requests.filter(r => 
-      r.createdBy !== (user ? user.id : 999) && 
-      (r.status === 'new' || r.status === 'pending')
+  const pendingRequestsCount = (requests || []).filter(r =>
+    r && r.createdBy !== (user ? user.id : 999) &&
+    (r.status === 'new' || r.status === 'pending')
   ).length;
+
+  // Refresh requests when modal opens
+  useEffect(() => {
+    if (isRequestsOpen) {
+      const refreshRequests = async () => {
+        try {
+          const myRequests = await fetchRequests('my');
+          const subRequests = await fetchRequests('subordinates');
+          const allRequests = [
+            ...(myRequests || []),
+            ...(subRequests || [])
+          ];
+          const uniqueRequests = Array.from(new Map(allRequests.map(item => [item.id, item])).values());
+          if (uniqueRequests.length > 0) {
+            setRequests(uniqueRequests);
+          }
+        } catch (e) {
+          console.error("Failed to refresh requests", e);
+        }
+      };
+      refreshRequests();
+    }
+  }, [isRequestsOpen]);
 
   useEffect(() => {
     // Expand Telegram WebApp if available
@@ -88,14 +129,24 @@ function App() {
       const isTelegramAuth = window.Telegram?.WebApp?.initData;
 
       try {
-        const profileData = await fetchProfile();
-        // ... (existing profile logic) ...
-        
-        // Load Marketplace
-        const marketData = await getMarketplaceItems();
-        if (marketData) {
-            setMarketplaceItems(marketData);
+        let profileData = null;
+        try {
+          profileData = await fetchProfile();
+        } catch (e) {
+          console.warn("Failed to fetch profile", e);
         }
+        // ... (existing profile logic) ...
+
+        // Load Marketplace
+        try {
+          const marketData = await getMarketplaceItems();
+          if (marketData) {
+            setMarketplaceItems(marketData);
+          }
+        } catch (e) {
+          console.warn("Failed to load marketplace", e);
+        }
+
         if (profileData) {
           // Normalize birthday to YYYY-MM-DD
           let normalizedBirthday = profileData.birthday;
@@ -121,44 +172,85 @@ function App() {
           setUser(INITIAL_USER);
         }
 
-        const inventoryData = await fetchInventory();
-        if (inventoryData) {
-          setInventory(inventoryData);
-        } else if (!isTelegramAuth) {
-          console.log('Using Mock Inventory Data (Local Dev)');
-          setInventory(INVENTORY_ITEMS);
+
+        try {
+          const inventoryData = await fetchInventory();
+          if (inventoryData) {
+            setInventory(inventoryData);
+          } else if (!isTelegramAuth) {
+            console.log('Using Mock Inventory Data (Local Dev)');
+            setInventory(INVENTORY_ITEMS);
+          }
+        } catch (e) {
+          console.warn("Failed to load inventory", e);
+          if (!isTelegramAuth) setInventory(INVENTORY_ITEMS);
         }
 
-        const pendingTransfers = await fetchPendingTransfers();
-        if (pendingTransfers) {
+        try {
+          const pendingTransfers = await fetchPendingTransfers();
+          if (pendingTransfers) {
             setIncomingTransfers(pendingTransfers);
-        } else if (!isTelegramAuth) {
-             setIncomingTransfers(MOCK_INCOMING_TRANSFERS);
-        } else {
-             setIncomingTransfers([]);
+          } else if (!isTelegramAuth) {
+            setIncomingTransfers(MOCK_INCOMING_TRANSFERS);
+          } else {
+            setIncomingTransfers([]);
+          }
+        } catch (e) {
+          console.warn("Failed to load pending transfers", e);
+          setIncomingTransfers([]);
         }
-        
-        const colleaguesData = await fetchColleagues();
-        if (colleaguesData) {
+
+        try {
+          const colleaguesData = await fetchColleagues();
+          if (colleaguesData) {
             setColleagues(colleaguesData);
+          }
+        } catch (e) {
+          console.warn("Failed to load colleagues", e);
         }
 
         // Load Trips
-        const tripsData = await fetchTrips();
-        if (tripsData) {
+        try {
+          const tripsData = await fetchTrips();
+          if (tripsData) {
             setTrips(tripsData);
-        } else if (!isTelegramAuth) {
+          } else if (!isTelegramAuth) {
             setTrips(MOCK_TRIPS);
-        } else {
+          } else {
             setTrips([]);
+          }
+        } catch (e) {
+          console.warn("Failed to load trips", e);
+          setTrips([]);
         }
 
-        // Load Requests (API not ready yet, using mock)
-        if (!isTelegramAuth) {
-            setRequests(MOCK_REQUESTS);
+        // Load Requests
+        let myRequests = [];
+        let subRequests = [];
+        try {
+          const myReqRes = await fetchRequests('my');
+          if (myReqRes) myRequests = myReqRes;
+
+          const subReqRes = await fetchRequests('subordinates');
+          if (subReqRes) subRequests = subReqRes;
+        } catch (e) {
+          console.warn("Failed to load requests", e);
+        }
+
+        const allRequests = [
+          ...(Array.isArray(myRequests) ? myRequests : []),
+          ...(Array.isArray(subRequests) ? subRequests : [])
+        ];
+
+        // Remove duplicates by ID just in case
+        const uniqueRequests = Array.from(new Map(allRequests.map(item => [item.id, item])).values());
+
+        if (uniqueRequests.length > 0) {
+          setRequests(uniqueRequests);
+        } else if (!isTelegramAuth) {
+          setRequests(MOCK_REQUESTS);
         } else {
-            // Placeholder: setRequests([]);
-            setRequests(MOCK_REQUESTS); // Temporary fallback
+          setRequests([]);
         }
 
       } catch (e) {
@@ -265,9 +357,9 @@ function App() {
 
   const handleSendRequest = async (item, quantity, recipient) => {
     if (!recipient || !recipient.id) {
-        console.error("Invalid recipient:", recipient);
-        alert("Please select a valid recipient.");
-        return;
+      console.error("Invalid recipient:", recipient);
+      alert("Please select a valid recipient.");
+      return;
     }
 
     // 1. Optimistic Update
@@ -282,12 +374,12 @@ function App() {
 
     // 2. API Call
     try {
-        await transferItem(recipient.id, item.id, quantity);
+      await transferItem(recipient.id, item.id, quantity);
     } catch (e) {
-        console.error("Transfer failed", e);
-        // Optional: Revert state
-        alert("Transfer failed, please try again.");
-        return;
+      console.error("Transfer failed", e);
+      // Optional: Revert state
+      alert("Transfer failed, please try again.");
+      return;
     }
 
     // 3. Feedback
@@ -303,17 +395,17 @@ function App() {
   const handleAcceptTransfer = async (transfer) => {
     // 1. API Call
     try {
-        await respondToTransfer(transfer.id, 'accept');
+      await respondToTransfer(transfer.id, 'accept');
     } catch (e) {
-        console.error("Accept transfer failed", e);
-        alert("Failed to accept transfer.");
-        return;
+      console.error("Accept transfer failed", e);
+      alert("Failed to accept transfer.");
+      return;
     }
 
     // 2. Add Item to Inventory (Optimistic)
     const newInventory = [...inventory];
     const existingItemIndex = newInventory.findIndex(i => i.name === transfer.item.name);
-    
+
     if (existingItemIndex >= 0) {
       newInventory[existingItemIndex].quantity += transfer.quantity;
     } else {
@@ -337,17 +429,17 @@ function App() {
   const handleRejectTransfer = async (transferId) => {
     // 1. API Call
     try {
-        await respondToTransfer(transferId, 'reject');
+      await respondToTransfer(transferId, 'reject');
     } catch (e) {
-        console.error("Reject transfer failed", e);
-        // Continue to remove locally even if API fails? Maybe safer to alert.
-        alert("Failed to reject transfer.");
-        return;
+      console.error("Reject transfer failed", e);
+      // Continue to remove locally even if API fails? Maybe safer to alert.
+      alert("Failed to reject transfer.");
+      return;
     }
 
     // 2. Remove from Inbox
     setIncomingTransfers(prev => prev.filter(t => t.id !== transferId));
-    
+
     // 3. Feedback
     if (window.Telegram && window.Telegram.WebApp) {
       window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
@@ -386,15 +478,15 @@ function App() {
 
   const handleReportMissing = async (item) => {
     if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.showConfirm(`Are you sure ${item.name} is missing?`, async (confirmed) => {
-            if (confirmed) {
-                processMissingItem(item);
-            }
-        });
-    } else {
-        if (confirm(`Are you sure ${item.name} is missing?`)) {
-            processMissingItem(item);
+      window.Telegram.WebApp.showConfirm(`Are you sure ${item.name} is missing?`, async (confirmed) => {
+        if (confirmed) {
+          processMissingItem(item);
         }
+      });
+    } else {
+      if (confirm(`Are you sure ${item.name} is missing?`)) {
+        processMissingItem(item);
+      }
     }
   };
 
@@ -410,90 +502,90 @@ function App() {
 
     // 2. Send to Backend
     try {
-        await sendAuditResult(item.id, false); // false = missing
+      await sendAuditResult(item.id, false); // false = missing
     } catch (e) {
-        console.error("Failed to report missing item", e);
+      console.error("Failed to report missing item", e);
     }
 
     // 3. Feedback
     const message = `Reported ${item.name} as MISSING. Admin notified.`;
     if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-        window.Telegram.WebApp.showAlert(message);
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+      window.Telegram.WebApp.showAlert(message);
     } else {
-        alert(message);
+      alert(message);
     }
   };
 
   // --- Marketplace Logic ---
 
   const handleBuyItem = async (item) => {
-      if (user.honey < item.price) {
-          alert("Not enough Honey!");
-          return;
-      }
+    if (user.honey < item.price) {
+      alert("Not enough Honey!");
+      return;
+    }
 
-      // 1. Deduct Honey (Optimistic)
-      setUser(prev => ({ ...prev, honey: prev.honey - item.price }));
+    // 1. Deduct Honey (Optimistic)
+    setUser(prev => ({ ...prev, honey: prev.honey - item.price }));
 
-      // 2. API Call
-      try {
-          await buyItem(item.id);
-      } catch (e) {
-          console.error("Buy failed", e);
-          alert("Purchase failed.");
-          setUser(prev => ({ ...prev, honey: prev.honey + item.price })); // Revert
-          return;
-      }
+    // 2. API Call
+    try {
+      await buyItem(item.id);
+    } catch (e) {
+      console.error("Buy failed", e);
+      alert("Purchase failed.");
+      setUser(prev => ({ ...prev, honey: prev.honey + item.price })); // Revert
+      return;
+    }
 
-      // 3. Add to Inventory (Optimistic)
-      const newItem = {
-          id: Date.now(),
-          name: item.name,
-          rarity: item.rarity || "Common",
-          icon: item.icon || "box",
-          type: item.type === 'equipment' || item.type === 'merch' ? 'equipment' : 'resource',
-          quantity: 1
-      };
-      setInventory(prev => [...prev, newItem]);
+    // 3. Add to Inventory (Optimistic)
+    const newItem = {
+      id: Date.now(),
+      name: item.name,
+      rarity: item.rarity || "Common",
+      icon: item.icon || "box",
+      type: item.type === 'equipment' || item.type === 'merch' ? 'equipment' : 'resource',
+      quantity: 1
+    };
+    setInventory(prev => [...prev, newItem]);
 
-      // 4. Remove from Marketplace (if P2P)
-      if (item.seller !== 'system') {
-          setMarketplaceItems(prev => prev.filter(i => i.id !== item.id));
-      }
+    // 4. Remove from Marketplace (if P2P)
+    if (item.seller !== 'system') {
+      setMarketplaceItems(prev => prev.filter(i => i.id !== item.id));
+    }
 
-      // 5. Feedback
-      if (window.Telegram && window.Telegram.WebApp) {
-          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-          window.Telegram.WebApp.showPopup({
-              title: 'Purchase Successful! 🎉',
-              message: `You bought ${item.name} for ${item.price} Honey.`,
-              buttons: [{type: 'ok'}]
-          });
-      } else {
-          alert(`Bought ${item.name}!`);
-      }
+    // 5. Feedback
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+      window.Telegram.WebApp.showPopup({
+        title: 'Purchase Successful! 🎉',
+        message: `You bought ${item.name} for ${item.price} Honey.`,
+        buttons: [{ type: 'ok' }]
+      });
+    } else {
+      alert(`Bought ${item.name}!`);
+    }
   };
 
   const handleCreateListing = async (listingData) => {
-      // 1. API Call
-      try {
-          const newItem = await createListing(listingData);
-          // 2. Update UI
-          setMarketplaceItems(prev => [newItem || {
-              id: `u_${Date.now()}`,
-              seller: user.name,
-              ...listingData
-          }, ...prev]);
-          setIsSellModalOpen(false);
+    // 1. API Call
+    try {
+      const newItem = await createListing(listingData);
+      // 2. Update UI
+      setMarketplaceItems(prev => [newItem || {
+        id: `u_${Date.now()}`,
+        seller: user.name,
+        ...listingData
+      }, ...prev]);
+      setIsSellModalOpen(false);
 
-          if (window.Telegram && window.Telegram.WebApp) {
-              window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-          }
-      } catch (e) {
-          console.error("Listing failed", e);
-          alert("Failed to create listing.");
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
       }
+    } catch (e) {
+      console.error("Listing failed", e);
+      alert("Failed to create listing.");
+    }
   };
 
   const handleSendHoney = async (recipient, amount) => {
@@ -502,164 +594,216 @@ function App() {
 
     // 2. API Call
     try {
-        await transferHoney(recipient.id, amount);
+      await transferHoney(recipient.id, amount);
     } catch (e) {
-        console.error(e);
+      console.error(e);
     }
 
     // 3. Feedback
     const message = `Sent ${amount} Honey to ${recipient.name}!`;
     if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        window.Telegram.WebApp.showAlert(message);
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+      window.Telegram.WebApp.showAlert(message);
     } else {
-        alert(message);
+      alert(message);
     }
   };
 
   // --- Trips Logic ---
 
   const handleSaveTrip = async (trip) => {
-      // 1. Optimistic Update or Local State
-      setTrips(prev => {
-          const exists = prev.find(t => t.id === trip.id);
-          if (exists) {
-              return prev.map(t => t.id === trip.id ? trip : t);
-          }
-          return [...prev, trip];
-      });
-
-      // 2. API Call
-      try {
-          await createOrUpdateTrip(trip);
-          if (window.Telegram && window.Telegram.WebApp) {
-              window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-          }
-      } catch (e) {
-          console.error("Failed to save trip", e);
-          alert("Failed to save trip.");
+    // 1. Optimistic Update or Local State
+    setTrips(prev => {
+      const exists = prev.find(t => t.id === trip.id);
+      if (exists) {
+        return prev.map(t => t.id === trip.id ? trip : t);
       }
+      return [...prev, trip];
+    });
+
+    // 2. API Call
+    try {
+      await createOrUpdateTrip(trip);
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+      }
+    } catch (e) {
+      console.error("Failed to save trip", e);
+      alert("Failed to save trip.");
+    }
   };
 
   const handleSubmitTrip = async (trip) => {
-      // 1. Update status locally
-      const updatedTrip = { ...trip, status: 'pending' };
-      setTrips(prev => prev.map(t => t.id === trip.id ? updatedTrip : t));
+    // 1. Update status locally
+    const updatedTrip = { ...trip, status: 'pending' };
+    setTrips(prev => prev.map(t => t.id === trip.id ? updatedTrip : t));
 
-      // 2. API Call
-      try {
-          // If it's a new trip, save it first? Assuming API handles update-then-submit or we just submit ID
-          if (String(trip.id).startsWith('new_')) {
-              // Usually backend replaces temp ID, but for now we just save content
-              await createOrUpdateTrip(updatedTrip);
-          } else {
-              await createOrUpdateTrip(updatedTrip); // Ensure latest changes are saved
-              await submitTrip(trip.id);
-          }
-          
-          if (window.Telegram && window.Telegram.WebApp) {
-              window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-              window.Telegram.WebApp.showAlert("Trip submitted for approval!");
-          } else {
-              alert("Trip submitted!");
-          }
-      } catch (e) {
-          console.error("Failed to submit trip", e);
-          alert("Failed to submit trip.");
+    // 2. API Call
+    try {
+      // If it's a new trip, save it first? Assuming API handles update-then-submit or we just submit ID
+      if (String(trip.id).startsWith('new_')) {
+        // Usually backend replaces temp ID, but for now we just save content
+        await createOrUpdateTrip(updatedTrip);
+      } else {
+        await createOrUpdateTrip(updatedTrip); // Ensure latest changes are saved
+        await submitTrip(trip.id);
       }
+
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        window.Telegram.WebApp.showAlert("Trip submitted for approval!");
+      } else {
+        alert("Trip submitted!");
+      }
+    } catch (e) {
+      console.error("Failed to submit trip", e);
+      alert("Failed to submit trip.");
+    }
   };
 
   // --- Timesheet Logic ---
 
   const handleSaveDailyReport = (dateStr, reportData) => {
-      setDailyReports(prev => ({
-          ...prev,
-          [dateStr]: reportData
-      }));
+    setDailyReports(prev => ({
+      ...prev,
+      [dateStr]: reportData
+    }));
 
-      // In a real app: await api.saveDailyReport(dateStr, reportData);
-      
-      if (window.Telegram && window.Telegram.WebApp) {
-          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      }
+    // In a real app: await api.saveDailyReport(dateStr, reportData);
+
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
   };
 
   // --- Requests Logic ---
 
-  const handleSaveRequest = (req) => {
+  const handleSaveRequest = async (req) => {
+    try {
+      const response = await createOrUpdateRequest(req);
+
+      // Merge response with request data (assuming response might be partial or just contain ID)
+      const savedReq = {
+        ...req,
+        id: response.requestId || response.id || req.id,
+        status: response.status || req.status || 'draft'
+      };
+
       setRequests(prev => {
-          if (req.id) {
-              return prev.map(r => r.id === req.id ? req : r);
-          }
-          const newReq = { ...req, id: `new_${Date.now()}` };
-          return [newReq, ...prev];
+        const index = prev.findIndex(r => r.id === req.id);
+        if (index !== -1) {
+          const newRequests = [...prev];
+          newRequests[index] = savedReq;
+          return newRequests;
+        }
+        return [savedReq, ...prev];
       });
+
       if (window.Telegram && window.Telegram.WebApp) {
-          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
       }
+      return savedReq; // Return for chaining
+    } catch (e) {
+      console.error("Failed to save request", e);
+      alert("Failed to save request.");
+      throw e;
+    }
   };
 
-  const handleSubmitRequest = (req) => {
-      const updatedReq = { ...req, status: 'pending' };
-      setRequests(prev => {
-          if (req.id) {
-              return prev.map(r => r.id === req.id ? updatedReq : r);
-          }
-          const newReq = { ...updatedReq, id: `new_${Date.now()}` };
-          return [newReq, ...prev];
-      });
+  const handleSubmitRequest = async (req) => {
+    try {
+      // First save/update the request
+      let savedReq = req;
+      let reqId = req.id;
+
+      // If it's a new request or has a temp ID, save it first to get a real ID
+      if (!reqId || String(reqId).startsWith('new_') || req.status === 'draft') {
+        savedReq = await handleSaveRequest(req);
+        reqId = savedReq.id;
+      }
+
+      // Then submit
+      await submitRequest(reqId);
+
+      // Optimistically update status to 'new' (pending approval)
+      const submittedReq = { ...savedReq, status: 'new' };
+
+      setRequests(prev => prev.map(r => r.id === reqId ? submittedReq : r));
 
       if (window.Telegram && window.Telegram.WebApp) {
-          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-          window.Telegram.WebApp.showAlert("Request submitted!");
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        window.Telegram.WebApp.showAlert("Request submitted!");
+      } else {
+        alert("Request submitted!");
       }
+    } catch (e) {
+      console.error("Failed to submit request", e);
+      alert("Failed to submit request.");
+    }
   };
 
   const handleApproveRequest = async (req) => {
-      // 1. Optimistic Update
-      const updatedReq = { ...req, status: 'approved' };
-      setRequests(prev => prev.map(r => r.id === req.id ? updatedReq : r));
+    // 1. Optimistic Update
+    const updatedReq = { ...req, status: 'approved' };
+    setRequests(prev => prev.map(r => r.id === req.id ? updatedReq : r));
 
-      // 2. API Call
-      try {
-          await respondToRequest(req.id, 'approve');
-          if (window.Telegram && window.Telegram.WebApp) {
-              window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-          }
-      } catch (e) {
-          console.error("Failed to approve request", e);
-          // Revert?
+    // 2. API Call
+    try {
+      await respondToRequest(req.id, 'approve');
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
       }
+    } catch (e) {
+      console.error("Failed to approve request", e);
+      // Revert?
+    }
   };
 
   const handleRejectRequest = async (req) => {
-      // 1. Optimistic Update
-      const updatedReq = { ...req, status: 'rejected' };
-      setRequests(prev => prev.map(r => r.id === req.id ? updatedReq : r));
+    // 1. Optimistic Update
+    const updatedReq = { ...req, status: 'rejected' };
+    setRequests(prev => prev.map(r => r.id === req.id ? updatedReq : r));
 
-      // 2. API Call
-      try {
-          await respondToRequest(req.id, 'reject');
-          if (window.Telegram && window.Telegram.WebApp) {
-              window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
-          }
-      } catch (e) {
-          console.error("Failed to reject request", e);
+    // 2. API Call
+    try {
+      await respondToRequest(req.id, 'reject');
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
       }
+    } catch (e) {
+      console.error("Failed to reject request", e);
+    }
+  };
+
+  const handleSaveWarehouseInventory = async (data) => {
+    try {
+      await saveWarehouseInventory(data);
+
+      if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        window.Telegram.WebApp.showAlert('Inventory Submitted! ✅');
+      } else {
+        alert('Inventory Submitted!');
+      }
+    } catch (e) {
+      console.error("Inventory save failed", e);
+      alert("Failed to save inventory.");
+    }
   };
 
 
   return (
     <div className="app-container">
-      <HeroProfile 
-        user={user} 
+      <HeroProfile
+        user={user}
         onInboxClick={() => setIsInboxOpen(true)}
-        onShopClick={() => setIsShopOpen(true)}
+        onShopClick={() => handleComingSoon('Shop')}
         onSendHoneyClick={() => setIsSendHoneyOpen(true)}
         onOrgChartClick={() => setIsOrgChartOpen(true)}
-        onTripsClick={() => setIsTripsOpen(true)}
+        onRewardReportClick={() => setIsRewardReportOpen(true)}
         onTimesheetClick={() => setIsTimesheetOpen(true)}
-        onRequestsClick={() => { setInitialRequestsFilter('my'); setIsRequestsOpen(true); }}
+        onRequestsClick={() => setIsRequestsOpen(true)}
+        onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
         incomingCount={incomingTransfers.length + pendingRequestsCount}
       />
       <Inventory
@@ -695,9 +839,9 @@ function App() {
         onReject={handleRejectTransfer}
         pendingRequestsCount={pendingRequestsCount}
         onOpenTeamRequests={() => {
-            setIsInboxOpen(false);
-            setInitialRequestsFilter('subordinates');
-            setIsRequestsOpen(true);
+          setIsInboxOpen(false);
+          setInitialRequestsFilter('subordinates');
+          setIsRequestsOpen(true);
         }}
       />
 
@@ -748,6 +892,14 @@ function App() {
         onReject={handleRejectRequest}
         currentUserId={user ? user.id : 999}
         initialFilter={initialRequestsFilter}
+        onViewChange={(view) => {
+          // Fetch requests based on view
+          const loadRequests = async () => {
+            const data = await fetchRequests(view);
+            if (data) setRequests(data);
+          };
+          loadRequests();
+        }}
       />
 
       <TimesheetModal
@@ -755,6 +907,23 @@ function App() {
         onClose={() => setIsTimesheetOpen(false)}
         dailyReports={dailyReports}
         onSaveReport={handleSaveDailyReport}
+      />
+
+      <WarehouseInventoryModal
+        isOpen={isWarehouseInventoryOpen}
+        onClose={() => setIsWarehouseInventoryOpen(false)}
+        onSaveInventory={handleSaveWarehouseInventory}
+      />
+
+      <RewardReportModal
+        isOpen={isRewardReportOpen}
+        onClose={() => setIsRewardReportOpen(false)}
+      />
+
+      <ComingSoonModal
+        isOpen={isComingSoonOpen}
+        onClose={() => setIsComingSoonOpen(false)}
+        featureName={comingSoonFeature}
       />
 
       <div style={{ textAlign: 'center', marginTop: 32, opacity: 0.5, fontSize: 10 }}>

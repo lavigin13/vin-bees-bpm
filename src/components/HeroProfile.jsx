@@ -1,27 +1,13 @@
 import React from 'react';
-import { Hexagon, Award, Bell, ShoppingBag, Send, Network, Rocket, Calendar } from 'lucide-react';
+import { Hexagon, Award, Bell, ShoppingBag, Send, Network, Rocket, Calendar, PackageCheck } from 'lucide-react';
+import ActionPanel from './ActionPanel';
 import './HeroProfile.css';
 
-const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgChartClick, onTripsClick, onRequestsClick, onTimesheetClick, incomingCount = 0 }) => {
+const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgChartClick, onRewardReportClick, onRequestsClick, onTimesheetClick, onInventoryClick, incomingCount = 0 }) => {
     return (
         <div className="hero-container">
-            <button className="inbox-btn" onClick={onInboxClick} style={{right: 160}}>
-                <Bell size={20} color={incomingCount > 0 ? "#fff" : "rgba(255,255,255,0.5)"} />
-                {incomingCount > 0 && <span className="inbox-badge">{incomingCount}</span>}
-            </button>
-
-            <button className="inbox-btn" onClick={onTripsClick} style={{right: 112}}>
-                <span style={{ fontSize: 20 }}>🐝</span>
-            </button>
-
-            <button className="inbox-btn" onClick={onRequestsClick} style={{right: 64}}>
-                <span style={{ fontSize: 20 }}>🍯</span>
-            </button>
-
-            <button className="inbox-btn" onClick={onOrgChartClick} style={{right: 16}}>
-                <Network size={20} color="rgba(255,255,255,0.8)" />
-            </button>
-
+            {/* Top buttons removed as they are moved to ActionPanel */}
+            
             <div className="hero-header">
                 <div className="avatar-wrapper">
                     <img src={user.avatar} alt={user.name} className="avatar-img" />
@@ -32,53 +18,40 @@ const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgC
                 </div>
 
                 <div className="hero-info">
-                    <h1 className="hero-name">{user.name}</h1>
-                    <div className="hero-role">{user.role}</div>
-
-                    <div className="xp-bar-container">
-                        <div className="xp-info">
-                            <span>XP</span>
-                            <span>{user.xp} / {user.nextLevelXp}</span>
+                    <div className="hero-top-row">
+                        <div className="hero-name-role">
+                            <h1 className="hero-name">{user.name}</h1>
+                            <div className="hero-role">{user.role}</div>
                         </div>
-                        <div className="xp-track">
-                            <div
-                                className="xp-fill"
-                                style={{ width: `${(user.xp / user.nextLevelXp) * 100}%` }}
-                            />
+                        
+                        <div className="xp-compact-container">
+                            <div className="xp-info-compact">
+                                {user.xp} / {user.nextLevelXp} XP
+                            </div>
+                            <div className="xp-track-compact">
+                                <div
+                                    className="xp-fill-compact"
+                                    style={{ width: `${(user.xp / user.nextLevelXp) * 100}%` }}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="stats-row">
-                <div className="stat-card honey-card">
-                    <div className="stat-icon">
-                        <Hexagon size={24} fill="var(--accent-gold)" color="var(--accent-gold)" />
-                    </div>
-                    <div className="stat-value">{user.honey.toLocaleString()}</div>
-                    <div className="stat-label">Honey</div>
-                    
-                    <button className="honey-send-btn" onClick={onSendHoneyClick}>
-                        <Send size={12} />
-                    </button>
-                </div>
-
-                <div className="stat-card reputation-card" onClick={onTimesheetClick} style={{cursor: 'pointer'}}>
-                    <div className="stat-icon">
-                        <Calendar size={24} color="#60a5fa" />
-                    </div>
-                    {/* Placeholder for monthly stats */}
-                    <div className="stat-value" style={{fontSize: 16}}>15 / 22</div>
-                    <div className="stat-label">Timesheet</div>
-                </div>
-
-                <div className="stat-card shop-btn-card" onClick={onShopClick}>
-                    <div className="stat-icon">
-                        <ShoppingBag size={24} color="#10b981" />
-                    </div>
-                    <div className="stat-label" style={{ color: '#10b981', fontWeight: 'bold', marginTop: 4 }}>SHOP</div>
-                </div>
-            </div>
+            <ActionPanel 
+                onOrgChartClick={onOrgChartClick}
+                onRewardReportClick={onRewardReportClick}
+                onRequestsClick={onRequestsClick}
+                onInventoryClick={onInventoryClick}
+                onInboxClick={onInboxClick}
+                onShopClick={onShopClick}
+                onSendHoneyClick={onSendHoneyClick}
+                onTimesheetClick={onTimesheetClick}
+                incomingCount={incomingCount}
+                userHoney={user.honey}
+                timesheetStats="15 / 22"
+            />
         </div>
     );
 };

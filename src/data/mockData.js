@@ -11,27 +11,28 @@ export const INITIAL_USER = {
     gender: "Male",
     children: 0,
     hobby: "Beekeeping",
-    birthday: "1995-05-20"
+    birthday: "1995-05-20",
+    subordinates: [101, 102] // For testing approval mode
 };
 
 export const INVENTORY_ITEMS = [
-    { 
-        id: 1, 
-        name: "MacBook Pro M1", 
-        rarity: "Legendary", 
-        icon: "laptop", 
-        type: "equipment", 
+    {
+        id: 1,
+        name: "MacBook Pro M1",
+        rarity: "Legendary",
+        icon: "laptop",
+        type: "equipment",
         quantity: 1,
         auditRequired: true
     },
     { id: 2, name: "Corporate Card", rarity: "Epic", icon: "card", type: "equipment", quantity: 1 },
     { id: 3, name: "Office Chair", rarity: "Common", icon: "chair", type: "equipment", quantity: 1 },
-    { 
-        id: 4, 
-        name: "iPhone 15", 
-        rarity: "Rare", 
-        icon: "phone", 
-        type: "equipment", 
+    {
+        id: 4,
+        name: "iPhone 15",
+        rarity: "Rare",
+        icon: "phone",
+        type: "equipment",
         quantity: 1,
         auditRequired: true
     },
@@ -44,11 +45,13 @@ export const INVENTORY_ITEMS = [
 
 export const COLLEAGUES = [
     { id: 100, name: "Queen Bee (CEO)", role: "CEO", avatar: "👑", managerId: null },
+    { id: 106, name: "Honey Bear (COO)", role: "COO", avatar: "🧸", managerId: null },
     { id: 101, name: "Bumble Bee (QA Lead)", role: "QA Lead", avatar: "🐝", managerId: 100 },
     { id: 102, name: "Killer Bee (CTO)", role: "CTO", avatar: "🕶️", managerId: 100 },
     { id: 103, name: "Worker Bee (Dev)", role: "Developer", avatar: "👷", managerId: 102 },
     { id: 104, name: "Busy Bee (HR)", role: "HR Manager", avatar: "📋", managerId: 100 },
     { id: 105, name: "Junior Bee (Intern)", role: "Intern", avatar: "👶", managerId: 103 },
+    { id: 107, name: "Field Bee (Ops Lead)", role: "Operations Lead", avatar: "🚚", managerId: 106 },
     { id: 999, name: "Alex Bee (You)", role: "Senior Drone", avatar: "👤", managerId: 102 } // You
 ];
 
@@ -208,16 +211,16 @@ export const DAY_TYPES = [
     "Vacation",
     "Sick Leave",
     "Day Off",
-    "Public Holiday"
+    "Business Trip"
 ];
 
 export const REQUEST_CATEGORIES = [
-    "Hardware",
-    "Software License",
-    "Office Supplies",
-    "Furniture",
-    "Access/Permissions",
-    "Other"
+    { id: 'cat_1', name: "Hardware" },
+    { id: 'cat_2', name: "Software License" },
+    { id: 'cat_3', name: "Office Supplies" },
+    { id: 'cat_4', name: "Furniture" },
+    { id: 'cat_5', name: "Access/Permissions" },
+    { id: 'cat_6', name: "Other" }
 ];
 
 export const MOCK_REQUESTS = [
@@ -225,7 +228,7 @@ export const MOCK_REQUESTS = [
         id: 'req_1',
         status: 'approved',
         date: '2023-11-10',
-        category: 'Hardware',
+        categoryId: 'cat_1',
         shortDesc: 'Need new mouse',
         fullDesc: 'My current mouse is double-clicking unexpectedly. Need a replacement.',
         createdBy: 999 // Current user
@@ -234,7 +237,7 @@ export const MOCK_REQUESTS = [
         id: 'req_2',
         status: 'pending',
         date: '2023-11-15',
-        category: 'Software License',
+        categoryId: 'cat_2',
         shortDesc: 'WebStorm License',
         fullDesc: 'Renewal for annual WebStorm license.',
         createdBy: 999
@@ -243,7 +246,7 @@ export const MOCK_REQUESTS = [
         id: 'req_3',
         status: 'new',
         date: '2023-11-12',
-        category: 'Office Supplies',
+        categoryId: 'cat_3',
         shortDesc: 'Notebooks for team',
         fullDesc: '5 notebooks for new interns.',
         createdBy: 103 // Subordinate (Worker Bee)

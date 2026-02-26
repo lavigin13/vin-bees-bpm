@@ -1,6 +1,63 @@
-/* Calendar Grid Styles */
-.timesheet-container {
-    padding: 0 10px;
+/* Modal Container Styles */
+.close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    color: #888;
+    z-index: 50;
+    /* Ensure clickable */
+    padding: 8px;
+    /* Larger touch area */
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.modal-overlay {
+    z-index: 1200;
+    /* Ensure it's above other elements */
+}
+
+.modal-container {
+    background: #1a1a1a;
+    border: 1px solid #d4af37;
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 800px;
+    /* Bit wider for desktop */
+    position: relative;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    animation: modalSlideIn 0.3s ease-out;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Header stays, body scrolls */
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Header & Navigation */
+.timesheet-header-wrapper {
+    flex-shrink: 0;
 }
 
 .calendar-header {
@@ -8,47 +65,60 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-    padding: 0 8px;
+    padding: 0 4px;
 }
 
 .month-label {
     font-size: 18px;
     font-weight: 700;
-    color: var(--text-primary);
+    color: #fff;
+    text-transform: capitalization;
 }
 
 .nav-btn {
     background: rgba(255, 255, 255, 0.1);
     border: none;
-    color: var(--text-primary);
+    color: #fff;
     padding: 8px;
     border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.2s;
 }
 
 .nav-btn:hover {
     background: rgba(255, 255, 255, 0.2);
 }
 
+/* Timesheet Container (Scrollable Area) */
+.timesheet-container {
+    padding: 0 4px;
+    /* Reduced padding */
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Calendar Grid Styles */
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 8px;
+    gap: 6px;
 }
 
 .weekday-label {
     text-align: center;
     font-size: 12px;
-    color: var(--text-secondary);
+    color: #888;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
 }
 
 .day-cell {
     aspect-ratio: 1;
+    /* Keep square */
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     display: flex;
@@ -57,9 +127,12 @@
     justify-content: center;
     cursor: pointer;
     border: 1px solid transparent;
+    /* Thinner border */
     position: relative;
     font-size: 14px;
-    color: var(--text-secondary);
+    font-weight: 400;
+    color: #ccc;
+    transition: all 0.2s ease;
 }
 
 .day-cell:hover {
@@ -68,52 +141,133 @@
 }
 
 .day-cell.today {
-    border-color: var(--accent-gold);
-    color: var(--accent-gold);
+    border-color: #d4af37;
+    background: rgba(212, 175, 55, 0.1);
+    color: #d4af37;
     font-weight: 700;
+}
+
+.day-cell.weekend {
+    color: #fb923c;
+    /* Orange-400 */
+    background: rgba(251, 146, 60, 0.05);
 }
 
 .day-cell.empty {
     background: transparent;
     cursor: default;
+    border: none;
 }
 
-.report-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    margin-top: 4px;
-    background: transparent;
+/* Day Types & Indicators */
+.day-cell.has-report {
+    background: rgba(255, 255, 255, 0.08);
 }
 
-.report-dot.filled {
-    background: #4ade80; /* Green */
+.day-cell.report-work {
+    border-color: #10b981;
 }
 
-.report-dot.partial {
-    background: #fbbf24; /* Orange */
+.day-cell.report-vacation {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
 }
 
-.report-dot.missing {
-    background: #ef4444; /* Red */
+.day-cell.report-sick {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
 }
 
-.report-dot.off {
-    background: #60a5fa; /* Blue */
+.day-cell.report-business-trip {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
 }
 
-/* Day Form Styles */
+.day-cell.report-day-off {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.day-hours {
+    font-size: 10px;
+    color: #10b981;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.day-emoji {
+    font-size: 12px;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+/* Monthly Dashboard */
+.monthly-dashboard {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    /* Added padding */
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    /* Allow wrapping on small screens */
+}
+
+.dashboard-stat {
+    flex: 1;
+    min-width: 100px;
+    /* Prevent crushing */
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+    /* Center align */
+    text-align: center;
+}
+
+.dashboard-stat.highlight {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.stat-label {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #d4af37;
+}
+
+.stat-value.overtime {
+    color: #f87171;
+}
+
+/* Day Edit Form */
+.day-form {
+    padding: 0 4px;
+}
+
 .day-header {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .day-title {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
-    color: var(--text-primary);
+    color: #fff;
 }
 
 .day-type-selector {
@@ -124,91 +278,1163 @@
 }
 
 .type-btn {
-    flex: 1;
-    padding: 10px;
+    flex: 1 1 calc(33.333% - 8px);
+    /* 3 per row */
+    padding: 12px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    color: var(--text-secondary);
+    color: #aaa;
     font-size: 13px;
     cursor: pointer;
     min-width: 80px;
 }
 
 .type-btn.active {
-    background: rgba(255, 215, 0, 0.1);
-    border-color: var(--accent-gold);
-    color: var(--accent-gold);
+    background: rgba(212, 175, 55, 0.15);
+    border-color: #d4af37;
+    color: #d4af37;
     font-weight: 600;
 }
 
-.tasks-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-    margin-bottom: 16px;
-}
-
-.tasks-table th {
-    text-align: left;
-    color: var(--text-secondary);
-    padding: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.tasks-table td {
-    padding: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.task-input {
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    padding: 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.task-input:focus {
-    outline: none;
-    border-bottom-color: var(--accent-gold);
-}
-
-.add-task-btn {
-    width: 100%;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-size: 13px;
+/* Hours Inputs */
+.hours-form {
     margin-bottom: 24px;
 }
 
-.add-task-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-primary);
+.hour-field {
+    margin-bottom: 16px;
+}
+
+.hour-field label {
+    display: block;
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.hour-input {
+    width: 100%;
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #fff;
+    padding: 14px;
+    /* Larger touch area */
+    font-size: 18px;
+    /* Larger font */
+    font-weight: 600;
+}
+
+.hour-input:focus {
+    outline: none;
+    border-color: #d4af37;
 }
 
 .total-summary {
     display: flex;
-    justify-content: flex-end;
-    gap: 20px;
+    justify-content: space-between;
+    align-items: center;
     font-size: 14px;
-    color: var(--text-secondary);
-    margin-bottom: 24px;
+    color: #ccc;
+    margin-top: 24px;
     padding: 16px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
 }
 
-.total-summary strong {
-    color: var(--accent-gold);
+.craft-submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #d4af37, #b8860b);
+    border: none;
+    border-radius: 12px;
+    color: #000;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.1s;
 }
 
+.craft-submit-btn:active {
+    transform: scale(0.98);
+}
+
+/* Approval Mode Styles */
+.mode-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+}
+
+.mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: #888;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mode-btn.active {
+    background: #d4af37;
+    color: #000;
+}
+
+/* Status Filters (Desktop) */
+.status-filter-scroll {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.grouping-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.approval-controls-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+}
+
+.approval-control {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.approval-controls-row > .approval-control:first-child {
+    flex: 0 0 20%;
+}
+
+.approval-controls-row > .approval-control:last-child {
+    flex: 0 0 60%;
+}
+
+.approval-control-label {
+    font-size: 10px;
+    color: #9ca3af;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.approval-control-select {
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    font-size: 12px;
+    padding: 0 8px;
+}
+
+.approval-control-select:focus {
+    outline: none;
+    border-color: #d4af37;
+}
+
+.approval-control-select option {
+    background: #1a1a1a;
+    color: #fff;
+}
+
+.filter-pill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 8px 20px;
+    color: #aaa;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-pill:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.filter-pill.active {
+    background: #d4af37;
+    color: #000;
+    font-weight: 600;
+    border-color: #d4af37;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+/* Approval Actions (Desktop) */
+.approval-actions-top {
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideDown 0.3s ease-out;
+}
+
+.actions-header {
+    font-size: 14px;
+    color: #d4af37;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.actions-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+.action-btn:hover {
+    opacity: 0.9;
+}
+
+.action-btn:active {
+    transform: scale(0.96);
+}
+
+.action-btn.approve {
+    background: #10b981;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.action-btn.reject {
+    background: #ef4444;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+/* Subordinate List & Approval Grouping (Desktop Base) */
+.subordinate-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 20px;
+}
+
+.subordinate-group {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.subordinate-group:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.group-header {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.group-header:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.group-toggle-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    width: 24px;
+    height: 24px;
+}
+
+.group-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.group-name {
+    color: #fff;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.group-role {
+    color: #888;
+    font-size: 12px;
+}
+
+.group-stats {
+    margin-right: 16px;
+    font-size: 14px;
+    color: #ccc;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.group-stats .overtime {
+    color: #f87171;
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.group-checkbox {
+    width: 20px;
+    height: 20px;
+    accent-color: #d4af37;
+    cursor: pointer;
+}
+
+/* Group Items (Reports) */
+.group-items {
+    padding: 8px 0;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.week-group {
+    padding-bottom: 8px;
+}
+
+.week-employee-block {
+    padding: 8px 12px 4px;
+}
+
+.week-employee-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    margin: 8px 0;
+}
+
+.week-employee-name {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.week-employee-role {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.week-employee-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #d1d5db;
+    font-size: 12px;
+}
+
+.week-group-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 24px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #d4af37;
+    background: rgba(212, 175, 55, 0.08);
+    border-top: 1px solid rgba(212, 175, 55, 0.12);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.12);
+    border-left: 0;
+    border-right: 0;
+    cursor: pointer;
+}
+
+.week-group-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.week-group-meta {
+    font-size: 11px;
+    color: #bfa357;
+}
+
+.report-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 24px;
+    /* More padding on desktop */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.report-row:last-child {
+    border-bottom: none;
+}
+
+.report-row:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.report-row.selected {
+    background: rgba(212, 175, 55, 0.15);
+    /* Stronger highlight */
+}
+
+.row-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 50px;
+    margin-right: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 6px;
+}
+
+.day-num {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+}
+
+.day-name {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+
+.row-details {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    /* Vertical align on desktop */
+    gap: 24px;
+}
+
+.row-type {
+    font-size: 15px;
+    color: #eee;
+    font-weight: 500;
+    min-width: 120px;
+}
+
+.row-hours {
+    font-size: 14px;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.row-hours .ot {
+    color: #f87171;
+    font-weight: 600;
+    background: rgba(248, 113, 113, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.row-status {
+    margin-right: 24px;
+    display: flex;
+    align-items: center;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.status-dot.pending {
+    background: #facc15;
+    box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
+}
+
+.status-dot.approved {
+    background: #4ade80;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+}
+
+.status-dot.rejected {
+    background: #ef4444;
+}
+
+.row-select {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #555;
+    border-radius: 50%;
+    /* Circle checkbox */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.row-select.checked {
+    border-color: #d4af37;
+    background: #d4af37;
+    transform: scale(1.1);
+}
+
+/* Helper for empty state if needed */
+.approval-empty {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-style: italic;
+}
+
+
+/* --- MOBILE RESPONSIVE STYLES --- */
+@media (max-width: 768px) {
+    .modal-overlay {
+        align-items: flex-end;
+        /* Bottom sheet feeling or full screen */
+    }
+
+    .modal-container {
+        width: 100%;
+        max-width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+        border: none;
+        padding: 16px;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+        }
+
+        to {
+            transform: translateY(0);
+        }
+    }
+
+    /* Close Button on Mobile */
+    .close-btn {
+        top: 48px;
+        /* Safe area spacing */
+        right: 16px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1300;
+        /* Ensure strictly above everything */
+    }
+
+    /* Adjust Header */
+    .timesheet-header-wrapper {
+        margin-top: 0;
+        padding-top: 80px;
+        /* Push content down below close button */
+        padding-right: 0;
+    }
+
+    .modal-title {
+        font-size: 18px;
+    }
+
+    .calendar-grid {
+        gap: 4px;
+    }
+
+    .day-cell {
+        font-size: 13px;
+        border-radius: 6px;
+    }
+
+    .day-hours {
+        font-size: 9px;
+    }
+
+    .day-emoji {
+        font-size: 10px;
+    }
+
+    /* --- Start of Approval Redesign Mobile Styles --- */
+
+    /* 1. Scrollable Filters */
+    .status-filter-scroll {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+        scrollbar-width: none;
+        /* Hide scrollbar */
+    }
+
+    .grouping-toggle {
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .approval-controls-row {
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .approval-control-select {
+        height: 34px;
+        font-size: 13px;
+    }
+
+    .status-filter-scroll::-webkit-scrollbar {
+        display: none;
+    }
+
+    .filter-pill {
+        white-space: nowrap;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 8px 16px;
+        color: #aaa;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .filter-pill.active {
+        background: #d4af37;
+        color: #000;
+        font-weight: 600;
+        border-color: #d4af37;
+    }
+
+    /* 2. Top Approval Actions */
+    .approval-actions-top {
+        background: rgba(212, 175, 55, 0.1);
+        border: 1px solid #d4af37;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 16px;
+        animation: slideDown 0.2s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-10px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .actions-header {
+        font-size: 12px;
+        color: #d4af37;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+    }
+
+    .actions-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .action-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px;
+        /* Slightly smaller padding */
+        border-radius: 8px;
+        font-size: 12px;
+        /* Slightly smaller font */
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+    }
+
+    .action-btn.approve {
+        background: #10b981;
+        color: #fff;
+    }
+
+    .action-btn.reject {
+        background: #ef4444;
+        color: #fff;
+    }
+
+    /* 3. Grouped Subordinate List */
+    .subordinate-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding-bottom: 20px;
+    }
+
+    .subordinate-group {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .group-header {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        gap: 12px;
+        cursor: pointer;
+    }
+
+    .group-toggle-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .group-info {
+        flex: 1;
+    }
+
+    .group-name {
+        color: #fff;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .group-role {
+        color: #888;
+        font-size: 11px;
+    }
+
+    .group-stats {
+        margin-right: 12px;
+        font-size: 12px;
+        color: #ccc;
+        text-align: right;
+    }
+
+    .group-stats .overtime {
+        color: #f87171;
+        font-size: 10px;
+        display: block;
+    }
+
+    .group-checkbox {
+        width: 20px;
+        height: 20px;
+        accent-color: #d4af37;
+    }
+
+    /* List Items */
+    .group-items {
+        padding: 8px;
+    }
+
+    .week-employee-block {
+        padding: 8px 0 4px;
+    }
+
+    .week-employee-header {
+        padding: 8px;
+    }
+
+    .week-group-header {
+        padding: 8px 10px;
+        font-size: 11px;
+    }
+
+    .week-group-meta {
+        font-size: 10px;
+    }
+
+    .report-row {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background 0.2s;
+    }
+
+    .report-row:last-child {
+        border-bottom: none;
+    }
+
+    .report-row.selected {
+        background: rgba(212, 175, 55, 0.1);
+    }
+
+    .row-date {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 40px;
+        margin-right: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        padding: 4px;
+    }
+
+    .day-num {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+    }
+
+    .day-name {
+        font-size: 10px;
+        color: #888;
+        text-transform: uppercase;
+    }
+
+    .row-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        /* Force vertical stacking on mobile */
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .row-type {
+        font-size: 14px;
+        color: #eee;
+        margin-bottom: 2px;
+    }
+
+    .row-hours {
+        font-size: 12px;
+        color: #888;
+    }
+
+    .row-hours .ot {
+        color: #f87171;
+    }
+
+    .row-status {
+        margin-right: 12px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .status-dot.pending {
+        background: #facc15;
+        box-shadow: 0 0 5px #facc15;
+    }
+
+    .status-dot.approved {
+        background: #4ade80;
+    }
+
+    .status-dot.rejected {
+        background: #ef4444;
+    }
+
+    .row-select {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #555;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .row-select.checked {
+        border-color: #d4af37;
+        background: #d4af37;
+    }
+}
+
+/* Mobile Optimization Redesign - Additional Styles */
+/* Mobile Optimization Redesign - Applied Globally */
+
+.row-select.checked {
+    border-color: #d4af37;
+    background: #d4af37;
+}
+
+/* --- Bottom Sheet Styles (Global) --- */
+.sheet-overlay {
+    position: absolute;
+    /* Changed from fixed to absolute within modal for desktop considerations if needed, but 'fixed' covers screen better. Let's keep fixed for the 'overlay' effect even on desktop if we want it to feel like a modal-within-modal or just use the sheet pattern. */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 100;
+    /* Ensure above calendar */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    animation: fadeApp 0.2s ease-out;
+}
+
+/* On desktop, maybe we want the sheet to be centered or look like a dialog? 
+       The user asked to keep the mobile style "always", so we will stick to the bottom sheet pattern 
+       even on desktop for now, or maybe center it. 
+       Let's stick to the requested "mobile style always" -> Bottom Sheet.
+    */
+.sheet-container {
+    background: #1e1e1e;
+    border-top: 1px solid #d4af37;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    min-height: 50vh;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes slideUpSheet {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeApp {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sheet-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.sheet-close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.sheet-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Stepper Controls */
+.stepper-field {
+    margin-bottom: 20px;
+}
+
+.stepper-field label {
+    display: block;
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.stepper-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 8px;
+}
+
+.stepper-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+}
+
+.stepper-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.stepper-btn:active {
+    transform: scale(0.92);
+    background: #d4af37;
+    color: #000;
+}
+
+.stepper-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    width: 60px;
+    text-align: center;
+}
+
+.total-summary-sheet {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    color: #d4af37;
+}
+
+/* Approval Mode Mobile Styles - Also Global now */
+.status-filter-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    scrollbar-width: none;
+}
+
+.status-filter-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.filter-pill {
+    white-space: nowrap;
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
+.approval-actions-top {
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.actions-header {
+    font-size: 12px;
+}
+
+.action-btn {
+    padding: 8px;
+    font-size: 12px;
+}
+
+.group-header {
+    padding: 12px;
+    gap: 12px;
+}
+
+.report-row {
+    padding: 10px;
+}
+
+.row-date {
+    width: 40px;
+    margin-right: 12px;
+}
+
+.day-num {
+    font-size: 16px;
+}
+
+.day-name {
+    font-size: 10px;
+}
+
+.row-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}

@@ -2,6 +2,7 @@
 
 .inventory-container {
     margin-bottom: 32px;
+    margin-top: 24px; /* Added margin to push it down from HeroProfile */
 }
 
 .inventory-header {
