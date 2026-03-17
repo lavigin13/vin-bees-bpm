@@ -1,4 +1,3 @@
-import { getTelegramWebApp } from '../utils/telegram';
 import { COLLEAGUES } from '../data/mockData';
 
 const MOCK_SUBORDINATE_DATA = {
@@ -84,17 +83,54 @@ const MOCK_SUBORDINATE_DATA = {
     }
 };
 
-const API_BASE_URL = 'https://bpm.bees.vin/VinBeesTelegram/hs/API';
+const API_BASE_URL = 'https://bpm.bees.vin/VinBeesERP/hs/API';
 
 const getHeaders = () => {
     const headers = {
         'Content-Type': 'application/json'
     };
 
-    const tg = getTelegramWebApp();
-    const initData = tg ? tg.initData : '';
-    headers['Authorization'] = `tma ${initData}`;
+    const token = localStorage.getItem('authToken') || '';
+    if (token) {
+        headers['Authorization'] = `Basic ${token}`; 
+    }
+    
     return headers;
+};
+
+export const loginUser = async (username, password) => {
+    // Basic Auth requires base64 encoded username:password
+    // Use encodeURIComponent to handle Cyrillic/UTF-8 characters before encoding to base64
+    const credentials = `${username}:${password}`;
+    const token = btoa(unescape(encodeURIComponent(credentials)));
+    
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${token}`
+    };
+    
+    // Ping the API base endpoint to verify credentials instead of /profile
+    // Note: 1C often blocks CORS by default. We may need proxy or no-cors for pure local checks
+    try {
+        const response = await fetch(`${API_BASE_URL}`, { 
+            method: 'GET', 
+            headers: headers
+        });
+        
+        if (response.status === 401) {
+            throw new Error('Невірний логін або пароль');
+        }
+    } catch (e) {
+        if (e.message === 'Failed to fetch') {
+            console.warn("Network Unreachable or CORS Error. Ensure ERP is running and allows Origin localhost:5173");
+            throw new Error("Помилка з'єднання з ERP системою. Перевірте доступність мережі.");
+        }
+        throw e;
+    }
+    
+    // Return early if ok, storing the basic auth token
+    localStorage.setItem('authToken', token);
+    return true;
 };
 
 // ... existing functions ...
@@ -454,6 +490,31 @@ export const saveDailyReport = async (dateStr, reportData) => {
     }
 };
 
+export const deleteTimesheetReport = async (dateStr) => {
+    const headers = getHeaders();
+    try {
+        const response = await fetch(`${API_BASE_URL}/timesheet/delete`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({ date: dateStr })
+        });
+        if (!response.ok) {
+            let errorMsg = `API Error: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                if (errorData.message) errorMsg = errorData.message;
+            } catch (e) {
+                // Ignore parse error
+            }
+            throw new Error(errorMsg);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Delete daily report failed:', error);
+        throw error;
+    }
+};
+
 export const fetchSubordinateTimesheets = async (monthStr) => {
     // monthStr: YYYY-MM
     const headers = getHeaders();
@@ -608,9 +669,14 @@ export const fetchSalaryReport = async (month, year, view = 'personal') => {
 
             return mockData;
         }
-        return await response.json();
+        const data = await response.json();
+        if (!data || !data.columns || !data.groups) {
+            console.warn('Salary report API returned incomplete data, using mock');
+            return mockData;
+        }
+        return data;
     } catch (error) {
-        console.warn('Failed to fetch salary report (network error), using mock');
+        console.warn('Failed to fetch salary report (network error or invalid JSON), using mock');
         await new Promise(resolve => setTimeout(resolve, 800));
         return mockData;
     }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import HeroProfile from './components/HeroProfile';
 import Inventory from './components/Inventory';
 import EditProfile from './components/EditProfile';
+import EditProfileModal from './components/EditProfileModal';
 import CraftingModal from './components/CraftingModal';
 import TransferModal from './components/TransferModal';
 import InboxModal from './components/InboxModal';
@@ -14,6 +15,7 @@ import TimesheetModal from './components/TimesheetModal';
 import RequestsModal from './components/RequestsModal';
 import RewardReportModal from './components/RewardReportModal';
 import WarehouseInventoryModal from './components/WarehouseInventoryModal';
+import AuthPage from './components/AuthPage';
 import ComingSoonModal from './components/ComingSoonModal';
 
 import {
@@ -30,8 +32,14 @@ import {
 } from './data/mockData';
 
 import './index.css';
+import { Coins, LogOut } from 'lucide-react';
 
-function App() {
+const App = () => {
+  // Basic auth state
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem('authToken')
+  );
+
   const [user, setUser] = useState(null);
   const [inventory, setInventory] = useState(null);
   const [colleagues, setColleagues] = useState(MOCK_COLLEAGUES);
@@ -54,6 +62,9 @@ function App() {
 
   // Org Chart State
   const [isOrgChartOpen, setIsOrgChartOpen] = useState(false);
+
+  // Profile Settings State
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Business Trips State
   const [isTripsOpen, setIsTripsOpen] = useState(false);
@@ -113,20 +124,9 @@ function App() {
   }, [isRequestsOpen]);
 
   useEffect(() => {
-    // Expand Telegram WebApp if available
-    if (window.Telegram && window.Telegram.WebApp) {
-      console.log('[App] Telegram WebApp detected:', window.Telegram.WebApp);
-      console.log('[App] initData:', window.Telegram.WebApp.initData);
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-    } else {
-      console.log('[App] Telegram WebApp NOT detected');
-    }
-
     // Fetch Data from API
     const loadData = async () => {
       setIsLoading(true);
-      const isTelegramAuth = window.Telegram?.WebApp?.initData;
 
       try {
         let profileData = null;
@@ -135,7 +135,6 @@ function App() {
         } catch (e) {
           console.warn("Failed to fetch profile", e);
         }
-        // ... (existing profile logic) ...
 
         // Load Marketplace
         try {
@@ -167,7 +166,7 @@ function App() {
             birthday: normalizedBirthday,
             children: typeof profileData.children !== 'undefined' ? Number(profileData.children) : (prev?.children || 0)
           }));
-        } else if (!isTelegramAuth) {
+        } else {
           console.log('Using Mock Profile Data (Local Dev)');
           setUser(INITIAL_USER);
         }
@@ -177,23 +176,21 @@ function App() {
           const inventoryData = await fetchInventory();
           if (inventoryData) {
             setInventory(inventoryData);
-          } else if (!isTelegramAuth) {
+          } else {
             console.log('Using Mock Inventory Data (Local Dev)');
             setInventory(INVENTORY_ITEMS);
           }
         } catch (e) {
           console.warn("Failed to load inventory", e);
-          if (!isTelegramAuth) setInventory(INVENTORY_ITEMS);
+          setInventory(INVENTORY_ITEMS);
         }
 
         try {
           const pendingTransfers = await fetchPendingTransfers();
           if (pendingTransfers) {
             setIncomingTransfers(pendingTransfers);
-          } else if (!isTelegramAuth) {
-            setIncomingTransfers(MOCK_INCOMING_TRANSFERS);
           } else {
-            setIncomingTransfers([]);
+            setIncomingTransfers(MOCK_INCOMING_TRANSFERS);
           }
         } catch (e) {
           console.warn("Failed to load pending transfers", e);
@@ -214,10 +211,8 @@ function App() {
           const tripsData = await fetchTrips();
           if (tripsData) {
             setTrips(tripsData);
-          } else if (!isTelegramAuth) {
-            setTrips(MOCK_TRIPS);
           } else {
-            setTrips([]);
+            setTrips(MOCK_TRIPS);
           }
         } catch (e) {
           console.warn("Failed to load trips", e);
@@ -247,10 +242,8 @@ function App() {
 
         if (uniqueRequests.length > 0) {
           setRequests(uniqueRequests);
-        } else if (!isTelegramAuth) {
-          setRequests(MOCK_REQUESTS);
         } else {
-          setRequests([]);
+          setRequests(MOCK_REQUESTS);
         }
 
       } catch (e) {
@@ -260,8 +253,16 @@ function App() {
       }
     };
 
-    loadData();
-  }, []);
+    if (isAuthenticated) {
+      loadData();
+    }
+
+  }, [isAuthenticated]);
+
+  // If not authenticated, render Auth Page
+  if (!isAuthenticated) {
+    return <AuthPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
 
   if (isLoading) {
     return <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
@@ -286,22 +287,11 @@ function App() {
       // Send to API
       await updateProfile(apiData);
 
-      // Show feedback (Telegram Haptic)
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        window.Telegram.WebApp.showAlert('Profile Saved Successfully! ✅');
-      } else {
-        alert('Profile Updated!');
-      }
+      alert('Profile Saved Successfully! ✅');
     } catch (error) {
       console.error("Failed to save profile:", error);
       const errorMessage = error.message || 'Unknown error';
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-        window.Telegram.WebApp.showAlert(`Failed to save profile: ${errorMessage}`);
-      } else {
-        alert(`Failed to save profile: ${errorMessage}`);
-      }
+      alert(`Failed to save profile: ${errorMessage}`);
     }
   };
 
@@ -339,13 +329,7 @@ function App() {
     });
 
     const message = `Crafted ${craftQuantity}x ${recipe.outputItem.name}! Request sent.`;
-
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      window.Telegram.WebApp.showAlert(message);
-    } else {
-      alert(message);
-    }
+    alert(message);
   };
 
   // --- Transfer Logic ---
@@ -384,12 +368,7 @@ function App() {
 
     // 3. Feedback
     const message = `Request sent to ${recipient.name}!`;
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      window.Telegram.WebApp.showAlert(message);
-    } else {
-      alert(message);
-    }
+    alert(message);
   };
 
   const handleAcceptTransfer = async (transfer) => {
@@ -421,9 +400,7 @@ function App() {
     setIncomingTransfers(prev => prev.filter(t => t.id !== transfer.id));
 
     // 4. Feedback
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-    }
+    console.log("Transfer accepted successfully.");
   };
 
   const handleRejectTransfer = async (transferId) => {
@@ -441,9 +418,7 @@ function App() {
     setIncomingTransfers(prev => prev.filter(t => t.id !== transferId));
 
     // 3. Feedback
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
-    }
+    console.log("Transfer rejected.");
   };
 
   const handleValidateItem = async (item) => {
@@ -468,25 +443,12 @@ function App() {
 
     // 3. Feedback
     const message = `Confirmed: ${item.name} successfully audited.`;
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      window.Telegram.WebApp.showAlert(message);
-    } else {
-      alert(message);
-    }
+    alert(message);
   };
 
   const handleReportMissing = async (item) => {
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.showConfirm(`Are you sure ${item.name} is missing?`, async (confirmed) => {
-        if (confirmed) {
-          processMissingItem(item);
-        }
-      });
-    } else {
-      if (confirm(`Are you sure ${item.name} is missing?`)) {
-        processMissingItem(item);
-      }
+    if (confirm(`Are you sure ${item.name} is missing?`)) {
+      processMissingItem(item);
     }
   };
 
@@ -509,12 +471,7 @@ function App() {
 
     // 3. Feedback
     const message = `Reported ${item.name} as MISSING. Admin notified.`;
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-      window.Telegram.WebApp.showAlert(message);
-    } else {
-      alert(message);
-    }
+    alert(message);
   };
 
   // --- Marketplace Logic ---
@@ -555,16 +512,7 @@ function App() {
     }
 
     // 5. Feedback
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      window.Telegram.WebApp.showPopup({
-        title: 'Purchase Successful! 🎉',
-        message: `You bought ${item.name} for ${item.price} Honey.`,
-        buttons: [{ type: 'ok' }]
-      });
-    } else {
-      alert(`Bought ${item.name}!`);
-    }
+    alert(`Bought ${item.name}!`);
   };
 
   const handleCreateListing = async (listingData) => {
@@ -579,9 +527,7 @@ function App() {
       }, ...prev]);
       setIsSellModalOpen(false);
 
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      }
+      console.log("Listing created successfully.");
     } catch (e) {
       console.error("Listing failed", e);
       alert("Failed to create listing.");
@@ -601,12 +547,7 @@ function App() {
 
     // 3. Feedback
     const message = `Sent ${amount} Honey to ${recipient.name}!`;
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      window.Telegram.WebApp.showAlert(message);
-    } else {
-      alert(message);
-    }
+    alert(message);
   };
 
   // --- Trips Logic ---
@@ -624,9 +565,7 @@ function App() {
     // 2. API Call
     try {
       await createOrUpdateTrip(trip);
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      }
+      console.log("Trip saved successfully.");
     } catch (e) {
       console.error("Failed to save trip", e);
       alert("Failed to save trip.");
@@ -649,12 +588,7 @@ function App() {
         await submitTrip(trip.id);
       }
 
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        window.Telegram.WebApp.showAlert("Trip submitted for approval!");
-      } else {
-        alert("Trip submitted!");
-      }
+      alert("Trip submitted for approval!");
     } catch (e) {
       console.error("Failed to submit trip", e);
       alert("Failed to submit trip.");
@@ -671,9 +605,7 @@ function App() {
 
     // In a real app: await api.saveDailyReport(dateStr, reportData);
 
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-    }
+    console.log("Daily report saved.");
   };
 
   // --- Requests Logic ---
@@ -699,9 +631,7 @@ function App() {
         return [savedReq, ...prev];
       });
 
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      }
+      console.log("Request saved successfully.");
       return savedReq; // Return for chaining
     } catch (e) {
       console.error("Failed to save request", e);
@@ -730,12 +660,7 @@ function App() {
 
       setRequests(prev => prev.map(r => r.id === reqId ? submittedReq : r));
 
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        window.Telegram.WebApp.showAlert("Request submitted!");
-      } else {
-        alert("Request submitted!");
-      }
+      alert("Request submitted!");
     } catch (e) {
       console.error("Failed to submit request", e);
       alert("Failed to submit request.");
@@ -750,9 +675,7 @@ function App() {
     // 2. API Call
     try {
       await respondToRequest(req.id, 'approve');
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      }
+      console.log("Request approved.");
     } catch (e) {
       console.error("Failed to approve request", e);
       // Revert?
@@ -767,9 +690,7 @@ function App() {
     // 2. API Call
     try {
       await respondToRequest(req.id, 'reject');
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
-      }
+      console.log("Request rejected.");
     } catch (e) {
       console.error("Failed to reject request", e);
     }
@@ -779,41 +700,57 @@ function App() {
     try {
       await saveWarehouseInventory(data);
 
-      if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        window.Telegram.WebApp.showAlert('Inventory Submitted! ✅');
-      } else {
-        alert('Inventory Submitted!');
-      }
+      alert('Inventory Submitted! ✅');
     } catch (e) {
       console.error("Inventory save failed", e);
       alert("Failed to save inventory.");
     }
   };
 
+  const handleOpenRewardReportModal = () => {
+    setIsRewardReportOpen(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setIsAuthenticated(false);
+  };
 
   return (
     <div className="app-container">
-      <HeroProfile
-        user={user}
-        onInboxClick={() => setIsInboxOpen(true)}
-        onShopClick={() => handleComingSoon('Shop')}
-        onSendHoneyClick={() => setIsSendHoneyOpen(true)}
-        onOrgChartClick={() => setIsOrgChartOpen(true)}
-        onRewardReportClick={() => setIsRewardReportOpen(true)}
-        onTimesheetClick={() => setIsTimesheetOpen(true)}
-        onRequestsClick={() => setIsRequestsOpen(true)}
-        onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
-        incomingCount={incomingTransfers.length + pendingRequestsCount}
+      <div className="hero-section">
+        <HeroProfile
+          user={user}
+          onInboxClick={() => setIsInboxOpen(true)}
+          onShopClick={() => setIsShopOpen(true)}
+          onSendHoneyClick={() => setIsSendHoneyOpen(true)}
+          onOrgChartClick={() => setIsOrgChartOpen(true)}
+          onRewardReportClick={() => setIsRewardReportOpen(true)}
+          onTimesheetClick={() => setIsTimesheetOpen(true)}
+          onRequestsClick={() => setIsRequestsOpen(true)}
+          onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
+          onProfileClick={() => setIsProfileOpen(true)}
+          onLogoutClick={handleLogout}
+          incomingCount={incomingTransfers.length + pendingRequestsCount}
+        />
+      </div>
+      <div className="main-content-section">
+        <Inventory
+          items={inventory}
+          onCraftClick={() => setIsCraftingOpen(true)}
+          onTransferClick={handleOpenTransfer}
+          onValidateClick={handleValidateItem}
+          onReportMissing={handleReportMissing}
+        />
+      </div>
+
+      <EditProfileModal 
+        isOpen={isProfileOpen} 
+        onClose={() => setIsProfileOpen(false)} 
+        user={user} 
+        onSave={handleSaveProfile} 
       />
-      <Inventory
-        items={inventory}
-        onCraftClick={() => setIsCraftingOpen(true)}
-        onTransferClick={handleOpenTransfer}
-        onValidateClick={handleValidateItem}
-        onReportMissing={handleReportMissing}
-      />
-      <EditProfile user={user} onSave={handleSaveProfile} />
+
 
       <CraftingModal
         isOpen={isCraftingOpen}

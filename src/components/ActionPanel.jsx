@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, Plane, FileText, PackageCheck, Bell, Briefcase, Hexagon, ShoppingBag, Calendar, HandCoins } from 'lucide-react';
+import { Network, Plane, FileText, PackageCheck, Bell, Briefcase, Hexagon, ShoppingBag, Calendar, HandCoins, User } from 'lucide-react';
 import './ActionPanel.css';
 
 const ActionPanel = ({ 
@@ -11,6 +11,7 @@ const ActionPanel = ({
     onShopClick,
     onSendHoneyClick,
     onTimesheetClick,
+    onProfileClick,
     incomingCount = 0,
     userHoney = 0,
     timesheetStats = "0 / 0"
@@ -25,6 +26,13 @@ const ActionPanel = ({
                 <span className="action-label" style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>
                     {userHoney.toLocaleString()}
                 </span>
+            </button>
+
+            <button className="action-btn" onClick={onProfileClick}>
+                <div className="action-icon">
+                    <User size={12} color="#8b5cf6" />
+                </div>
+                <span className="action-label" style={{ color: '#8b5cf6' }}>Profile</span>
             </button>
 
             <button className="action-btn" onClick={onShopClick}>

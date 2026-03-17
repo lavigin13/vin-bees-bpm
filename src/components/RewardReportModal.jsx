@@ -55,12 +55,7 @@ const RewardReportModal = ({ isOpen, onClose }) => {
                 year
             });
             
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                window.Telegram.WebApp.showAlert('Question sent successfully!');
-            } else {
-                alert('Question sent successfully!');
-            }
+            alert('Question sent successfully!');
         } catch (error) {
             console.error("Failed to send question", error);
             alert("Failed to send question.");
