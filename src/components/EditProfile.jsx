@@ -56,31 +56,14 @@ const EditProfile = ({ user, onSave }) => {
                     <label className="form-label">
                         <Calendar size={14} /> Birthday
                     </label>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                            type="text"
-                            value={formatDateForDisplay(formData.birthday)}
-                            readOnly
-                            className="rpg-input"
-                            placeholder="dd.MM.yyyy"
-                            style={{ width: '100%', boxSizing: 'border-box' }}
-                        />
-                        <input
-                            type="date"
-                            name="birthday"
-                            value={formData.birthday}
-                            onChange={handleChange}
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '100%',
-                                opacity: 0,
-                                cursor: 'pointer'
-                            }}
-                        />
-                    </div>
+                    <input
+                        type="date"
+                        name="birthday"
+                        value={formData.birthday || ''}
+                        onChange={handleChange}
+                        className="rpg-input"
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                    />
                 </div>
 
 

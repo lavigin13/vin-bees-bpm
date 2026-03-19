@@ -24,6 +24,24 @@
     color: white;
 }
 
+@media (min-width: 768px) {
+    .warehouse-modal-content {
+        width: 90%;
+        max-width: 800px;
+        height: 85vh;
+        max-height: 800px;
+        border-radius: 24px;
+        margin-bottom: auto;
+        margin-top: auto;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    
+    .warehouse-modal-overlay {
+        align-items: center;
+        padding: 20px;
+    }
+}
+
 .warehouse-header {
     padding: 20px;
     border-bottom: 1px solid #374151;
@@ -164,15 +182,19 @@
 .inventory-table-container {
     flex: 1;
     overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     background: #1f2937;
     border-radius: 12px;
     margin-bottom: 16px;
+    width: 100%;
 }
 
 .inventory-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9rem;
+    min-width: 500px; /* Ensure table doesn't crush on mobile */
 }
 
 .inventory-table th {
@@ -210,10 +232,6 @@
     font-family: monospace;
     color: #9ca3af;
     font-size: 0.75rem;
-}
-
-.qty-cell {
-    /* Align right content */
 }
 
 /* Row Qty Controls */

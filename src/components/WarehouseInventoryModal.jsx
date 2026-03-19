@@ -122,10 +122,7 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
         if (!isDraft) {
             onClose();
         } else {
-            // Optional: Show feedback that draft was saved
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
+            console.log('Draft saved.');
         }
     };
 

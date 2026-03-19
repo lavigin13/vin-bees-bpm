@@ -24,6 +24,24 @@
     color: white;
 }
 
+@media (min-width: 768px) {
+    .report-modal-content {
+        width: 90%;
+        max-width: 800px;
+        height: 85vh;
+        max-height: 800px;
+        border-radius: 24px;
+        margin-bottom: auto;
+        margin-top: auto;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    
+    .report-modal-overlay {
+        align-items: center;
+        padding: 20px;
+    }
+}
+
 .report-header {
     padding: 20px;
     border-bottom: 1px solid #374151;
@@ -132,6 +150,12 @@
     margin-bottom: 20px;
 }
 
+.report-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .summary-item {
     background: #374151;
     padding: 12px;
@@ -204,3 +228,16 @@
 .highlight {
     color: var(--accent-gold);
 }
+
+@media (max-width: 480px) {
+    .controls-row {
+        flex-wrap: wrap;
+    }
+    
+    .refresh-btn {
+        flex: 1;
+        padding: 10px;
+        justify-content: center;
+    }
+}
+

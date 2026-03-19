@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ArrowLeft, Save, Users, CheckCircle, XCircle, ChevronDown, Plus, Minus } from 'lucide-react';
+import { X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ArrowLeft, Save, Users, CheckCircle, XCircle, ChevronDown, Plus, Minus, Trash2 } from 'lucide-react';
 import './CraftingModal.css'; // Reusing modal base
 import './TimesheetModal.css';
 import { DAY_TYPES, INITIAL_USER } from '../data/mockData';
-import { fetchTimesheet, saveDailyReport, fetchSubordinateTimesheets, approveTimesheetReports, rejectTimesheetReports } from '../services/api';
+import { fetchTimesheet, saveDailyReport, fetchSubordinateTimesheets, approveTimesheetReports, rejectTimesheetReports, deleteTimesheetReport } from '../services/api';
 
 const TimesheetModal = ({ isOpen, onClose }) => {
     const [viewMode, setViewMode] = useState('my-hours'); // 'my-hours' or 'approve-hours'
@@ -211,11 +211,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
 
         const validation = validateHours();
         if (!validation.valid) {
-            if (window.Telegram?.WebApp) {
-                window.Telegram.WebApp.showAlert(validation.message);
-            } else {
-                alert(validation.message);
-            }
+            alert(validation.message);
             return;
         }
 
@@ -225,7 +221,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
             overtimeHours: dayType === 'Work' ? overtimeHours : 0
         };
 
-        try {
+            try {
             await saveDailyReport(selectedDate, reportData);
             // Update local state
             setCurrentMonthData(prev => ({
@@ -234,17 +230,39 @@ const TimesheetModal = ({ isOpen, onClose }) => {
             }));
             handleCloseSheet();
 
-            if (window.Telegram?.WebApp) {
-                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-            }
+            console.log('Report saved successfully');
         } catch (e) {
             console.error('Failed to save report', e);
             const errorMsg = 'Не вдалося зберегти звіт. Спробуйте ще раз.';
-            if (window.Telegram?.WebApp) {
-                window.Telegram.WebApp.showAlert(errorMsg);
-            } else {
-                alert(errorMsg);
+            alert(errorMsg);
+        }
+    };
+
+    const handleDeleteDay = async () => {
+        if (!selectedDate) return;
+        
+        const confirmDelete = window.confirm('Ви дійсно хочете видалити цей запис?');
+        if (!confirmDelete) return;
+        
+        try {
+            const result = await deleteTimesheetReport(selectedDate);
+            
+            if (result && result.success === false) {
+                alert(result.message || 'Не вдалося видалити звіт.');
+                return;
             }
+
+            // Update local state by removing the key
+            setCurrentMonthData(prev => {
+                const nextState = { ...prev };
+                delete nextState[selectedDate];
+                return nextState;
+            });
+            handleCloseSheet();
+            console.log('Report deleted successfully');
+        } catch (e) {
+            console.error('Failed to delete report', e);
+            alert(e.message !== 'Failed to fetch' ? (e.message.startsWith('API Error') ? 'Не вдалося видалити звіт. Спробуйте ще раз.' : e.message) : 'Не вдалося видалити звіт. Спробуйте ще раз.');
         }
     };
 
@@ -935,10 +953,26 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                         </div>
                                     )}
 
-                                    <button className="craft-submit-btn" onClick={handleSaveDay}>
-                                        <Save size={18} style={{ marginRight: 8 }} />
-                                        Save Report
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                                        {currentMonthData[selectedDate] && (
+                                            <button 
+                                                className="craft-submit-btn" 
+                                                onClick={handleDeleteDay}
+                                                style={{ backgroundColor: '#ef4444', color: 'white', flex: 1 }}
+                                            >
+                                                <Trash2 size={18} style={{ marginRight: 8 }} />
+                                                Delete
+                                            </button>
+                                        )}
+                                        <button 
+                                            className="craft-submit-btn" 
+                                            onClick={handleSaveDay}
+                                            style={{ flex: 2 }}
+                                        >
+                                            <Save size={18} style={{ marginRight: 8 }} />
+                                            Save Report
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
