@@ -3,7 +3,7 @@ import { Hexagon, Award, Bell, ShoppingBag, Send, Network, Rocket, Calendar, Pac
 import ActionPanel from './ActionPanel';
 import './HeroProfile.css';
 
-const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgChartClick, onRewardReportClick, onRequestsClick, onTimesheetClick, onInventoryClick, onProfileClick, onLogoutClick, incomingCount = 0 }) => {
+const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgChartClick, onRewardReportClick, onRequestsClick, onTimesheetClick, onInventoryClick, onWarehouseOpsClick, onProfileClick, onLogoutClick, incomingCount = 0 }) => {
     return (
         <div className="hero-container">
             {/* Top buttons removed as they are moved to ActionPanel */}
@@ -52,6 +52,7 @@ const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgC
                 onSendHoneyClick={onSendHoneyClick}
                 onTimesheetClick={onTimesheetClick}
                 onProfileClick={onProfileClick}
+                onWarehouseOpsClick={onWarehouseOpsClick}
                 incomingCount={incomingCount}
                 userHoney={user.honey}
                 timesheetStats="15 / 22"

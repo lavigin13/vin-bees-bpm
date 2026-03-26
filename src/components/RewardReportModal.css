@@ -178,55 +178,102 @@
 }
 
 .report-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.report-table th {
-    text-align: left;
-    padding: 12px 8px;
-    color: #9ca3af;
-    font-size: 0.75rem;
+.report-header-row {
+    display: grid;
+    grid-template-columns: 2fr 3fr 1fr;
+    gap: 12px;
+    padding: 0 12px 12px 12px;
     border-bottom: 1px solid #4b5563;
+    color: #9ca3af;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.report-group {
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 .group-header {
     background: #374151;
     cursor: pointer;
-}
-
-.group-header td {
-    padding: 12px 8px;
+    padding: 14px 16px;
     font-weight: 600;
     color: white;
-}
-
-.group-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    transition: background 0.2s;
+}
+.group-header:hover {
+    background: #4b5563;
 }
 
-.report-row td {
-    padding: 12px 8px;
-    border-bottom: 1px solid #374151;
+.group-items {
+    display: flex;
+    flex-direction: column;
+}
+
+.report-row {
+    display: grid;
+    grid-template-columns: 2fr 3fr 1fr;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     color: #d1d5db;
+    font-size: 0.9rem;
+    align-items: center;
 }
 
-.group-footer td {
-    padding: 12px 8px;
-    border-top: 1px solid #4b5563;
-    font-weight: 600;
-    color: white;
+.report-row:last-child {
+    border-bottom: none;
 }
 
-.text-right {
+.col-number {
     text-align: right;
+    font-weight: 500;
 }
 
 .highlight {
     color: var(--accent-gold);
+}
+
+@media (max-width: 768px) {
+    .report-header-row {
+        display: none; /* Hide standard headers on mobile */
+    }
+
+    .report-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 16px;
+        position: relative;
+    }
+
+    .report-row > div {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .report-row > div::before {
+        content: attr(data-label);
+        color: #9ca3af;
+        font-size: 0.8rem;
+        margin-right: 12px;
+    }
+
+    .col-number {
+        font-size: 1.1rem;
+        color: white;
+    }
 }
 
 @media (max-width: 480px) {

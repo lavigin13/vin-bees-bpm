@@ -6,10 +6,20 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/VinBees': {
-        target: 'http://localhost',
-        changeOrigin: true
+      '/VinBeesERP': {
+        target: 'https://bpm.bees.vin',
+        changeOrigin: true,
+        followRedirects: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.error('[proxy error]', err.message);
+          });
+          proxy.on('proxyReq', (proxyReq, req) => {
+            console.log('[proxy]', req.method, req.url, '→', proxyReq.path);
+          });
+        }
       }
     }
   }
 })
+
