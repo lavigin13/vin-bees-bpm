@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, Plane, FileText, PackageCheck, Bell, Briefcase, Hexagon, ShoppingBag, Calendar, HandCoins, User } from 'lucide-react';
+import { Network, Plane, FileText, PackageCheck, Bell, Briefcase, Hexagon, ShoppingBag, Calendar, HandCoins, User, Forklift } from 'lucide-react';
 import './ActionPanel.css';
 
 const ActionPanel = ({ 
@@ -12,6 +12,7 @@ const ActionPanel = ({
     onSendHoneyClick,
     onTimesheetClick,
     onProfileClick,
+    onWarehouseOpsClick,
     incomingCount = 0,
     userHoney = 0,
     timesheetStats = "0 / 0"
@@ -84,6 +85,13 @@ const ActionPanel = ({
                     <Network size={12} />
                 </div>
                 <span className="action-label">Org Chart</span>
+            </button>
+
+            <button className="action-btn" onClick={onWarehouseOpsClick}>
+                <div className="action-icon">
+                    <Forklift size={12} color="#f97316" />
+                </div>
+                <span className="action-label" style={{ color: '#f97316' }}>Wh. Ops</span>
             </button>
         </div>
     );

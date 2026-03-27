@@ -30,12 +30,6 @@ const Inventory = ({ items = [], onCraftClick, onTransferClick, onValidateClick,
                     >
                         Gear
                     </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'resource' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('resource')}
-                    >
-                        Materials
-                    </button>
                 </div>
             </div>
 
@@ -111,11 +105,7 @@ const Inventory = ({ items = [], onCraftClick, onTransferClick, onValidateClick,
                 ))}
             </div>
 
-            {activeTab === 'resource' && (
-                <button className="craft-btn" onClick={onCraftClick}>
-                    <Hammer size={16} /> Crafting Station
-                </button>
-            )}
+
         </div>
     );
 };

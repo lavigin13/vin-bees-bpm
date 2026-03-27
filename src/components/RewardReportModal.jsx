@@ -133,40 +133,42 @@ const RewardReportModal = ({ isOpen, onClose }) => {
                                 )}
                             </div>
 
-                            <table className="report-table">
-                                <thead>
-                                    <tr>
-                                        {reportData.columns.map(col => (
-                                            <th key={col.key} style={{ width: col.width }}>{col.title}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {reportData.groups.map(group => (
-                                        <React.Fragment key={group.id}>
-                                            <tr className="group-header" onClick={() => toggleGroup(group.id)}>
-                                                <td colSpan={reportData.columns.length}>
-                                                    <div className="group-title">
-                                                        {expandedGroups[group.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                                        {group.title} ({group.items.length})
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            {expandedGroups[group.id] && group.items.map((item, idx) => (
-                                                <tr key={item.id || idx} className="report-row">
-                                                    {reportData.columns.map(col => (
-                                                        <td key={col.key} className={col.type === 'number' ? 'text-right' : ''}>
-                                                            {col.type === 'currency' 
-                                                                ? `${item[col.key]?.toLocaleString()} 🍯` 
-                                                                : item[col.key]}
-                                                        </td>
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </React.Fragment>
+                            <div className="report-table">
+                                <div className="report-header-row">
+                                    {reportData.columns.map(col => (
+                                        <div key={col.key}>{col.title}</div>
                                     ))}
-                                </tbody>
-                            </table>
+                                </div>
+                                <div className="report-body-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {reportData.groups.map(group => (
+                                        <div key={group.id} className="report-group">
+                                            <div className="group-header" onClick={() => toggleGroup(group.id)}>
+                                                {expandedGroups[group.id] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                                <span>{group.title} ({group.items.length})</span>
+                                            </div>
+                                            {expandedGroups[group.id] && (
+                                                <div className="group-items">
+                                                    {group.items.map((item, idx) => (
+                                                        <div key={item.id || idx} className="report-row">
+                                                            {reportData.columns.map(col => (
+                                                                <div 
+                                                                    key={col.key} 
+                                                                    className={col.type === 'number' || col.type === 'currency' ? 'col-number' : ''}
+                                                                    data-label={col.title}
+                                                                >
+                                                                    {col.type === 'currency' 
+                                                                        ? `${item[col.key] !== undefined && item[col.key] !== null ? item[col.key].toLocaleString() : 0} 🍯` 
+                                                                        : item[col.key]}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

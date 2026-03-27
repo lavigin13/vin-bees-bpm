@@ -83,7 +83,7 @@ const MOCK_SUBORDINATE_DATA = {
     }
 };
 
-const API_BASE_URL = 'https://bpm.bees.vin/VinBeesERP/hs/API';
+const API_BASE_URL = '/VinBeesERP/hs/API';
 
 const getHeaders = () => {
     const headers = {
@@ -96,6 +96,20 @@ const getHeaders = () => {
     }
     
     return headers;
+};
+
+/**
+ * Wrapper around fetch that handles redirects correctly.
+ * Browsers drop the Authorization header when redirected to a different origin.
+ * Since we're on localhost this is mainly a safety measure, but it logs a warning
+ * if the final URL differs from the requested one (sign of a redirect).
+ */
+const apiFetch = async (url, options = {}) => {
+    const response = await fetch(url, { redirect: 'follow', ...options });
+    if (response.url && response.url !== url) {
+        console.warn(`[API] Redirected: ${url} → ${response.url}. Authorization header may have been dropped by the browser.`);
+    }
+    return response;
 };
 
 export const loginUser = async (username, password) => {
@@ -740,7 +754,7 @@ export const getProductByBarcode = async (barcode) => {
 export const saveWarehouseInventory = async (inventoryData) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory/warehouse-audit`, {
+        const response = await apiFetch(`${API_BASE_URL}/inventory/warehouse-audit`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(inventoryData)
@@ -752,3 +766,81 @@ export const saveWarehouseInventory = async (inventoryData) => {
         throw error;
     }
 };
+
+// --- Warehouse Operations ---
+
+export const fetchWarehouses = async () => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/warehouses`, { method: 'GET', headers });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch warehouses:', error);
+        return [];
+    }
+};
+
+export const fetchWarehouseOperations = async (month) => {
+    // month: 'YYYY-MM'
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/WarehouseOperations/list?month=${month}`, {
+            method: 'GET',
+            headers
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch warehouse operations:', error);
+        return [];
+    }
+};
+
+export const fetchNomenclature = async (warehouseId) => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(
+            `${API_BASE_URL}/nomenclature?warehouses=${warehouseId}`,
+            { method: 'GET', headers }
+        );
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch nomenclature:', error);
+        return [];
+    }
+};
+
+export const fetchNomenclatureSpec = async (warehouseId) => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(
+            `${API_BASE_URL}/nomenclature/specification?warehouses=${warehouseId}`,
+            { method: 'GET', headers }
+        );
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch nomenclature specification:', error);
+        return [];
+    }
+};
+
+export const saveWarehouseOperation = async (operationData) => {
+    // operationData: { id: '', Warehouse: '', Operation: '', products: [{ id: '', count: 1 }] }
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/WarehouseOperations/update`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(operationData)
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to save warehouse operation:', error);
+        throw error;
+    }
+};
+

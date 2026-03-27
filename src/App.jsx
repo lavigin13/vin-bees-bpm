@@ -15,6 +15,7 @@ import TimesheetModal from './components/TimesheetModal';
 import RequestsModal from './components/RequestsModal';
 import RewardReportModal from './components/RewardReportModal';
 import WarehouseInventoryModal from './components/WarehouseInventoryModal';
+import WarehouseOperationsModal from './components/WarehouseOperationsModal';
 import AuthPage from './components/AuthPage';
 import ComingSoonModal from './components/ComingSoonModal';
 
@@ -81,6 +82,9 @@ const App = () => {
 
   // Warehouse Inventory State
   const [isWarehouseInventoryOpen, setIsWarehouseInventoryOpen] = useState(false);
+
+  // Warehouse Operations State
+  const [isWarehouseOpsOpen, setIsWarehouseOpsOpen] = useState(false);
 
   // Reward Report State
   const [isRewardReportOpen, setIsRewardReportOpen] = useState(false);
@@ -729,6 +733,7 @@ const App = () => {
           onTimesheetClick={() => setIsTimesheetOpen(true)}
           onRequestsClick={() => setIsRequestsOpen(true)}
           onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
+          onWarehouseOpsClick={() => setIsWarehouseOpsOpen(true)}
           onProfileClick={() => setIsProfileOpen(true)}
           onLogoutClick={handleLogout}
           incomingCount={incomingTransfers.length + pendingRequestsCount}
@@ -850,6 +855,11 @@ const App = () => {
         isOpen={isWarehouseInventoryOpen}
         onClose={() => setIsWarehouseInventoryOpen(false)}
         onSaveInventory={handleSaveWarehouseInventory}
+      />
+
+      <WarehouseOperationsModal
+        isOpen={isWarehouseOpsOpen}
+        onClose={() => setIsWarehouseOpsOpen(false)}
       />
 
       <RewardReportModal
