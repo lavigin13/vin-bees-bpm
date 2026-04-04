@@ -252,3 +252,145 @@ export const MOCK_REQUESTS = [
         createdBy: 103 // Subordinate (Worker Bee)
     }
 ];
+
+export const MOCK_SUBORDINATE_DATA = {
+    'sub1': {
+        id: 'sub1',
+        name: 'Олена Коваль',
+        role: 'Junior Analyst',
+        reports: {
+            '2026-02-02': { type: 'Work', regularHours: 8, overtimeHours: 1, status: 'approved' },
+            '2026-02-03': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
+            '2026-02-06': { type: 'Work', regularHours: 8, overtimeHours: 1.5, status: 'approved' },
+            '2026-02-10': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-11': { type: 'Business Trip', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-14': { type: 'Work', regularHours: 6, overtimeHours: 0, status: 'rejected' },
+            '2026-02-17': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-18': { type: 'Work', regularHours: 8, overtimeHours: 2, status: 'pending' },
+            '2026-02-19': { type: 'Sick Leave', regularHours: 0, overtimeHours: 0, status: 'approved' },
+            '2026-02-21': { type: 'Work', regularHours: 8, overtimeHours: 0.5, status: 'pending' },
+            '2026-02-24': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'pending' }
+        }
+    },
+    'sub2': {
+        id: 'sub2',
+        name: 'Андрій Мельник',
+        role: 'Sales Manager',
+        reports: {
+            '2026-02-03': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
+            '2026-02-04': { type: 'Work', regularHours: 8, overtimeHours: 1, status: 'approved' },
+            '2026-02-07': { type: 'Day Off', regularHours: 0, overtimeHours: 0, status: 'approved' },
+            '2026-02-10': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-12': { type: 'Work', regularHours: 7, overtimeHours: 0, status: 'pending' },
+            '2026-02-17': { type: 'Business Trip', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-18': { type: 'Work', regularHours: 4, overtimeHours: 0, status: 'rejected' },
+            '2026-02-20': { type: 'Work', regularHours: 8, overtimeHours: 1, status: 'pending' },
+            '2026-02-26': { type: 'Vacation', regularHours: 0, overtimeHours: 0, status: 'approved' }
+        }
+    },
+    'sub3': {
+        id: 'sub3',
+        name: 'Марія Іваненко',
+        role: 'Designer',
+        reports: {
+            '2026-02-01': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
+            '2026-02-05': { type: 'Work', regularHours: 8, overtimeHours: 2, status: 'approved' },
+            '2026-02-09': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-16': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-17': { type: 'Vacation', regularHours: 0, overtimeHours: 0, status: 'approved' },
+            '2026-02-18': { type: 'Work', regularHours: 8, overtimeHours: 1.5, status: 'pending' },
+            '2026-02-22': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'rejected' },
+            '2026-02-25': { type: 'Business Trip', regularHours: 8, overtimeHours: 0, status: 'pending' }
+        }
+    },
+    'sub4': {
+        id: 'sub4',
+        name: 'Павло Дорош',
+        role: 'Support Engineer',
+        reports: {
+            '2026-02-02': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
+            '2026-02-03': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
+            '2026-02-06': { type: 'Work', regularHours: 8, overtimeHours: 2, status: 'approved' },
+            '2026-02-11': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-13': { type: 'Work', regularHours: 8, overtimeHours: 1, status: 'pending' },
+            '2026-02-18': { type: 'Sick Leave', regularHours: 0, overtimeHours: 0, status: 'approved' },
+            '2026-02-19': { type: 'Work', regularHours: 6, overtimeHours: 0, status: 'rejected' },
+            '2026-02-27': { type: 'Work', regularHours: 8, overtimeHours: 0.5, status: 'pending' }
+        }
+    },
+    'sub5': {
+        id: 'sub5',
+        name: 'Ірина Стецюк',
+        role: 'Account Manager',
+        reports: {
+            '2026-02-04': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
+            '2026-02-05': { type: 'Business Trip', regularHours: 8, overtimeHours: 0, status: 'approved' },
+            '2026-02-10': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-12': { type: 'Work', regularHours: 8, overtimeHours: 1, status: 'pending' },
+            '2026-02-14': { type: 'Day Off', regularHours: 0, overtimeHours: 0, status: 'approved' },
+            '2026-02-17': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'pending' },
+            '2026-02-20': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'rejected' },
+            '2026-02-24': { type: 'Vacation', regularHours: 0, overtimeHours: 0, status: 'approved' },
+            '2026-02-28': { type: 'Work', regularHours: 5, overtimeHours: 0, status: 'pending' }
+        }
+    }
+};
+
+export const MOCK_PERSONAL_SALARY = {
+    totalAmount: 3500,
+    totalEmployees: 1,
+    columns: [
+        { key: 'category', title: 'Категорія', width: '40%', type: 'text' },
+        { key: 'description', title: 'Опис', width: '40%', type: 'text' },
+        { key: 'amount', title: 'Сума', width: '20%', type: 'currency' }
+    ],
+    groups: [
+        {
+            id: 'income',
+            title: 'Нарахування',
+            items: [
+                { id: 1, category: 'Ставка', description: 'Фіксована частина', amount: 2000 },
+                { id: 2, category: 'KPI Бонус', description: 'Виконання плану на 110%', amount: 1000 },
+                { id: 3, category: 'За вислугу років', description: '2 роки в компанії', amount: 500 }
+            ]
+        }
+    ]
+};
+
+export const MOCK_TEAM_SALARY = {
+    totalAmount: 24500,
+    totalEmployees: 12,
+    columns: [
+        { key: 'name', title: 'Співробітник', width: '40%', type: 'text' },
+        { key: 'role', title: 'Посада', width: '25%', type: 'text' },
+        { key: 'kpi', title: 'KPI', width: '15%', type: 'text' },
+        { key: 'amount', title: 'Сума', width: '20%', type: 'currency' }
+    ],
+    groups: [
+        {
+            id: 'mng',
+            title: 'Management (Керівництво)',
+            items: [
+                { id: 1, name: 'Queen Bee', role: 'CEO', kpi: '100%', amount: 10000 },
+                { id: 2, name: 'Alex Supervisor', role: 'Manager', kpi: '95%', amount: 4500 }
+            ]
+        },
+        {
+            id: 'dev',
+            title: 'IT Department (Розробка)',
+            items: [
+                { id: 3, name: 'John Coder', role: 'Senior Dev', kpi: '110%', amount: 3000 },
+                { id: 4, name: 'Jane Frontend', role: 'Middle Dev', kpi: '98%', amount: 2200 },
+                { id: 5, name: 'Bob Tester', role: 'QA', kpi: '100%', amount: 1800 }
+            ]
+        },
+        {
+            id: 'sales',
+            title: 'Sales (Продажі)',
+            items: [
+                { id: 6, name: 'Alice Seller', role: 'Sales Lead', kpi: '120%', amount: 2500 },
+                { id: 7, name: 'Mike Dealer', role: 'Sales Agent', kpi: '80%', amount: 500 }
+            ]
+        }
+    ]
+};

@@ -35,10 +35,13 @@ import {
 import './index.css';
 import { Coins, LogOut } from 'lucide-react';
 
+import { isTelegram } from './services/env';
+
 const App = () => {
-  // Basic auth state
+  // In Telegram Mini App — auto-authenticated via initData
+  // In standalone web — check for saved Basic Auth token
   const [isAuthenticated, setIsAuthenticated] = useState(
-    !!localStorage.getItem('authToken')
+    isTelegram() || !!localStorage.getItem('authToken')
   );
 
   const [user, setUser] = useState(null);

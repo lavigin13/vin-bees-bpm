@@ -177,7 +177,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
             setOvertimeHours(report.overtimeHours || 0);
         } else {
             setDayType('Work');
-            setRegularHours(0);
+            setRegularHours(8);
             setOvertimeHours(0);
         }
 
