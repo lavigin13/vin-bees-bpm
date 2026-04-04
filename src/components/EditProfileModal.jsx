@@ -22,7 +22,7 @@ const EditProfileModal = ({ isOpen, onClose, user, onSave }) => {
                 }}
             >
                 <div className="question-header" style={{ marginBottom: '15px' }}>
-                    <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '18px' }}>Profile Settings</h3>
+                    <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '18px' }}>Налаштування профілю</h3>
                     <button className="close-btn" onClick={onClose}>
                         <X size={24} />
                     </button>

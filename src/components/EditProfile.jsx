@@ -31,74 +31,75 @@ const EditProfile = ({ user, onSave }) => {
 
     return (
         <div className="edit-profile-container">
-            <h2 className="section-title">Character Sheet</h2>
+            <h2 className="section-title">Лист Персонажа</h2>
             <form onSubmit={handleSubmit} className="rpg-form">
+                <div className="form-row">
+                    <div className="form-group">
+                        <label className="form-label">
+                            <User size={14} /> Стать
+                        </label>
+                        <select
+                            name="gender"
+                            value={formData.gender}
+                            onChange={handleChange}
+                            className="rpg-input"
+                        >
+                            <option value="">Оберіть стать</option>
+                            <option value="Male">Чоловіча</option>
+                            <option value="Female">Жіноча</option>
+                            <option value="Non-binary">Небінарна</option>
+                            <option value="Droid">Дроїд</option>
+                        </select>
+                    </div>
 
-                <div className="form-group">
-                    <label className="form-label">
-                        <User size={14} /> Gender
-                    </label>
-                    <select
-                        name="gender"
-                        value={formData.gender}
-                        onChange={handleChange}
-                        className="rpg-input"
-                    >
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Non-binary">Non-binary</option>
-                        <option value="Droid">Droid</option>
-                    </select>
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Calendar size={14} /> Дата народження
+                        </label>
+                        <input
+                            type="date"
+                            name="birthday"
+                            value={formData.birthday || ''}
+                            onChange={handleChange}
+                            className="rpg-input"
+                            style={{ width: '100%', boxSizing: 'border-box' }}
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Baby size={14} /> Міньйони (Діти)
+                        </label>
+                        <input
+                            type="number"
+                            name="children"
+                            value={formData.children}
+                            onChange={handleChange}
+                            className="rpg-input"
+                            placeholder="Кількість"
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">
+                            <Gamepad2 size={14} /> Хобі / Сайд-квест
+                        </label>
+                        <input
+                            type="text"
+                            name="hobby"
+                            value={formData.hobby}
+                            onChange={handleChange}
+                            className="rpg-input"
+                            placeholder="напр. Бджільництво, Кодинг"
+                        />
+                    </div>
                 </div>
 
-                <div className="form-group">
-                    <label className="form-label">
-                        <Calendar size={14} /> Birthday
-                    </label>
-                    <input
-                        type="date"
-                        name="birthday"
-                        value={formData.birthday || ''}
-                        onChange={handleChange}
-                        className="rpg-input"
-                        style={{ width: '100%', boxSizing: 'border-box' }}
-                    />
+                <div className="form-actions">
+                    <button type="submit" className="save-btn">
+                        <Save size={18} /> Зберегти зміни
+                    </button>
                 </div>
-
-
-
-                <div className="form-group">
-                    <label className="form-label">
-                        <Baby size={14} /> Minions (Children)
-                    </label>
-                    <input
-                        type="number"
-                        name="children"
-                        value={formData.children}
-                        onChange={handleChange}
-                        className="rpg-input"
-                        placeholder="Count"
-                    />
-                </div>
-
-                <div className="form-group full-width">
-                    <label className="form-label">
-                        <Gamepad2 size={14} /> Hobby / Side Quest
-                    </label>
-                    <input
-                        type="text"
-                        name="hobby"
-                        value={formData.hobby}
-                        onChange={handleChange}
-                        className="rpg-input"
-                        placeholder="e.g. Beekeeping, Coding"
-                    />
-                </div>
-
-                <button type="submit" className="save-btn">
-                    <Save size={18} /> Save Changes
-                </button>
             </form>
         </div>
     );

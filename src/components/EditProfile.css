@@ -2,9 +2,30 @@
     margin-bottom: 32px;
 }
 
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px; /* Відступ між полями */
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.form-group {
+    flex: 1; /* Поля будуть рівномірно розподілені */
+    min-width: 200px; /* Щоб на мобільних пристроях вони не ставали занадто вузькими */
+    display: flex;
+    flex-direction: column;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
 .rpg-form {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 16px;
     background: var(--card-bg);
     border: 1px solid var(--card-border);
