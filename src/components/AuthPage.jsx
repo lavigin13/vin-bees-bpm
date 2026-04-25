@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { LogIn, User, Lock, ArrowRight } from 'lucide-react';
+import { LogIn, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { loginUser } from '../services/api';
 
-const AuthPage = ({ onLoginSuccess }) => {
+const AuthPage = ({ onLoginSuccess, notice = '' }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +53,14 @@ const AuthPage = ({ onLoginSuccess }) => {
 
         <div className="rounded-2xl p-6 sm:p-8 shadow-2xl border border-[var(--card-border)] bg-[var(--card-bg)]">
           <form onSubmit={handleLogin} className="space-y-6">
-            
+
+            {notice && !error && (
+              <div className="bg-amber-500/10 border border-amber-500/50 text-amber-400 px-4 py-3 rounded-xl text-sm flex items-center">
+                 <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                 {notice}
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-3 rounded-xl text-sm flex items-center animate-pulse">
                  <Lock className="w-4 h-4 mr-2 flex-shrink-0" />

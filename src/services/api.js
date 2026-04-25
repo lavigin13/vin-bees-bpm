@@ -3,6 +3,14 @@ import { isTelegram, getApiBaseUrl } from './env';
 
 const API_BASE_URL = getApiBaseUrl();
 
+export class UnauthorizedError extends Error {
+    constructor(message = 'Unauthorized') {
+        super(message);
+        this.name = 'UnauthorizedError';
+        this.status = 401;
+    }
+}
+
 const getHeaders = () => {
     const headers = {
         'Content-Type': 'application/json'
@@ -21,50 +29,34 @@ const getHeaders = () => {
 };
 
 /**
- * Wrapper around fetch that handles redirects correctly.
- * Browsers drop the Authorization header when redirected to a different origin.
- * Since we're on localhost this is mainly a safety measure, but it logs a warning
- * if the final URL differs from the requested one (sign of a redirect).
+ * Centralised wrapper around fetch:
+ * - follows redirects and warns when origin changes (browsers may drop the
+ *   Authorization header on cross-origin redirects)
+ * - on HTTP 401: clears the saved Basic-Auth token, broadcasts an
+ *   `auth:unauthorized` event so App.jsx can return the user to AuthPage,
+ *   and throws UnauthorizedError. The event fires even if a caller swallows
+ *   the exception in a try/catch.
  */
 const apiFetch = async (url, options = {}) => {
     const response = await fetch(url, { redirect: 'follow', ...options });
     if (response.url && response.url !== url) {
         console.warn(`[API] Redirected: ${url} → ${response.url}. Authorization header may have been dropped by the browser.`);
     }
+    if (response.status === 401) {
+        localStorage.removeItem('authToken');
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { url } }));
+        }
+        throw new UnauthorizedError('Authentication failed (401)');
+    }
     return response;
 };
 
 export const loginUser = async (username, password) => {
-    // Basic Auth requires base64 encoded username:password
-    // Use encodeURIComponent to handle Cyrillic/UTF-8 characters before encoding to base64
+    // Basic Auth: base64(username:password). encodeURIComponent handles UTF-8 (Cyrillic) before btoa.
     const credentials = `${username}:${password}`;
     const token = btoa(unescape(encodeURIComponent(credentials)));
-    
-    const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${token}`
-    };
-    
-    // Ping the API base endpoint to verify credentials instead of /profile
-    // Note: 1C often blocks CORS by default. We may need proxy or no-cors for pure local checks
-    try {
-        const response = await fetch(`${API_BASE_URL}`, { 
-            method: 'GET', 
-            headers: headers
-        });
-        
-        if (response.status === 401) {
-            throw new Error('Невірний логін або пароль');
-        }
-    } catch (e) {
-        if (e.message === 'Failed to fetch') {
-            console.warn("Network Unreachable or CORS Error. Ensure ERP is running and allows Origin localhost:5173");
-            throw new Error("Помилка з'єднання з ERP системою. Перевірте доступність мережі.");
-        }
-        throw e;
-    }
-    
-    // Return early if ok, storing the basic auth token
+
     localStorage.setItem('authToken', token);
     return true;
 };
@@ -73,7 +65,7 @@ export const loginUser = async (username, password) => {
 
 export const fetchProfile = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/profile`, { method: 'GET', headers: getHeaders() });
+        const response = await apiFetch(`${API_BASE_URL}/profile`, { method: 'GET', headers: getHeaders() });
         if (!response.ok) throw new Error('API Error');
         return await response.json();
     } catch (e) { return null; }
@@ -81,7 +73,7 @@ export const fetchProfile = async () => {
 
 export const fetchInventory = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory`, { method: 'GET', headers: getHeaders() });
+        const response = await apiFetch(`${API_BASE_URL}/inventory`, { method: 'GET', headers: getHeaders() });
         if (!response.ok) throw new Error('API Error');
         return await response.json();
     } catch (e) { return null; }
@@ -90,7 +82,7 @@ export const fetchInventory = async () => {
 export const updateProfile = async (profileData) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/profile`, {
+        const response = await apiFetch(`${API_BASE_URL}/profile`, {
             method: 'PUT',
             headers: headers,
             body: JSON.stringify(profileData)
@@ -113,7 +105,7 @@ export const sendAuditResult = async (itemId, status) => {
             statusStr = status ? 'present' : 'missing';
         }
 
-        const response = await fetch(`${API_BASE_URL}/inventory/audit`, {
+        const response = await apiFetch(`${API_BASE_URL}/inventory/audit`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ itemId, status: statusStr })
@@ -129,7 +121,7 @@ export const sendAuditResult = async (itemId, status) => {
 export const transferHoney = async (recipientId, amount) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/wallet/transfer`, {
+        const response = await apiFetch(`${API_BASE_URL}/wallet/transfer`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ recipientId, amount })
@@ -147,7 +139,7 @@ export const transferHoney = async (recipientId, amount) => {
 export const transferItem = async (recipientId, itemId, quantity) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory/transfer`, {
+        const response = await apiFetch(`${API_BASE_URL}/inventory/transfer`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ recipientId, itemId, quantity })
@@ -163,7 +155,7 @@ export const transferItem = async (recipientId, itemId, quantity) => {
 export const fetchPendingTransfers = async () => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory/transfer`, {
+        const response = await apiFetch(`${API_BASE_URL}/inventory/transfer`, {
             method: 'GET',
             headers: headers
         });
@@ -182,7 +174,7 @@ export const respondToTransfer = async (transferId, action) => {
     // action: 'accept' or 'reject'
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory/transfer/respond`, {
+        const response = await apiFetch(`${API_BASE_URL}/inventory/transfer/respond`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ transferId, action })
@@ -197,7 +189,7 @@ export const respondToTransfer = async (transferId, action) => {
 
 export const fetchColleagues = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/colleagues`, { method: 'GET', headers: getHeaders() });
+        const response = await apiFetch(`${API_BASE_URL}/colleagues`, { method: 'GET', headers: getHeaders() });
         if (!response.ok) {
             console.warn('Colleagues API not ready, using mock');
             return null;
@@ -214,7 +206,7 @@ export const fetchColleagues = async () => {
 export const getMarketplaceItems = async () => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/marketplace`, {
+        const response = await apiFetch(`${API_BASE_URL}/marketplace`, {
             method: 'GET',
             headers: headers
         });
@@ -233,7 +225,7 @@ export const getMarketplaceItems = async () => {
 export const buyItem = async (listingId) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/marketplace/buy`, {
+        const response = await apiFetch(`${API_BASE_URL}/marketplace/buy`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ listingId })
@@ -249,7 +241,7 @@ export const buyItem = async (listingId) => {
 export const createListing = async (itemData) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/marketplace/sell`, {
+        const response = await apiFetch(`${API_BASE_URL}/marketplace/sell`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(itemData)
@@ -267,7 +259,7 @@ export const createListing = async (itemData) => {
 export const fetchTrips = async () => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/trips`, { method: 'GET', headers: headers });
+        const response = await apiFetch(`${API_BASE_URL}/trips`, { method: 'GET', headers: headers });
         if (!response.ok) {
             console.warn('Trips API not ready');
             return null;
@@ -282,7 +274,7 @@ export const fetchTrips = async () => {
 export const createOrUpdateTrip = async (tripData) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/trips`, {
+        const response = await apiFetch(`${API_BASE_URL}/trips`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(tripData)
@@ -298,7 +290,7 @@ export const createOrUpdateTrip = async (tripData) => {
 export const submitTrip = async (tripId) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/trips/submit`, {
+        const response = await apiFetch(`${API_BASE_URL}/trips/submit`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ tripId })
@@ -316,7 +308,7 @@ export const submitTrip = async (tripId) => {
 export const fetchRequests = async (view = 'my') => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/requests?view=${view}`, { method: 'GET', headers: headers });
+        const response = await apiFetch(`${API_BASE_URL}/requests?view=${view}`, { method: 'GET', headers: headers });
         if (!response.ok) {
             console.warn('Requests API not ready');
             return null;
@@ -331,7 +323,7 @@ export const fetchRequests = async (view = 'my') => {
 export const fetchRequestCategories = async () => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/requests/categories`, { method: 'GET', headers: headers });
+        const response = await apiFetch(`${API_BASE_URL}/requests/categories`, { method: 'GET', headers: headers });
         if (!response.ok) {
             console.warn('Request categories API not ready');
             return null;
@@ -346,7 +338,7 @@ export const fetchRequestCategories = async () => {
 export const createOrUpdateRequest = async (requestData) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/requests`, {
+        const response = await apiFetch(`${API_BASE_URL}/requests`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(requestData)
@@ -362,7 +354,7 @@ export const createOrUpdateRequest = async (requestData) => {
 export const submitRequest = async (requestId) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/requests/submit`, {
+        const response = await apiFetch(`${API_BASE_URL}/requests/submit`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ requestId })
@@ -379,7 +371,7 @@ export const respondToRequest = async (requestId, action) => {
     // action: 'approve' or 'reject'
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/requests/respond`, {
+        const response = await apiFetch(`${API_BASE_URL}/requests/respond`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ requestId, action })
@@ -398,7 +390,7 @@ export const fetchTimesheet = async (monthStr) => {
     // monthStr: YYYY-MM
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/timesheet?month=${monthStr}`, { method: 'GET', headers: headers });
+        const response = await apiFetch(`${API_BASE_URL}/timesheet?month=${monthStr}`, { method: 'GET', headers: headers });
         if (!response.ok) {
             console.warn('Timesheet API not ready');
             return null;
@@ -413,7 +405,7 @@ export const fetchTimesheet = async (monthStr) => {
 export const saveDailyReport = async (dateStr, reportData) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/timesheet/day`, {
+        const response = await apiFetch(`${API_BASE_URL}/timesheet/day`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ date: dateStr, ...reportData })
@@ -429,7 +421,7 @@ export const saveDailyReport = async (dateStr, reportData) => {
 export const deleteTimesheetReport = async (dateStr) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/timesheet/delete`, {
+        const response = await apiFetch(`${API_BASE_URL}/timesheet/delete`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ date: dateStr })
@@ -455,7 +447,7 @@ export const fetchSubordinateTimesheets = async (monthStr) => {
     // monthStr: YYYY-MM
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/timesheet/subordinates?month=${monthStr}`, {
+        const response = await apiFetch(`${API_BASE_URL}/timesheet/subordinates?month=${monthStr}`, {
             method: 'GET',
             headers: headers
         });
@@ -477,7 +469,7 @@ export const approveTimesheetReports = async (reports) => {
     // reports: [{employeeId, date}, ...]
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/timesheet/approve`, {
+        const response = await apiFetch(`${API_BASE_URL}/timesheet/approve`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ reports })
@@ -503,7 +495,7 @@ export const rejectTimesheetReports = async (reports, reason = null) => {
     // reports: [{employeeId, date}, ...]
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/timesheet/reject`, {
+        const response = await apiFetch(`${API_BASE_URL}/timesheet/reject`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ reports, reason })
@@ -534,7 +526,7 @@ export const fetchSalaryReport = async (month, year, view = 'personal') => {
     const mockData = view === 'personal' ? MOCK_PERSONAL_SALARY : MOCK_TEAM_SALARY;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/reports/salary?month=${month}&year=${year}&view=${view}`, {
+        const response = await apiFetch(`${API_BASE_URL}/reports/salary?month=${month}&year=${year}&view=${view}`, {
             method: 'GET',
             headers: headers
         });
@@ -563,7 +555,7 @@ export const sendSalaryQuestion = async (questionData) => {
     // questionData: { question, month, year }
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/reports/salary/question`, {
+        const response = await apiFetch(`${API_BASE_URL}/reports/salary/question`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(questionData)
@@ -582,7 +574,7 @@ export const sendSalaryQuestion = async (questionData) => {
 export const getInventoryDocuments = async () => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory/documents`, {
+        const response = await apiFetch(`${API_BASE_URL}/inventory/documents`, {
             method: 'GET',
             headers: headers
         });
@@ -597,7 +589,7 @@ export const getInventoryDocuments = async () => {
 export const getProductByBarcode = async (barcode) => {
     const headers = getHeaders();
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory/product?barcode=${barcode}`, {
+        const response = await apiFetch(`${API_BASE_URL}/inventory/product?barcode=${barcode}`, {
             method: 'GET',
             headers: headers
         });

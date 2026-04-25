@@ -43,6 +43,7 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(
     isTelegram() || !!localStorage.getItem('authToken')
   );
+  const [authNotice, setAuthNotice] = useState('');
 
   const [user, setUser] = useState(null);
   const [inventory, setInventory] = useState(null);
@@ -106,6 +107,19 @@ const App = () => {
     r && r.createdBy !== (user ? user.id : 999) &&
     (r.status === 'new' || r.status === 'pending')
   ).length;
+
+  // Global handler: any 401 from the API layer kicks the user back to AuthPage.
+  // api.js already cleared the token and broadcast the event before throwing
+  // UnauthorizedError, so individual catch blocks swallowing the error are fine.
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setIsAuthenticated(false);
+      setUser(null);
+      setAuthNotice('Сесія завершена або доступ заборонено. Увійдіть знову.');
+    };
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
 
   // Refresh requests when modal opens
   useEffect(() => {
@@ -268,7 +282,15 @@ const App = () => {
 
   // If not authenticated, render Auth Page
   if (!isAuthenticated) {
-    return <AuthPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+    return (
+      <AuthPage
+        notice={authNotice}
+        onLoginSuccess={() => {
+          setAuthNotice('');
+          setIsAuthenticated(true);
+        }}
+      />
+    );
   }
 
   if (isLoading) {

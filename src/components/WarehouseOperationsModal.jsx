@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Plus, Minus, ArrowLeft, CheckCircle2, Loader2, Warehouse, ChevronRight, Eye } from 'lucide-react';
+import { X, Plus, Minus, ArrowLeft, Loader2, Warehouse, Eye, Package } from 'lucide-react';
 import './WarehouseOperationsModal.css';
+import NomenclaturePickerModal from './NomenclaturePickerModal';
+import SpecPickerModal from './SpecPickerModal';
 import {
     fetchWarehouseOperations,
     fetchWarehouses,
-    fetchNomenclature,
-    fetchNomenclatureSpec,
     saveWarehouseOperation,
     fetchProfile,
     fetchColleagues
@@ -194,36 +194,47 @@ const ViewDocScreen = ({ doc, profile, onBack, onEdit, onUpdateStatus }) => {
 // ─────────────────────────────────────────
 const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
     const isEdit = !!initialDoc;
-    const [opType, setOpType]           = useState(initialDoc ? initialDoc.Operation : null);
-    const [warehouses, setWarehouses]   = useState([]);
-    const [warehouseId, setWarehouseId] = useState('');
-    const [targetWarehouseId, setTargetWarehouseId] = useState(initialDoc && initialDoc.TargetWarehouse ? initialDoc.TargetWarehouse : '');
-    const [loadingWH, setLoadingWH]     = useState(false);
+    const isProduction = (op) => op === 'ProductionRequest';
 
-    const [colleagues, setColleagues]       = useState([]);
+    const [opType, setOpType] = useState(initialDoc ? initialDoc.Operation : null);
+    const [warehouses, setWarehouses] = useState([]);
+    const [warehouseId, setWarehouseId] = useState(
+        initialDoc?.Warehouse?.Id || initialDoc?.Warehouse?.id || ''
+    );
+    const [targetWarehouseId, setTargetWarehouseId] = useState(
+        initialDoc?.TargetWarehouse?.Id || initialDoc?.TargetWarehouse?.id || ''
+    );
+    const [loadingWH, setLoadingWH] = useState(false);
+
+    const [colleagues, setColleagues] = useState([]);
     const [loadingColleagues, setLoadingColleagues] = useState(false);
-    const [recipientId, setRecipientId]     = useState(
+    const [recipientId, setRecipientId] = useState(
         initialDoc?.TargetIndividual?.Id || initialDoc?.TargetIndividual?.id || ''
     );
 
-    const [nomenclature, setNomenclature] = useState([]);
-    const [nomSearch, setNomSearch]       = useState('');
-    const [loadingNom, setLoadingNom]     = useState(false);
-
-    const [specs, setSpecs]               = useState([]);
-    const [loadingSpec, setLoadingSpec]   = useState(false);
-    // map: { [IdParent]: qty }  — серцевина множинного вибору специфікацій
-    const [selectedSpecsQty, setSelectedSpecsQty] = useState({});
-    // specsById: { [IdParent]: spec } — швидкий пошук
-    const [specsById, setSpecsById] = useState({});
-
+    // Nomenclature items selected for Writeoff / Movement
     const [selectedItems, setSelectedItems] = useState(() => {
-        if (!initialDoc || !initialDoc.Products) return [];
+        if (!initialDoc?.Products || isProduction(initialDoc.Operation)) return [];
         return initialDoc.Products.map(p => ({
-            id: p.Id, name: p.Name, qty: p.Count, maxQty: 99999
+            id: p.Id, name: p.Name, qty: p.Count, maxQty: p.Count || 99999
         }));
     });
+
+    // Specifications selected for ProductionRequest (full objects with components and qty).
+    // For edit mode we seed only id/name/qty — components remain empty until the user opens
+    // the picker, which loads full spec data and replaces these stubs via reconciliation.
+    const [selectedSpecs, setSelectedSpecs] = useState(() => {
+        if (!initialDoc?.Products || !isProduction(initialDoc.Operation)) return [];
+        return initialDoc.Products.map(p => ({
+            IdParent: p.Id,
+            NameParent: p.Name,
+            Сomponents: [],
+            qty: p.Count
+        }));
+    });
+
     const [isSaving, setIsSaving] = useState(false);
+    const [pickerOpen, setPickerOpen] = useState(false);
 
     useEffect(() => {
         setLoadingWH(true);
@@ -238,167 +249,93 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
         setWarehouseId('');
         setTargetWarehouseId('');
         setRecipientId('');
-        setNomenclature([]);
-        setSpecs([]);
-        setSpecsById({});
-        setSelectedSpecsQty({});
         setSelectedItems([]);
-        setNomSearch('');
+        setSelectedSpecs([]);
     };
 
-    useEffect(() => {
-        if (!warehouseId) return;
-        if (opType === 'ProductionRequest') {
-            setLoadingSpec(true);
-            setSpecs([]);
-            setSpecsById({});
-            setSelectedSpecsQty({});
-            setSelectedItems([]);
-            fetchNomenclatureSpec(warehouseId).then(data => {
-                console.log("=== RAW SPEC DATA ===", JSON.stringify(data, null, 2));
-                const arr = Array.isArray(data) ? data : (data?.items || data?.data || []);
+    const handleWarehouseChange = (newId) => {
+        if (newId === warehouseId) return;
+        setWarehouseId(newId);
+        // Different warehouse → previous picks are no longer valid
+        setSelectedItems([]);
+        setSelectedSpecs([]);
+    };
 
-                const firstItem = arr[0];
-                const isAlreadyGrouped = firstItem && (firstItem.Сomponents || firstItem.Components);
-
-                let parsedSpecs;
-                if (isAlreadyGrouped) {
-                    parsedSpecs = arr.map(g => ({
-                        IdParent: g.IdParent || g.idParent || g.Id || g.id,
-                        NameParent: g.NameParent || g.nameParent || g.Name || g.name || 'Специфікація',
-                        Сomponents: (g.Сomponents || g.Components || g.components || []).map(c => ({
-                            Id: c.Id || c.id,
-                            Name: c.Name || c.name || 'Компонент',
-                            Count: c.Count || c.count || 1,
-                            CountСomponent: c.CountСomponent || c.CountComponent || c.countComponent || c.count_component || 1
-                        }))
-                    }));
-                } else {
-                    const grouped = {};
-                    arr.forEach(row => {
-                        const idParent = row.IdParent || row.idParent;
-                        const idComp   = row.Id || row.id;
-                        if (!idParent) return;
-                        if (!grouped[idParent]) {
-                            grouped[idParent] = {
-                                IdParent: idParent,
-                                NameParent: row.NameParent || row.nameParent || 'Специфікація ' + idParent.substring(0, 4),
-                                Сomponents: []
-                            };
-                        }
-                        if (idComp) {
-                            grouped[idParent].Сomponents.push({
-                                Id: idComp,
-                                Name: row.Name || row.name || 'Компонент',
-                                Count: row.Count || row.count || 1,
-                                CountСomponent: row.CountСomponent || row.CountComponent || row.countComponent || row.count_component || 1
-                            });
-                        }
-                    });
-                    parsedSpecs = Object.values(grouped);
-                }
-
-                console.log('[SPEC] parsedSpecs:', JSON.stringify(parsedSpecs, null, 2));
-                const byId = {};
-                parsedSpecs.forEach(s => { byId[s.IdParent] = s; });
-                console.log('[SPEC] specsById keys:', Object.keys(byId));
-                setSpecs(parsedSpecs);
-                setSpecsById(byId);
-            }).finally(() => setLoadingSpec(false));
-        } else if (opType === 'Writeoff' || opType === 'Movement') {
-            setLoadingNom(true);
-            fetchNomenclature(warehouseId).then(data => setNomenclature(data || []))
-                .finally(() => setLoadingNom(false));
-        }
-    }, [warehouseId, opType]);
-
-    // Агрегує компоненти з усіх вибраних специфікацій (сумує однакові компоненти)
-    const buildAggregatedItems = (sqMap, byId) => {
-        console.log('[BUILD] sqMap:', JSON.stringify(sqMap));
-        console.log('[BUILD] byId keys:', Object.keys(byId));
+    // Aggregated component preview from selected specs (sums identical components across specs)
+    const aggregatedItems = useMemo(() => {
         const agg = {};
-        Object.entries(sqMap).forEach(([specId, qty]) => {
-            const spec = byId[specId];
-            console.log(`[BUILD] specId=${specId}, found spec:`, !!spec, 'components:', spec?.Сomponents?.length);
-            if (!spec) return;
+        selectedSpecs.forEach(spec => {
             (spec.Сomponents || []).forEach(comp => {
-                console.log(`[BUILD] comp:`, JSON.stringify(comp));
                 if (!comp.Id) return;
                 if (!agg[comp.Id]) {
                     agg[comp.Id] = { id: comp.Id, name: comp.Name, qty: 0, maxQty: comp.Count };
                 }
-                agg[comp.Id].qty += comp.CountСomponent * qty;
+                agg[comp.Id].qty += (comp.CountСomponent || 1) * (spec.qty || 1);
             });
         });
-        const result = Object.values(agg);
-        console.log('[BUILD] result:', JSON.stringify(result));
-        return result;
-    };
+        return Object.values(agg);
+    }, [selectedSpecs]);
 
-    // Синхронізуємо selectedItems коли змінюється вибір специфікацій або словник специфікацій
-    useEffect(() => {
-        if (opType === 'ProductionRequest') {
-            setSelectedItems(buildAggregatedItems(selectedSpecsQty, specsById));
-        }
-    }, [selectedSpecsQty, specsById]);
-
-    const handleToggleSpec = (spec) => {
-        setSelectedSpecsQty(prev => {
-            const next = { ...prev };
-            if (next[spec.IdParent] !== undefined) {
-                delete next[spec.IdParent];
-            } else {
-                next[spec.IdParent] = 1;
-            }
-            return next;
+    // ── Picker confirm handlers (preserve existing qty for items that stay selected) ──
+    const handleNomenclatureConfirm = (pickedItems) => {
+        const existing = new Map(selectedItems.map(i => [i.id, i]));
+        const reconciled = pickedItems.map(p => {
+            const prev = existing.get(p.id);
+            return {
+                id: p.id,
+                name: p.name,
+                qty: prev ? prev.qty : 1,
+                maxQty: p.count || 99999,
+            };
         });
+        setSelectedItems(reconciled);
+        setPickerOpen(false);
     };
 
-    const handleSpecQtyChange = (specId, delta) => {
-        setSelectedSpecsQty(prev => ({
-            ...prev,
-            [specId]: Math.max(1, (prev[specId] || 1) + delta)
+    const handleSpecConfirm = (pickedSpecs) => {
+        const existing = new Map(selectedSpecs.map(s => [s.IdParent, s]));
+        const reconciled = pickedSpecs.map(p => ({
+            ...p,
+            qty: existing.get(p.IdParent)?.qty ?? 1,
         }));
+        setSelectedSpecs(reconciled);
+        setPickerOpen(false);
     };
 
-    const handleSpecQtyInput = (specId, val) => {
-        const n = parseInt(val);
-        if (!isNaN(n) && n >= 1) {
-            setSelectedSpecsQty(prev => ({ ...prev, [specId]: n }));
-        }
-    };
-
-    const handleAddNomItem = (item) => {
-        setSelectedItems(prev => {
-            if (prev.find(i => i.id === item.ID)) return prev;
-            return [...prev, { id: item.ID, name: item.Name, qty: 1, maxQty: item.Count }];
-        });
-    };
-
+    // ── Selected items qty controls (Writeoff / Movement) ──
     const handleQtyChange = (id, delta) =>
         setSelectedItems(prev => prev.map(i =>
             i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i
         ));
-
     const handleQtyInput = (id, val) => {
         const n = parseInt(val);
-        if (!isNaN(n)) setSelectedItems(prev => prev.map(i => i.id === id ? { ...i, qty: Math.max(1, n) } : i));
+        if (!isNaN(n)) setSelectedItems(prev => prev.map(i =>
+            i.id === id ? { ...i, qty: Math.max(1, n) } : i
+        ));
     };
-
     const handleRemoveItem = (id) =>
         setSelectedItems(prev => prev.filter(i => i.id !== id));
 
-    const filteredNom = useMemo(() => {
-        if (!nomSearch.trim()) return nomenclature;
-        const q = nomSearch.toLowerCase();
-        return nomenclature.filter(n => n.Name.toLowerCase().includes(q));
-    }, [nomenclature, nomSearch]);
+    // ── Selected specs qty controls (ProductionRequest) ──
+    const handleSpecQtyChange = (id, delta) =>
+        setSelectedSpecs(prev => prev.map(s =>
+            s.IdParent === id ? { ...s, qty: Math.max(1, s.qty + delta) } : s
+        ));
+    const handleSpecQtyInput = (id, val) => {
+        const n = parseInt(val);
+        if (!isNaN(n)) setSelectedSpecs(prev => prev.map(s =>
+            s.IdParent === id ? { ...s, qty: Math.max(1, n) } : s
+        ));
+    };
+    const handleRemoveSpec = (id) =>
+        setSelectedSpecs(prev => prev.filter(s => s.IdParent !== id));
 
-    const hasSelectedSpecs = Object.keys(selectedSpecsQty).length > 0;
+    const hasSelection = isProduction(opType)
+        ? selectedSpecs.length > 0
+        : selectedItems.length > 0;
 
-    const canSave = opType && (warehouseId || isEdit) &&
-                    (opType === 'ProductionRequest' ? hasSelectedSpecs : selectedItems.length > 0) &&
-                    (opType !== 'Movement' || targetWarehouseId || isEdit);
+    const canSave = opType && (warehouseId || isEdit) && hasSelection &&
+        (opType !== 'Movement' || targetWarehouseId || isEdit);
 
     const handleSave = async () => {
         if (!canSave) return;
@@ -406,26 +343,21 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
         try {
             const today = new Date().toISOString().split('T')[0];
             const payload = {
-                id: initialDoc ? initialDoc.Id : "",
-                date: initialDoc && initialDoc.Date ? initialDoc.Date : today,
+                id: initialDoc ? initialDoc.Id : '',
+                date: initialDoc?.Date || today,
                 Warehouse: warehouseId,
-                TargetWarehouse: opType === 'Movement' ? targetWarehouseId : "",
-                Recipient: opType === 'Movement' ? recipientId : "",
+                TargetWarehouse: opType === 'Movement' ? targetWarehouseId : '',
+                Recipient: opType === 'Movement' ? recipientId : '',
                 Operation: opType,
                 Status: initialDoc ? initialDoc.Status : 'New',
-                products: opType === 'ProductionRequest'
-                    ? Object.entries(selectedSpecsQty).map(([specId, qty]) => ({ id: specId, count: qty }))
+                products: isProduction(opType)
+                    ? selectedSpecs.map(s => ({ id: s.IdParent, count: s.qty }))
                     : selectedItems.map(i => ({ id: i.id, count: i.qty }))
             };
             const result = await saveWarehouseOperation(payload);
 
-            if (result && result.success !== undefined) {
-                if (result.success) {
-                    alert('Document saved successfully!');
-                    onSaved();
-                } else {
-                    alert('Error saving document: ' + (result.message || result.error || 'Unknown API error'));
-                }
+            if (result && result.success === false) {
+                alert('Error saving document: ' + (result.message || result.error || 'Unknown API error'));
             } else {
                 alert('Document saved!');
                 onSaved();
@@ -436,6 +368,8 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
             setIsSaving(false);
         }
     };
+
+    const pickerLabel = isProduction(opType) ? 'Select specifications' : 'Add items';
 
     return (
         <div className="wh-ops-form">
@@ -469,7 +403,7 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
                         <select
                             className="wh-form-select"
                             value={warehouseId}
-                            onChange={e => setWarehouseId(e.target.value)}
+                            onChange={e => handleWarehouseChange(e.target.value)}
                         >
                             <option value="">-- Select warehouse --</option>
                             {warehouses.map(w => (
@@ -531,131 +465,70 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
                 </div>
             )}
 
-            {/* Production Request: multi-select specs with per-spec qty */}
-            {opType === 'ProductionRequest' && warehouseId && (
+            {/* Open picker button */}
+            {opType && warehouseId && (
                 <div className="wh-form-group">
-                    <span className="wh-form-label">
-                        Вибір виробів
-                        {hasSelectedSpecs && <span className="wh-spec-count-badge"> ({Object.keys(selectedSpecsQty).length} вибрано)</span>}
-                    </span>
-                    {loadingSpec ? (
-                        <div className="wh-spec-loading">
-                            <Loader2 size={16} className="spin" />
-                            <span>Завантаження специфікацій...</span>
-                        </div>
-                    ) : specs.length === 0 ? (
-                        <div className="wh-spec-empty">
-                            Специфікації не знайдено для цього складу
-                        </div>
-                    ) : (
-                        <div className="wh-nom-list">
-                            {specs.map(spec => {
-                                const qty = selectedSpecsQty[spec.IdParent];
-                                const isSelected = qty !== undefined;
-                                return (
-                                    <div
-                                        key={spec.IdParent}
-                                        className={`wh-spec-product ${isSelected ? 'selected' : ''}`}
-                                    >
-                                        {/* Header row — toggle selection */}
-                                        <div
-                                            className="wh-spec-product-header"
-                                            onClick={() => handleToggleSpec(spec)}
-                                        >
-                                            <span className="wh-spec-product-name">{spec.NameParent}</span>
-                                            {isSelected
-                                                ? <CheckCircle2 size={18} className="wh-spec-check" />
-                                                : <ChevronRight size={16} color="var(--text-secondary)" />
-                                            }
-                                        </div>
-
-                                        {/* Per-spec qty row — visible only when selected */}
-                                        {isSelected && (
-                                            <div
-                                                className="wh-spec-qty-row"
-                                                onClick={e => e.stopPropagation()}
-                                            >
-                                                <span className="wh-spec-qty-label">Кількість:</span>
-                                                <button className="wh-qty-btn" onClick={() => handleSpecQtyChange(spec.IdParent, -1)}>
-                                                    <Minus size={10} />
-                                                </button>
-                                                <input
-                                                    type="number"
-                                                    className="wh-qty-input"
-                                                    value={qty}
-                                                    min={1}
-                                                    onChange={e => handleSpecQtyInput(spec.IdParent, e.target.value)}
-                                                />
-                                                <button className="wh-qty-btn" onClick={() => handleSpecQtyChange(spec.IdParent, +1)}>
-                                                    <Plus size={10} />
-                                                </button>
-                                                <span className="wh-spec-qty-unit">шт.</span>
-                                            </div>
-                                        )}
-
-                                        {/* Components preview */}
-                                        {isSelected && spec.Сomponents && spec.Сomponents.length > 0 && (
-                                            <div className="wh-spec-components">
-                                                {spec.Сomponents.map(comp => (
-                                                    <div key={comp.Id} className="wh-spec-comp-row">
-                                                        <span className="wh-spec-comp-name">{comp.Name}</span>
-                                                        <span className="wh-spec-comp-qty">× {comp.CountСomponent * qty}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                    <button
+                        type="button"
+                        className="wh-btn-save"
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                        onClick={() => setPickerOpen(true)}
+                    >
+                        <Package size={16} />
+                        {hasSelection ? 'Edit selection' : pickerLabel}
+                    </button>
                 </div>
             )}
 
-            {/* Write-off / Movement: nomenclature picker */}
-            {(opType === 'Writeoff' || opType === 'Movement') && warehouseId && (
+            {/* Selected Specifications (ProductionRequest) */}
+            {isProduction(opType) && selectedSpecs.length > 0 && (
                 <div className="wh-form-group">
-                    <span className="wh-form-label">Add Nomenclature</span>
-                    {loadingNom ? (
-                        <div className="wh-loading"><Loader2 size={14} /> Loading...</div>
-                    ) : (
-                        <>
-                            <input
-                                className="wh-nom-search"
-                                placeholder="Search..."
-                                value={nomSearch}
-                                onChange={e => setNomSearch(e.target.value)}
-                            />
-                            <div className="wh-nom-list">
-                                {filteredNom.length === 0 ? (
-                                    <div className="wh-loading" style={{ padding: 12 }}>Nothing found</div>
-                                ) : (
-                                    filteredNom.map(item => {
-                                        const added = selectedItems.some(i => i.id === item.ID);
-                                        return (
-                                            <div key={item.ID} className="wh-nom-item">
-                                                <span className="wh-nom-item-name">{item.Name}</span>
-                                                <span className="wh-nom-item-count">in stock: {item.Count}</span>
-                                                <button
-                                                    className="wh-nom-add-btn"
-                                                    onClick={() => handleAddNomItem(item)}
-                                                    disabled={added}
-                                                    style={added ? { opacity: 0.4 } : {}}
-                                                >
-                                                    {added ? '✓' : '+ Add'}
-                                                </button>
-                                            </div>
-                                        );
-                                    })
-                                )}
+                    <span className="wh-form-label">Selected Specifications ({selectedSpecs.length})</span>
+                    <div className="wh-selected-items">
+                        {selectedSpecs.map(spec => (
+                            <div key={spec.IdParent} className="wh-selected-item">
+                                <span className="wh-selected-item-name">{spec.NameParent}</span>
+                                <div className="wh-qty-control">
+                                    <button className="wh-qty-btn" onClick={() => handleSpecQtyChange(spec.IdParent, -1)}>
+                                        <Minus size={10} />
+                                    </button>
+                                    <input
+                                        type="number"
+                                        className="wh-qty-input"
+                                        value={spec.qty}
+                                        min={1}
+                                        onChange={e => handleSpecQtyInput(spec.IdParent, e.target.value)}
+                                    />
+                                    <button className="wh-qty-btn" onClick={() => handleSpecQtyChange(spec.IdParent, +1)}>
+                                        <Plus size={10} />
+                                    </button>
+                                </div>
+                                <button className="wh-remove-btn" onClick={() => handleRemoveSpec(spec.IdParent)}>
+                                    <X size={14} />
+                                </button>
                             </div>
-                        </>
-                    )}
+                        ))}
+                    </div>
                 </div>
             )}
 
-            {/* Selected items */}
-            {selectedItems.length > 0 && (
+            {/* Components Preview (read-only, ProductionRequest only) */}
+            {isProduction(opType) && aggregatedItems.length > 0 && (
+                <div className="wh-form-group">
+                    <span className="wh-form-label">Components Preview ({aggregatedItems.length})</span>
+                    <div className="wh-view-products">
+                        {aggregatedItems.map(item => (
+                            <div key={item.id} className="wh-view-product-row">
+                                <span className="wh-view-product-name">{item.name}</span>
+                                <span className="wh-view-product-qty">× {item.qty}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Document Lines (Writeoff / Movement) */}
+            {!isProduction(opType) && selectedItems.length > 0 && (
                 <div className="wh-form-group">
                     <span className="wh-form-label">Document Lines ({selectedItems.length})</span>
                     <div className="wh-selected-items">
@@ -696,6 +569,25 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
                     {isSaving ? 'Saving...' : 'Save'}
                 </button>
             </div>
+
+            {/* Picker modals (one is rendered at a time depending on opType) */}
+            {isProduction(opType) ? (
+                <SpecPickerModal
+                    isOpen={pickerOpen}
+                    warehouseId={warehouseId}
+                    currentSelectedIds={selectedSpecs.map(s => s.IdParent)}
+                    onClose={() => setPickerOpen(false)}
+                    onConfirm={handleSpecConfirm}
+                />
+            ) : (
+                <NomenclaturePickerModal
+                    isOpen={pickerOpen}
+                    warehouseId={warehouseId}
+                    currentSelectedIds={selectedItems.map(i => i.id)}
+                    onClose={() => setPickerOpen(false)}
+                    onConfirm={handleNomenclatureConfirm}
+                />
+            )}
         </div>
     );
 };

@@ -14,7 +14,7 @@ export const isTelegram = () => !!window.Telegram?.WebApp?.initData;
  */
 export const getApiBaseUrl = () => {
     if (isTelegram()) {
-        return 'https://bpm.bees.vin/VinBeesTelegram/hs/TelegramAPI';
+        return '/VinBeesTelegram/hs/TelegramAPI';
     }
     return '/VinBeesERP/hs/API';
 };
