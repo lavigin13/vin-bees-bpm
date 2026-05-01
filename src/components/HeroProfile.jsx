@@ -23,21 +23,21 @@ const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgC
                             <h1 className="hero-name">{user.name}</h1>
                             <div className="hero-role">{user.role}</div>
                         </div>
-                        
-                        <div className="xp-compact-container">
-                            <div className="xp-info-compact">
-                                {user.xp} / {user.nextLevelXp} XP
-                            </div>
-                            <div className="xp-track-compact">
-                                <div
-                                    className="xp-fill-compact"
-                                    style={{ width: `${(user.xp / user.nextLevelXp) * 100}%` }}
-                                />
-                            </div>
-                        </div>
                         <button onClick={onLogoutClick} className="ml-4 text-[var(--text-secondary)] hover:text-red-500 transition-colors flex items-center justify-center p-2 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)]" title="Вийти">
                             <LogOut size={20} />
                         </button>
+                    </div>
+
+                    <div className="xp-compact-container">
+                        <div className="xp-info-compact">
+                            {user.xp} / {user.nextLevelXp} XP
+                        </div>
+                        <div className="xp-track-compact">
+                            <div
+                                className="xp-fill-compact"
+                                style={{ width: `${(user.xp / user.nextLevelXp) * 100}%` }}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

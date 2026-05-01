@@ -839,380 +839,309 @@
 
 /* --- MOBILE RESPONSIVE STYLES --- */
 @media (max-width: 768px) {
+    /* Modal sits as a top-anchored sheet with breathing room around the
+       edges — works better with Telegram's bottom safe area / nav gestures
+       than a bottom-pinned sheet. */
     .modal-overlay {
-        align-items: flex-end;
-        /* Bottom sheet feeling or full screen */
+        align-items: flex-start;
+        padding: 8px;
+        padding-top: max(8px, env(safe-area-inset-top));
     }
 
     .modal-container {
         width: 100%;
         max-width: 100%;
-        height: 100vh;
-        max-height: 100vh;
-        border-radius: 0;
-        border: none;
-        padding: 16px;
-        animation: slideUp 0.3s ease-out;
+        height: auto;
+        max-height: calc(100vh - 16px);
+        border-radius: 16px;
+        border: 1px solid #d4af37;
+        padding: 12px 12px 14px;
+        animation: modalSlideFromTop 0.3s ease-out;
     }
 
-    @keyframes slideUp {
-        from {
-            transform: translateY(100%);
-        }
-
-        to {
-            transform: translateY(0);
-        }
+    @keyframes modalSlideFromTop {
+        from { transform: translateY(-100%); }
+        to   { transform: translateY(0); }
     }
 
-    /* Close Button on Mobile */
+    /* Restore the subtle slide-down that the approval-actions-top banner
+       expects (the previous mobile block defined one, which my rewrite removed). */
+    @keyframes slideDown {
+        from { transform: translateY(-10px); opacity: 0; }
+        to   { transform: translateY(0);     opacity: 1; }
+    }
+
+    /* Close button — corner, no longer pushes content down by 80px */
     .close-btn {
-        top: 48px;
-        /* Safe area spacing */
-        right: 16px;
-        background: rgba(0, 0, 0, 0.6);
+        top: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.5);
         color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        width: 30px;
+        height: 30px;
+        padding: 0;
         z-index: 1300;
-        /* Ensure strictly above everything */
     }
 
-    /* Adjust Header */
     .timesheet-header-wrapper {
         margin-top: 0;
-        padding-top: 80px;
-        /* Push content down below close button */
-        padding-right: 0;
+        padding: 0;
     }
 
     .modal-title {
-        font-size: 18px;
+        font-size: 15px;
+        margin-bottom: 10px;
+        padding-right: 38px; /* leave room for the close button */
+        gap: 6px;
     }
 
-    .calendar-grid {
+    .timesheet-container {
+        padding: 0;
+    }
+
+    /* Mode toggle (My hours / Approve) */
+    .mode-toggle {
+        gap: 4px;
+        margin-bottom: 10px;
+        padding: 3px;
+    }
+    .mode-btn {
+        padding: 7px 6px;
+        font-size: 12px;
         gap: 4px;
     }
 
+    /* Calendar nav */
+    .calendar-header {
+        margin-bottom: 8px;
+        padding: 0;
+    }
+    .month-label {
+        font-size: 14px;
+    }
+    .nav-btn {
+        padding: 6px;
+    }
+
+    /* Calendar grid */
+    .calendar-grid {
+        gap: 3px;
+    }
+    .weekday-label {
+        font-size: 10px;
+        margin-bottom: 2px;
+    }
     .day-cell {
-        font-size: 13px;
+        font-size: 12px;
         border-radius: 6px;
     }
-
     .day-hours {
         font-size: 9px;
+        margin-top: 1px;
     }
-
     .day-emoji {
         font-size: 10px;
+        margin-bottom: 1px;
     }
 
-    /* --- Start of Approval Redesign Mobile Styles --- */
-
-    /* 1. Scrollable Filters */
-    .status-filter-scroll {
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 8px;
-        margin-bottom: 12px;
-        scrollbar-width: none;
-        /* Hide scrollbar */
-    }
-
-    .grouping-toggle {
-        gap: 8px;
-        margin-bottom: 12px;
-    }
-
-    .approval-controls-row {
-        gap: 8px;
-        margin-bottom: 10px;
-    }
-
-    .approval-control-select {
-        height: 34px;
-        font-size: 13px;
-    }
-
-    .status-filter-scroll::-webkit-scrollbar {
-        display: none;
-    }
-
-    .filter-pill {
-        white-space: nowrap;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 8px 16px;
-        color: #aaa;
-        font-size: 13px;
-        transition: all 0.2s;
-    }
-
-    .filter-pill.active {
-        background: #d4af37;
-        color: #000;
-        font-weight: 600;
-        border-color: #d4af37;
-    }
-
-    /* 2. Top Approval Actions */
-    .approval-actions-top {
-        background: rgba(212, 175, 55, 0.1);
-        border: 1px solid #d4af37;
-        border-radius: 12px;
-        padding: 12px;
-        margin-bottom: 16px;
-        animation: slideDown 0.2s ease-out;
-    }
-
-    @keyframes slideDown {
-        from {
-            transform: translateY(-10px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    .actions-header {
-        font-size: 12px;
-        color: #d4af37;
-        margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 700;
-    }
-
-    .actions-buttons {
-        display: flex;
-        gap: 8px;
-    }
-
-    .action-btn {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    /* Monthly dashboard */
+    .monthly-dashboard {
         gap: 6px;
         padding: 8px;
-        /* Slightly smaller padding */
-        border-radius: 8px;
-        font-size: 12px;
-        /* Slightly smaller font */
-        font-weight: 600;
-        border: none;
-        cursor: pointer;
+        margin-top: 10px;
+        flex-wrap: nowrap;
     }
-
-    .action-btn.approve {
-        background: #10b981;
-        color: #fff;
+    .dashboard-stat {
+        min-width: 0;
+        gap: 2px;
     }
-
-    .action-btn.reject {
-        background: #ef4444;
-        color: #fff;
+    .dashboard-stat.highlight {
+        padding: 6px;
     }
-
-    /* 3. Grouped Subordinate List */
-    .subordinate-list {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        padding-bottom: 20px;
+    .stat-label {
+        font-size: 9px;
     }
-
-    .subordinate-group {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-    .group-header {
-        display: flex;
-        align-items: center;
-        padding: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        gap: 12px;
-        cursor: pointer;
-    }
-
-    .group-toggle-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: rgba(255, 255, 255, 0.5);
-    }
-
-    .group-info {
-        flex: 1;
-    }
-
-    .group-name {
-        color: #fff;
-        font-weight: 600;
+    .stat-value {
         font-size: 14px;
     }
 
-    .group-role {
-        color: #888;
+    /* Approval controls */
+    .approval-controls-row {
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+    .approval-control-label {
+        font-size: 9px;
+    }
+    .approval-control-select {
+        height: 30px;
+        font-size: 12px;
+        padding: 0 6px;
+    }
+
+    /* Approval actions bar */
+    .approval-actions-top {
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+    .actions-header {
+        font-size: 11px;
+        margin-bottom: 6px;
+    }
+    .action-btn {
+        padding: 7px;
         font-size: 11px;
     }
 
-    .group-stats {
-        margin-right: 12px;
-        font-size: 12px;
-        color: #ccc;
-        text-align: right;
+    /* Subordinate list */
+    .subordinate-list {
+        gap: 10px;
+        padding-bottom: 12px;
     }
-
+    .subordinate-group {
+        background: rgba(255, 255, 255, 0.02);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+    .group-header {
+        padding: 10px;
+        gap: 10px;
+    }
+    .group-name {
+        font-size: 13px;
+    }
+    .group-role {
+        font-size: 10px;
+    }
+    .group-stats {
+        margin-right: 8px;
+        font-size: 12px;
+    }
     .group-stats .overtime {
-        color: #f87171;
         font-size: 10px;
         display: block;
     }
-
     .group-checkbox {
-        width: 20px;
-        height: 20px;
-        accent-color: #d4af37;
+        width: 18px;
+        height: 18px;
     }
 
-    /* List Items */
     .group-items {
-        padding: 8px;
+        padding: 6px;
     }
-
     .week-employee-block {
-        padding: 8px 0 4px;
+        padding: 4px 0;
     }
-
     .week-employee-header {
-        padding: 8px;
+        padding: 6px 8px;
     }
-
     .week-group-header {
-        padding: 8px 10px;
-        font-size: 11px;
+        padding: 6px 10px;
+        font-size: 10px;
     }
-
     .week-group-meta {
         font-size: 10px;
     }
 
+    /* Report row — vertical stack of meta on mobile */
     .report-row {
-        display: flex;
-        align-items: center;
-        padding: 10px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-        cursor: pointer;
-        border-radius: 8px;
-        transition: background 0.2s;
-    }
-
-    .report-row:last-child {
-        border-bottom: none;
-    }
-
-    .report-row.selected {
-        background: rgba(212, 175, 55, 0.1);
-    }
-
-    .row-date {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 40px;
-        margin-right: 12px;
-        background: rgba(255, 255, 255, 0.05);
+        padding: 8px;
         border-radius: 6px;
-        padding: 4px;
     }
-
+    .row-date {
+        width: 36px;
+        margin-right: 10px;
+        padding: 3px;
+        border-radius: 6px;
+    }
     .day-num {
-        font-size: 16px;
-        font-weight: 700;
-        color: #fff;
-        line-height: 1;
-    }
-
-    .day-name {
-        font-size: 10px;
-        color: #888;
-        text-transform: uppercase;
-    }
-
-    .row-details {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        /* Force vertical stacking on mobile */
-        align-items: flex-start;
-        gap: 4px;
-    }
-
-    .row-type {
         font-size: 14px;
-        color: #eee;
-        margin-bottom: 2px;
     }
-
+    .day-name {
+        font-size: 9px;
+    }
+    .row-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+    }
+    .row-type {
+        font-size: 13px;
+        min-width: 0;
+        margin-bottom: 1px;
+    }
     .row-hours {
-        font-size: 12px;
-        color: #888;
+        font-size: 11px;
     }
-
-    .row-hours .ot {
-        color: #f87171;
-    }
-
     .row-status {
-        margin-right: 12px;
+        margin-right: 8px;
     }
-
     .status-dot {
         width: 8px;
         height: 8px;
-        border-radius: 50%;
     }
-
-    .status-dot.pending {
-        background: #facc15;
-        box-shadow: 0 0 5px #facc15;
-    }
-
-    .status-dot.approved {
-        background: #4ade80;
-    }
-
-    .status-dot.rejected {
-        background: #ef4444;
-    }
-
     .row-select {
-        width: 20px;
-        height: 20px;
-        border: 2px solid #555;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        width: 18px;
+        height: 18px;
     }
 
-    .row-select.checked {
-        border-color: #d4af37;
-        background: #d4af37;
+    /* --- Day Edit Bottom Sheet (compact) --- */
+    .sheet-container {
+        padding: 14px;
+        padding-bottom: max(14px, env(safe-area-inset-bottom));
+        min-height: auto;
+        max-height: 85vh;
+        border-radius: 16px 16px 0 0;
+    }
+    .sheet-header {
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+    }
+    .sheet-title {
+        font-size: 14px;
+    }
+    .sheet-close-btn {
+        width: 28px;
+        height: 28px;
+    }
+
+    .day-type-selector {
+        gap: 6px;
+        margin-bottom: 12px;
+    }
+    .type-btn {
+        padding: 8px;
+        font-size: 12px;
+        min-width: 0;
+    }
+
+    .stepper-field {
+        margin-bottom: 12px;
+    }
+    .stepper-field label {
+        font-size: 11px;
+        margin-bottom: 6px;
+    }
+    .stepper-control {
+        padding: 5px;
+    }
+    .stepper-btn {
+        width: 38px;
+        height: 38px;
+    }
+    .stepper-value {
+        font-size: 20px;
+        width: 50px;
+    }
+
+    .total-summary-sheet {
+        padding: 10px;
+        margin-bottom: 12px;
+        font-size: 13px;
+    }
+    .craft-submit-btn {
+        padding: 12px;
+        font-size: 14px;
     }
 }
 
@@ -1377,64 +1306,69 @@
     color: #d4af37;
 }
 
-/* Approval Mode Mobile Styles - Also Global now */
-.status-filter-scroll {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-    scrollbar-width: none;
-}
+/* Approval Mode "Also Global now" tweaks — kept for desktop only.
+   On mobile (max-width: 768px) the @media block above already supplies
+   even more compact values, so we scope these to ≥769px to avoid
+   overriding the mobile rules through later cascade ordering. */
+@media (min-width: 769px) {
+    .status-filter-scroll {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+        scrollbar-width: none;
+    }
 
-.status-filter-scroll::-webkit-scrollbar {
-    display: none;
-}
+    .status-filter-scroll::-webkit-scrollbar {
+        display: none;
+    }
 
-.filter-pill {
-    white-space: nowrap;
-    padding: 8px 16px;
-    font-size: 13px;
-}
+    .filter-pill {
+        white-space: nowrap;
+        padding: 8px 16px;
+        font-size: 13px;
+    }
 
-.approval-actions-top {
-    padding: 12px;
-    margin-bottom: 16px;
-}
+    .approval-actions-top {
+        padding: 12px;
+        margin-bottom: 16px;
+    }
 
-.actions-header {
-    font-size: 12px;
-}
+    .actions-header {
+        font-size: 12px;
+    }
 
-.action-btn {
-    padding: 8px;
-    font-size: 12px;
-}
+    .action-btn {
+        padding: 8px;
+        font-size: 12px;
+    }
 
-.group-header {
-    padding: 12px;
-    gap: 12px;
-}
+    .group-header {
+        padding: 12px;
+        gap: 12px;
+    }
 
-.report-row {
-    padding: 10px;
-}
+    .report-row {
+        padding: 10px;
+    }
 
-.row-date {
-    width: 40px;
-    margin-right: 12px;
-}
+    .row-date {
+        width: 40px;
+        margin-right: 12px;
+    }
 
-.day-num {
-    font-size: 16px;
-}
+    .day-num {
+        font-size: 16px;
+    }
 
-.day-name {
-    font-size: 10px;
-}
+    .day-name {
+        font-size: 10px;
+    }
 
-.row-details {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+    .row-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
 }

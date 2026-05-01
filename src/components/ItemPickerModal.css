@@ -111,6 +111,7 @@
     border-radius: 10px;
     cursor: pointer;
     transition: all 120ms;
+    flex-shrink: 0;
 }
 .picker-item:hover {
     border-color: rgba(255, 215, 0, 0.4);
@@ -150,6 +151,7 @@
     border-radius: 10px;
     overflow: hidden;
     transition: border-color 120ms;
+    flex-shrink: 0;
 }
 .picker-spec.selected {
     border-color: var(--accent-gold);
