@@ -11,6 +11,13 @@ export class UnauthorizedError extends Error {
     }
 }
 
+export class BlockedError extends Error {
+    constructor(message = 'Operation blocked') {
+        super(message);
+        this.name = 'BlockedError';
+    }
+}
+
 const getHeaders = () => {
     const headers = {
         'Content-Type': 'application/json'
@@ -411,8 +418,13 @@ export const saveDailyReport = async (dateStr, reportData) => {
             body: JSON.stringify({ date: dateStr, ...reportData })
         });
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        return await response.json();
+        const data = await response.json();
+        if (data && data.blocked) {
+            throw new BlockedError(data.message || 'Операцію заблоковано');
+        }
+        return data;
     } catch (error) {
+        if (error instanceof BlockedError) throw error;
         console.error('Save daily report failed:', error);
         throw error;
     }
@@ -436,8 +448,13 @@ export const deleteTimesheetReport = async (dateStr) => {
             }
             throw new Error(errorMsg);
         }
-        return await response.json();
+        const data = await response.json();
+        if (data && data.blocked) {
+            throw new BlockedError(data.message || 'Операцію заблоковано');
+        }
+        return data;
     } catch (error) {
+        if (error instanceof BlockedError) throw error;
         console.error('Delete daily report failed:', error);
         throw error;
     }

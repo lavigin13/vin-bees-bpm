@@ -4,6 +4,7 @@ import './CraftingModal.css'; // Reusing modal base
 import './TimesheetModal.css';
 import { DAY_TYPES, INITIAL_USER } from '../data/mockData';
 import { fetchTimesheet, saveDailyReport, fetchSubordinateTimesheets, approveTimesheetReports, rejectTimesheetReports, deleteTimesheetReport } from '../services/api';
+import { BlockedError } from '../services/api';
 
 const TimesheetModal = ({ isOpen, onClose }) => {
     const [viewMode, setViewMode] = useState('my-hours'); // 'my-hours' or 'approve-hours'
@@ -21,6 +22,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
     const [calendar, setCalendar] = useState({}); // Calendar metadata: working/weekend/holiday
     const [isLoadingMonth, setIsLoadingMonth] = useState(false);
     const [error, setError] = useState(null);
+    const [blockedMessage, setBlockedMessage] = useState(null); // Modal message when API returns blocked=true
 
     // Approval mode state
     const [subordinateData, setSubordinateData] = useState({});
@@ -232,6 +234,10 @@ const TimesheetModal = ({ isOpen, onClose }) => {
 
             console.log('Report saved successfully');
         } catch (e) {
+            if (e instanceof BlockedError) {
+                setBlockedMessage(e.message);
+                return;
+            }
             console.error('Failed to save report', e);
             const errorMsg = 'Не вдалося зберегти звіт. Спробуйте ще раз.';
             alert(errorMsg);
@@ -261,6 +267,10 @@ const TimesheetModal = ({ isOpen, onClose }) => {
             handleCloseSheet();
             console.log('Report deleted successfully');
         } catch (e) {
+            if (e instanceof BlockedError) {
+                setBlockedMessage(e.message);
+                return;
+            }
             console.error('Failed to delete report', e);
             alert(e.message !== 'Failed to fetch' ? (e.message.startsWith('API Error') ? 'Не вдалося видалити звіт. Спробуйте ще раз.' : e.message) : 'Не вдалося видалити звіт. Спробуйте ще раз.');
         }
@@ -410,27 +420,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                     <CalendarIcon size={20} /> Timesheet
                 </h2>
 
-                {/* Mode Toggle - only show if user has subordinates */}
-                {INITIAL_USER.subordinates && INITIAL_USER.subordinates.length > 0 && view === 'calendar' && (
-                    <div className="mode-toggle">
-                        <button
-                            className={`mode-btn ${viewMode === 'my-hours' ? 'active' : ''}`}
-                            onClick={() => setViewMode('my-hours')}
-                        >
-                            <CalendarIcon size={16} />
-                            Мої години
-                        </button>
-                        <button
-                            className={`mode-btn ${viewMode === 'approve-hours' ? 'active' : ''}`}
-                            onClick={() => setViewMode('approve-hours')}
-                        >
-                            <Users size={16} />
-                            Погодження
-                        </button>
-                    </div>
-                )}
-
-                {view === 'calendar' && viewMode === 'my-hours' ? (
+                {view === 'calendar' ? (
                     <div className="timesheet-container">
                         {error && (
                             <div className="timesheet-error">
@@ -554,326 +544,6 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                             </>
                         )}
                     </div>
-                ) : view === 'calendar' && viewMode === 'approve-hours' ? (
-                    <>
-                        <div className="timesheet-container">
-                            {error && (
-                                <div className="timesheet-error">
-                                    ⚠️ {error}
-                                </div>
-                            )}
-
-                            <div className="calendar-header">
-                                <button className="nav-btn" onClick={handlePrevMonth}><ChevronLeft size={20} /></button>
-                                <div className="month-label">{monthLabel}</div>
-                                <button className="nav-btn" onClick={handleNextMonth}><ChevronRight size={20} /></button>
-                            </div>
-
-                            <div className="approval-controls-row">
-                                <div className="approval-control">
-                                    <label className="approval-control-label">Статус</label>
-                                    <select
-                                        className="approval-control-select"
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                    >
-                                        <option value="all">Всі</option>
-                                        <option value="approved">Погоджені</option>
-                                        <option value="pending">Очікують</option>
-                                        <option value="rejected">Відхилені</option>
-                                    </select>
-                                </div>
-
-                                <div className="approval-control">
-                                    <label className="approval-control-label">Групування</label>
-                                    <select
-                                        className="approval-control-select"
-                                        value={groupByTopLevel}
-                                        onChange={(e) => setGroupByTopLevel(e.target.value)}
-                                    >
-                                        <option value="employee">Людина → Тиждень</option>
-                                        <option value="week">Тиждень → Людина</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Top Approval Actions */}
-                            {selectedReports.length > 0 && (
-                                <div className="approval-actions-top">
-                                    <div className="actions-header">Вибрано: {selectedReports.length}</div>
-                                    <div className="actions-buttons">
-                                        <button
-                                            className="action-btn approve"
-                                            onClick={handleApproveSelected}
-                                            disabled={isProcessing}
-                                        >
-                                            <CheckCircle size={16} /> Погодити
-                                        </button>
-                                        <button
-                                            className="action-btn reject"
-                                            onClick={handleRejectSelected}
-                                            disabled={isProcessing}
-                                        >
-                                            <XCircle size={16} /> Відхилити
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {isLoadingMonth ? (
-                                <div className="timesheet-loading">Завантаження...</div>
-                            ) : (
-                                <div className="subordinate-list">
-                                    {groupByTopLevel === 'employee' ? (
-                                        Object.values(subordinateData).map(employee => {
-                                            // Stable date order for deterministic grouping and rendering.
-                                            const allReports = Object.entries(employee.reports || {})
-                                                .sort(([aDate], [bDate]) => aDate.localeCompare(bDate));
-                                            const filteredReports = statusFilter === 'all'
-                                                ? allReports
-                                                : allReports.filter(([_, r]) => r.status === statusFilter);
-
-                                            // Skip employee if no reports match filter
-                                            if (filteredReports.length === 0) return null;
-
-                                            const totalRegular = allReports.reduce((sum, [_, r]) => sum + (r.regularHours || 0), 0);
-                                            const totalOvertime = allReports.reduce((sum, [_, r]) => sum + (r.overtimeHours || 0), 0);
-
-                                            const allSelected = filteredReports.every(([date]) =>
-                                                selectedReports.find(r => r.employeeId === employee.id && r.date === date)
-                                            );
-
-                                            const isExpanded = expandedGroups[employee.id];
-                                            const reportsByWeek = filteredReports.reduce((acc, [date, report]) => {
-                                                const weekNumber = getWeekOfMonth(date);
-                                                const key = `week_${weekNumber}`;
-                                                if (!acc[key]) {
-                                                    acc[key] = { weekNumber, items: [] };
-                                                }
-                                                acc[key].items.push([date, report]);
-                                                return acc;
-                                            }, {});
-                                            const weekGroups = Object.values(reportsByWeek)
-                                                .sort((a, b) => a.weekNumber - b.weekNumber);
-
-                                            return (
-                                                <div key={employee.id} className="subordinate-group">
-                                                    <div
-                                                        className="group-header"
-                                                        onClick={() => toggleGroupExpansion(employee.id)}
-                                                        style={{ cursor: 'pointer' }}
-                                                    >
-                                                        <div className="group-toggle-icon">
-                                                            {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                                                        </div>
-                                                        <div className="group-info">
-                                                            <div className="group-name">{employee.name}</div>
-                                                            <div className="group-role">{employee.role}</div>
-                                                        </div>
-                                                        <div className="group-stats">
-                                                            <span>{totalRegular}h</span>
-                                                            {totalOvertime > 0 && <span className="overtime">+{totalOvertime}</span>}
-                                                        </div>
-                                                        <input
-                                                            type="checkbox"
-                                                            className="group-checkbox"
-                                                            checked={allSelected}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            onChange={() => toggleSelectAllForEmployee(employee.id)}
-                                                        />
-                                                    </div>
-
-                                                    {isExpanded && (
-                                                        <div className="group-items">
-                                                            {weekGroups.map((group) => (
-                                                                <div key={`${employee.id}-${group.weekNumber}`} className="week-group">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="week-group-header"
-                                                                        onClick={() => toggleWeekExpansion(employee.id, group.weekNumber)}
-                                                                    >
-                                                                        <span className="week-group-label">
-                                                                            {expandedWeeks[`${employee.id}_week_${group.weekNumber}`] ?? true ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                                                            Тиждень {group.weekNumber}
-                                                                        </span>
-                                                                        <span className="week-group-meta">{group.items.length} дн.</span>
-                                                                    </button>
-                                                                    {(expandedWeeks[`${employee.id}_week_${group.weekNumber}`] ?? true) && group.items.map(([date, report]) => {
-                                                                        const isSelected = selectedReports.find(r => r.employeeId === employee.id && r.date === date);
-                                                                        const dateObj = new Date(date);
-                                                                        const dayNum = dateObj.getDate();
-                                                                        const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' });
-
-                                                                        return (
-                                                                            <div key={date} className={`report-row ${report.status} ${isSelected ? 'selected' : ''}`} onClick={() => report.status === 'pending' && toggleReportSelection(employee.id, date)}>
-                                                                                <div className="row-date">
-                                                                                    <span className="day-num">{dayNum}</span>
-                                                                                    <span className="day-name">{dayName}</span>
-                                                                                </div>
-
-                                                                                <div className="row-details">
-                                                                                    <div className="row-type">{report.type}</div>
-                                                                                    <div className="row-hours">
-                                                                                        {report.regularHours}h
-                                                                                        {report.overtimeHours > 0 && <span className="ot"> +{report.overtimeHours}</span>}
-                                                                                    </div>
-                                                                                </div>
-
-                                                                                <div className="row-status">
-                                                                                    {report.status === 'pending' && <div className="status-dot pending" />}
-                                                                                    {report.status === 'approved' && <div className="status-dot approved" />}
-                                                                                    {report.status === 'rejected' && <div className="status-dot rejected" />}
-                                                                                </div>
-
-                                                                                {report.status === 'pending' && (
-                                                                                    <div className={`row-select ${isSelected ? 'checked' : ''}`}>
-                                                                                        {isSelected && <CheckCircle size={14} color="#000" />}
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })
-                                    ) : (
-                                        (() => {
-                                            const reportsByTopWeek = {};
-
-                                            Object.values(subordinateData).forEach(employee => {
-                                                const sortedReports = Object.entries(employee.reports || {})
-                                                    .sort(([aDate], [bDate]) => aDate.localeCompare(bDate));
-                                                const filteredReports = statusFilter === 'all'
-                                                    ? sortedReports
-                                                    : sortedReports.filter(([_, r]) => r.status === statusFilter);
-
-                                                filteredReports.forEach(([date, report]) => {
-                                                    const weekNumber = getWeekOfMonth(date);
-                                                    const weekKey = `week_${weekNumber}`;
-
-                                                    if (!reportsByTopWeek[weekKey]) {
-                                                        reportsByTopWeek[weekKey] = { weekNumber, employees: {} };
-                                                    }
-
-                                                    if (!reportsByTopWeek[weekKey].employees[employee.id]) {
-                                                        reportsByTopWeek[weekKey].employees[employee.id] = {
-                                                            employee,
-                                                            items: []
-                                                        };
-                                                    }
-
-                                                    reportsByTopWeek[weekKey].employees[employee.id].items.push([date, report]);
-                                                });
-                                            });
-
-                                            const topWeekGroups = Object.values(reportsByTopWeek)
-                                                .sort((a, b) => a.weekNumber - b.weekNumber);
-
-                                            if (topWeekGroups.length === 0) {
-                                                return <div className="approval-empty">Немає записів для поточного фільтра</div>;
-                                            }
-
-                                            return topWeekGroups.map(group => {
-                                                const weekKey = `week_${group.weekNumber}`;
-                                                const weekEmployees = Object.values(group.employees);
-                                                const weekItemsCount = weekEmployees.reduce((sum, item) => sum + item.items.length, 0);
-                                                const isWeekExpanded = expandedTopWeeks[weekKey] ?? true;
-
-                                                return (
-                                                    <div key={weekKey} className="subordinate-group">
-                                                        <div className="group-header" onClick={() => toggleTopWeekExpansion(group.weekNumber)} style={{ cursor: 'pointer' }}>
-                                                            <div className="group-toggle-icon">
-                                                                {isWeekExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                                                            </div>
-                                                            <div className="group-info">
-                                                                <div className="group-name">Тиждень {group.weekNumber}</div>
-                                                                <div className="group-role">{weekEmployees.length} працівн. • {weekItemsCount} записів</div>
-                                                            </div>
-                                                        </div>
-
-                                                        {isWeekExpanded && (
-                                                            <div className="group-items">
-                                                                {weekEmployees.map(({ employee, items }) => {
-                                                                    const dates = items.map(([date]) => date);
-                                                                    const pendingDates = items
-                                                                        .filter(([_, report]) => report.status === 'pending')
-                                                                        .map(([date]) => date);
-                                                                    const allEmployeeWeekSelected = pendingDates.length > 0 && pendingDates.every(date =>
-                                                                        selectedReports.some(r => r.employeeId === employee.id && r.date === date)
-                                                                    );
-
-                                                                    return (
-                                                                        <div key={`${weekKey}_${employee.id}`} className="week-employee-block">
-                                                                            <div className="week-employee-header">
-                                                                                <div>
-                                                                                    <div className="week-employee-name">{employee.name}</div>
-                                                                                    <div className="week-employee-role">{employee.role}</div>
-                                                                                </div>
-                                                                                <div className="week-employee-stats">
-                                                                                    <span>{items.length} дн.</span>
-                                                                                    <input
-                                                                                        type="checkbox"
-                                                                                        className="group-checkbox"
-                                                                                        checked={allEmployeeWeekSelected}
-                                                                                        onChange={() => toggleSelectReportBatch(employee.id, dates)}
-                                                                                    />
-                                                                                </div>
-                                                                            </div>
-
-                                                                            {items.map(([date, report]) => {
-                                                                                const isSelected = selectedReports.find(r => r.employeeId === employee.id && r.date === date);
-                                                                                const dateObj = new Date(date);
-                                                                                const dayNum = dateObj.getDate();
-                                                                                const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' });
-
-                                                                                return (
-                                                                                    <div key={`${employee.id}_${date}`} className={`report-row ${report.status} ${isSelected ? 'selected' : ''}`} onClick={() => report.status === 'pending' && toggleReportSelection(employee.id, date)}>
-                                                                                        <div className="row-date">
-                                                                                            <span className="day-num">{dayNum}</span>
-                                                                                            <span className="day-name">{dayName}</span>
-                                                                                        </div>
-
-                                                                                        <div className="row-details">
-                                                                                            <div className="row-type">{report.type}</div>
-                                                                                            <div className="row-hours">
-                                                                                                {report.regularHours}h
-                                                                                                {report.overtimeHours > 0 && <span className="ot"> +{report.overtimeHours}</span>}
-                                                                                            </div>
-                                                                                        </div>
-
-                                                                                        <div className="row-status">
-                                                                                            {report.status === 'pending' && <div className="status-dot pending" />}
-                                                                                            {report.status === 'approved' && <div className="status-dot approved" />}
-                                                                                            {report.status === 'rejected' && <div className="status-dot rejected" />}
-                                                                                        </div>
-
-                                                                                        {report.status === 'pending' && (
-                                                                                            <div className={`row-select ${isSelected ? 'checked' : ''}`}>
-                                                                                                {isSelected && <CheckCircle size={14} color="#000" />}
-                                                                                            </div>
-                                                                                        )}
-                                                                                    </div>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            });
-                                        })()
-                                    )}
-
-                                </div>
-                            )}
-                        </div>
-                    </>
                 ) : null
                 }
 
@@ -979,6 +649,20 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                     )
                 }
             </div >
+
+            {/* Blocked Operation Modal */}
+            {blockedMessage && (
+                <div className="blocked-modal-overlay" onClick={() => setBlockedMessage(null)}>
+                    <div className="blocked-modal" onClick={e => e.stopPropagation()}>
+                        <div className="blocked-modal-icon">⚠️</div>
+                        <div className="blocked-modal-title">Operation Blocked</div>
+                        <div className="blocked-modal-message">{blockedMessage}</div>
+                        <button className="blocked-modal-btn" onClick={() => setBlockedMessage(null)}>
+                            Got it
+                        </button>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };
