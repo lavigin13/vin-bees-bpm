@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, Plane, FileText, PackageCheck, Bell, Briefcase, Hexagon, ShoppingBag, Calendar, HandCoins, User, Forklift } from 'lucide-react';
+import { Network, Plane, FileText, PackageCheck, Bell, Briefcase, Hexagon, ShoppingBag, Calendar, HandCoins, User, Forklift, ClipboardCheck } from 'lucide-react';
 import './ActionPanel.css';
 
 const ActionPanel = ({ 
@@ -11,6 +11,7 @@ const ActionPanel = ({
     onShopClick,
     onSendHoneyClick,
     onTimesheetClick,
+    onApprovalClick,
     onProfileClick,
     onWarehouseOpsClick,
     incomingCount = 0,
@@ -64,6 +65,13 @@ const ActionPanel = ({
                     <Calendar size={12} color="#60a5fa" />
                 </div>
                 <span className="action-label" style={{ color: '#60a5fa' }}>{timesheetStats}</span>
+            </button>
+
+            <button className="action-btn" onClick={onApprovalClick}>
+                <div className="action-icon">
+                    <ClipboardCheck size={12} color="#22d3ee" />
+                </div>
+                <span className="action-label" style={{ color: '#22d3ee' }}>Approval</span>
             </button>
 
             <button className="action-btn" onClick={onRewardReportClick}>
