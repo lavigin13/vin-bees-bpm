@@ -590,13 +590,6 @@
     height: 24px;
 }
 
-.group-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
 .group-name {
     color: #fff;
     font-weight: 600;
@@ -606,6 +599,14 @@
 .group-role {
     color: #888;
     font-size: 12px;
+    display: inline-block;
+    margin-left: 8px;
+}
+
+.group-info {
+    flex: 1;
+    display: flex;
+    align-items: baseline;
 }
 
 .group-stats {
@@ -649,21 +650,24 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: 6px 12px;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.04);
-    margin: 8px 0;
+    margin: 4px 0;
 }
 
 .week-employee-name {
     color: #fff;
     font-size: 14px;
     font-weight: 600;
+    display: inline-block;
 }
 
 .week-employee-role {
     color: #9ca3af;
     font-size: 12px;
+    display: inline-block;
+    margin-left: 8px;
 }
 
 .week-employee-stats {
@@ -704,128 +708,114 @@
     color: #bfa357;
 }
 
-.report-row {
+.week-days-grid {
     display: flex;
-    align-items: center;
-    padding: 12px 24px;
-    /* More padding on desktop */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    cursor: pointer;
-    transition: background 0.2s;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 16px 16px 16px;
 }
 
-.report-row:last-child {
-    border-bottom: none;
-}
-
-.report-row:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.report-row.selected {
-    background: rgba(212, 175, 55, 0.15);
-    /* Stronger highlight */
-}
-
-.row-date {
+.day-square {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 50px;
-    margin-right: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 6px;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.day-num {
-    font-size: 18px;
+.day-square:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.day-square.selected {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: #d4af37;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+}
+
+.day-square.Work { border-bottom: 2px solid #10b981; }
+.day-square.Vacation { border-bottom: 2px solid #ef4444; background: rgba(239, 68, 68, 0.08); }
+.day-square.Sick { border-bottom: 2px solid #ef4444; background: rgba(239, 68, 68, 0.08); }
+.day-square.Business { border-bottom: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.08); }
+.day-square.Day { border-bottom: 2px solid #f59e0b; background: rgba(245, 158, 11, 0.08); }
+.day-square.omitted, .day-square.Omitted { border: 1px dashed #d946ef; border-bottom: 2px dashed #d946ef; background: rgba(217, 70, 239, 0.08); }
+
+.ds-header {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-size: 10px;
+    color: #888;
+    line-height: 1;
+}
+
+.ds-date {
+    font-weight: 700;
+}
+
+.ds-status {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.ds-status.pending { background: #facc15; box-shadow: 0 0 4px rgba(250, 204, 21, 0.5); }
+.ds-status.approved { background: #4ade80; box-shadow: 0 0 4px rgba(74, 222, 128, 0.5); }
+.ds-status.rejected { background: #ef4444; }
+
+.ds-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.ds-hours {
+    font-size: 16px;
     font-weight: 700;
     color: #fff;
     line-height: 1;
 }
 
-.day-name {
-    font-size: 11px;
-    color: #888;
-    text-transform: uppercase;
+.ds-ot {
+    font-size: 10px;
+    color: #f87171;
+    font-weight: 700;
     margin-top: 2px;
 }
 
-.row-details {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    /* Vertical align on desktop */
-    gap: 24px;
+.ds-icon {
+    font-size: 16px;
+    line-height: 1;
 }
 
-.row-type {
-    font-size: 15px;
-    color: #eee;
-    font-weight: 500;
-    min-width: 120px;
-}
-
-.row-hours {
-    font-size: 14px;
-    color: #aaa;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.row-hours .ot {
-    color: #f87171;
-    font-weight: 600;
-    background: rgba(248, 113, 113, 0.1);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 12px;
-}
-
-.row-status {
-    margin-right: 24px;
-    display: flex;
-    align-items: center;
-}
-
-.status-dot {
-    width: 10px;
-    height: 10px;
+.ds-check {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    background: #1a1a1a;
     border-radius: 50%;
-}
-
-.status-dot.pending {
-    background: #facc15;
-    box-shadow: 0 0 8px rgba(250, 204, 21, 0.4);
-}
-
-.status-dot.approved {
-    background: #4ade80;
-    box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
-}
-
-.status-dot.rejected {
-    background: #ef4444;
-}
-
-.row-select {
-    width: 24px;
-    height: 24px;
-    border: 2px solid #555;
-    border-radius: 50%;
-    /* Circle checkbox */
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
-}
-
-.row-select.checked {
-    border-color: #d4af37;
-    background: #d4af37;
-    transform: scale(1.1);
+    color: #000;
+    background-color: #d4af37;
+    border: 2px solid #1a1a1a;
 }
 
 /* Helper for empty state if needed */

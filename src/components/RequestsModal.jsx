@@ -5,7 +5,7 @@ import './RequestsModal.css';
 import { REQUEST_CATEGORIES } from '../data/mockData';
 import { fetchRequestCategories } from '../services/api';
 
-const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApprove, onReject, currentUserId, initialFilter = 'my', onViewChange }) => {
+const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApprove, onReject, currentUser, initialFilter = 'my', onViewChange }) => {
     const [view, setView] = useState('list'); // 'list' or 'edit'
     const [listFilter, setListFilter] = useState(initialFilter); // 'my' or 'subordinates'
     const [currentRequest, setCurrentRequest] = useState(null);
@@ -55,7 +55,7 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
             categoryId: '',
             shortDesc: '',
             fullDesc: '',
-            createdBy: currentUserId
+            createdBy: currentUser ? currentUser.id : 999
         });
         setView('edit');
     };
@@ -115,6 +115,11 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
     const isEditable = currentRequest && (!currentRequest.id || currentRequest.status === 'draft');
 
     if (!isOpen) return null;
+
+    const isOwnRequest = (req) => {
+        if (!req || !currentUser) return false;
+        return req.createdBy === currentUser.id || req.createdBy === currentUser.name;
+    };
 
     return (
         <div className="modal-overlay" style={{ zIndex: 1150 }}>
@@ -256,7 +261,7 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                         )}
                         {listFilter === 'subordinates' && (
                             <div className="form-actions">
-                                {currentRequest.status === 'new' || currentRequest.status === 'pending' ? (
+                                {(currentRequest.status === 'new' || currentRequest.status === 'pending') && !isOwnRequest(currentRequest) ? (
                                     <>
                                         <button className="action-btn" style={{ backgroundColor: '#ef4444', color: 'white' }} onClick={() => { onReject(currentRequest); setView('list'); }}>
                                             Reject
@@ -265,6 +270,18 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                             Approve
                                         </button>
                                     </>
+                                ) : (currentRequest.status === 'new' || currentRequest.status === 'pending') && isOwnRequest(currentRequest) ? (
+                                    <div style={{
+                                        padding: '12px',
+                                        background: 'rgba(255, 255, 255, 0.05)',
+                                        borderRadius: '8px',
+                                        width: '100%',
+                                        textAlign: 'center',
+                                        color: '#fbbf24',
+                                        fontSize: '14px'
+                                    }}>
+                                        You cannot approve your own request
+                                    </div>
                                 ) : (
                                     <button className="action-btn btn-secondary" onClick={handleBack}>
                                         Close

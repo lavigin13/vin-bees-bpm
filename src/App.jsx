@@ -17,6 +17,7 @@ import RequestsModal from './components/RequestsModal';
 import RewardReportModal from './components/RewardReportModal';
 import WarehouseInventoryModal from './components/WarehouseInventoryModal';
 import WarehouseOperationsModal from './components/WarehouseOperationsModal';
+import RemainingItemsModal from './components/RemainingItemsModal';
 import AuthPage from './components/AuthPage';
 import ComingSoonModal from './components/ComingSoonModal';
 
@@ -91,6 +92,9 @@ const App = () => {
   // Warehouse Operations State
   const [isWarehouseOpsOpen, setIsWarehouseOpsOpen] = useState(false);
 
+  // Stock Report State
+  const [isStockReportOpen, setIsStockReportOpen] = useState(false);
+
   // Timesheet Approval State
   const [isApprovalOpen, setIsApprovalOpen] = useState(false);
 
@@ -107,10 +111,11 @@ const App = () => {
   };
 
   // Helper to count pending requests (simulated for team members)
-  const pendingRequestsCount = (requests || []).filter(r =>
-    r && r.createdBy !== (user ? user.id : 999) &&
-    (r.status === 'new' || r.status === 'pending')
-  ).length;
+  const pendingRequestsCount = (requests || []).filter(r => {
+    if (!r) return false;
+    const isOwn = user ? (r.createdBy === user.id || r.createdBy === user.name) : r.createdBy === 999;
+    return !isOwn && (r.status === 'new' || r.status === 'pending');
+  }).length;
 
   // Global handler: any 401 from the API layer kicks the user back to AuthPage.
   // api.js already cleared the token and broadcast the event before throwing
@@ -764,6 +769,7 @@ const App = () => {
           onRequestsClick={() => setIsRequestsOpen(true)}
           onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
           onWarehouseOpsClick={() => setIsWarehouseOpsOpen(true)}
+          onStockReportClick={() => setIsStockReportOpen(true)}
           onProfileClick={() => setIsProfileOpen(true)}
           onLogoutClick={handleLogout}
           incomingCount={incomingTransfers.length + pendingRequestsCount}
@@ -862,7 +868,7 @@ const App = () => {
         onSubmit={handleSubmitRequest}
         onApprove={handleApproveRequest}
         onReject={handleRejectRequest}
-        currentUserId={user ? user.id : 999}
+        currentUser={user}
         initialFilter={initialRequestsFilter}
         onViewChange={(view) => {
           // Fetch requests based on view
@@ -895,6 +901,11 @@ const App = () => {
       <WarehouseOperationsModal
         isOpen={isWarehouseOpsOpen}
         onClose={() => setIsWarehouseOpsOpen(false)}
+      />
+
+      <RemainingItemsModal
+        isOpen={isStockReportOpen}
+        onClose={() => setIsStockReportOpen(false)}
       />
 
       <RewardReportModal
