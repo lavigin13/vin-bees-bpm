@@ -716,3 +716,25 @@ export const saveWarehouseOperation = async (operationData) => {
     }
 };
 
+// --- Remaining Items Report ---
+
+export const fetchRemainingItems = async (filters = {}) => {
+    // filters: { warehouses: [guid], folders: [guid], categories: [guid] }
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/RemainingItems`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                warehouses: filters.warehouses || [],
+                folders: filters.folders || [],
+                categories: filters.categories || []
+            })
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch remaining items:', error);
+        throw error;
+    }
+};

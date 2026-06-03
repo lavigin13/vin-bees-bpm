@@ -325,38 +325,44 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                 </span>
                                                                 <span className="week-group-meta">{group.items.length} days</span>
                                                             </button>
-                                                            {(expandedWeeks[`${employee.id}_week_${group.weekNumber}`] ?? true) && group.items.map(([date, report]) => {
-                                                                const isSelected = selectedReports.find(r => r.employeeId === employee.id && r.date === date);
-                                                                const dateObj = new Date(date);
-                                                                const dayNum = dateObj.getDate();
-                                                                const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' });
+                                                            <div className="week-days-grid">
+                                                                {group.items.map(([date, report]) => {
+                                                                    const isSelected = selectedReports.find(r => r.employeeId === employee.id && r.date === date);
+                                                                    const dateObj = new Date(date);
+                                                                    const dayNum = dateObj.getDate();
+                                                                    const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' }).toUpperCase();
 
-                                                                return (
-                                                                    <div key={date} className={`report-row ${report.status} ${isSelected ? 'selected' : ''}`} onClick={() => report.status === 'pending' && toggleReportSelection(employee.id, date)}>
-                                                                        <div className="row-date">
-                                                                            <span className="day-num">{dayNum}</span>
-                                                                            <span className="day-name">{dayName}</span>
-                                                                        </div>
-                                                                        <div className="row-details">
-                                                                            <div className="row-type">{report.type}</div>
-                                                                            <div className="row-hours">
-                                                                                {report.regularHours}h
-                                                                                {report.overtimeHours > 0 && <span className="ot"> +{report.overtimeHours}</span>}
+                                                                    return (
+                                                                        <div key={date} className={`day-square ${report.type.replace(/\s+/g, '')} ${isSelected ? 'selected' : ''}`} onClick={() => report.status === 'pending' && toggleReportSelection(employee.id, date)}>
+                                                                            <div className="ds-header">
+                                                                                <span className="ds-date">{dayNum} {dayName}</span>
+                                                                                <div className={`ds-status ${report.status}`} />
                                                                             </div>
-                                                                        </div>
-                                                                        <div className="row-status">
-                                                                            {report.status === 'pending' && <div className="status-dot pending" />}
-                                                                            {report.status === 'approved' && <div className="status-dot approved" />}
-                                                                            {report.status === 'rejected' && <div className="status-dot rejected" />}
-                                                                        </div>
-                                                                        {report.status === 'pending' && (
-                                                                            <div className={`row-select ${isSelected ? 'checked' : ''}`}>
-                                                                                {isSelected && <CheckCircle size={14} color="#000" />}
+                                                                            <div className="ds-body">
+                                                                                {report.type === 'Work' ? (
+                                                                                    <>
+                                                                                        <div className="ds-hours">{report.regularHours}</div>
+                                                                                        {report.overtimeHours > 0 && <div className="ds-ot">+{report.overtimeHours}</div>}
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <div className="ds-icon">
+                                                                                        {report.type === 'Vacation' && '⛱️'}
+                                                                                        {report.type === 'Sick' && '💊'}
+                                                                                        {report.type === 'Business Trip' && '💼'}
+                                                                                        {report.type === 'Day Off' && '☕'}
+                                                                                        {(report.type === 'omitted' || report.type === 'Omitted') && '❌'}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                        )}
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                                            {report.status === 'pending' && isSelected && (
+                                                                                <div className="ds-check">
+                                                                                    <CheckCircle size={12} color="#000" />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -429,38 +435,44 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                         </div>
                                                                     </div>
 
-                                                                    {items.map(([date, report]) => {
-                                                                        const isSelected = selectedReports.find(r => r.employeeId === employee.id && r.date === date);
-                                                                        const dateObj = new Date(date);
-                                                                        const dayNum = dateObj.getDate();
-                                                                        const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' });
+                                                                    <div className="week-days-grid">
+                                                                        {items.map(([date, report]) => {
+                                                                            const isSelected = selectedReports.find(r => r.employeeId === employee.id && r.date === date);
+                                                                            const dateObj = new Date(date);
+                                                                            const dayNum = dateObj.getDate();
+                                                                            const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' }).toUpperCase();
 
-                                                                        return (
-                                                                            <div key={`${employee.id}_${date}`} className={`report-row ${report.status} ${isSelected ? 'selected' : ''}`} onClick={() => report.status === 'pending' && toggleReportSelection(employee.id, date)}>
-                                                                                <div className="row-date">
-                                                                                    <span className="day-num">{dayNum}</span>
-                                                                                    <span className="day-name">{dayName}</span>
-                                                                                </div>
-                                                                                <div className="row-details">
-                                                                                    <div className="row-type">{report.type}</div>
-                                                                                    <div className="row-hours">
-                                                                                        {report.regularHours}h
-                                                                                        {report.overtimeHours > 0 && <span className="ot"> +{report.overtimeHours}</span>}
+                                                                            return (
+                                                                                <div key={`${employee.id}_${date}`} className={`day-square ${report.type.replace(/\s+/g, '')} ${isSelected ? 'selected' : ''}`} onClick={() => report.status === 'pending' && toggleReportSelection(employee.id, date)}>
+                                                                                    <div className="ds-header">
+                                                                                        <span className="ds-date">{dayNum} {dayName}</span>
+                                                                                        <div className={`ds-status ${report.status}`} />
                                                                                     </div>
-                                                                                </div>
-                                                                                <div className="row-status">
-                                                                                    {report.status === 'pending' && <div className="status-dot pending" />}
-                                                                                    {report.status === 'approved' && <div className="status-dot approved" />}
-                                                                                    {report.status === 'rejected' && <div className="status-dot rejected" />}
-                                                                                </div>
-                                                                                {report.status === 'pending' && (
-                                                                                    <div className={`row-select ${isSelected ? 'checked' : ''}`}>
-                                                                                        {isSelected && <CheckCircle size={14} color="#000" />}
+                                                                                    <div className="ds-body">
+                                                                                        {report.type === 'Work' ? (
+                                                                                            <>
+                                                                                                <div className="ds-hours">{report.regularHours}</div>
+                                                                                                {report.overtimeHours > 0 && <div className="ds-ot">+{report.overtimeHours}</div>}
+                                                                                            </>
+                                                                                        ) : (
+                                                                                            <div className="ds-icon">
+                                                                                                {report.type === 'Vacation' && '⛱️'}
+                                                                                                {report.type === 'Sick' && '💊'}
+                                                                                                {report.type === 'Business Trip' && '💼'}
+                                                                                                {report.type === 'Day Off' && '☕'}
+                                                                                                {(report.type === 'omitted' || report.type === 'Omitted') && '❌'}
+                                                                                            </div>
+                                                                                        )}
                                                                                     </div>
-                                                                                )}
-                                                                            </div>
-                                                                        );
-                                                                    })}
+                                                                                    {report.status === 'pending' && isSelected && (
+                                                                                        <div className="ds-check">
+                                                                                            <CheckCircle size={12} color="#000" />
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         })}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, Plane, FileText, PackageCheck, Bell, Briefcase, Hexagon, ShoppingBag, Calendar, HandCoins, User, Forklift, ClipboardCheck } from 'lucide-react';
+import { Network, Plane, FileText, PackageCheck, Bell, Briefcase, Hexagon, ShoppingBag, Calendar, HandCoins, User, Forklift, ClipboardCheck, BarChart3 } from 'lucide-react';
 import './ActionPanel.css';
 
 const ActionPanel = ({ 
@@ -14,6 +14,7 @@ const ActionPanel = ({
     onApprovalClick,
     onProfileClick,
     onWarehouseOpsClick,
+    onStockReportClick,
     incomingCount = 0,
     userHoney = 0,
     timesheetStats = "0 / 0"
@@ -100,6 +101,13 @@ const ActionPanel = ({
                     <Forklift size={12} color="#f97316" />
                 </div>
                 <span className="action-label" style={{ color: '#f97316' }}>Wh. Ops</span>
+            </button>
+
+            <button className="action-btn" onClick={onStockReportClick}>
+                <div className="action-icon">
+                    <BarChart3 size={12} color="#a78bfa" />
+                </div>
+                <span className="action-label" style={{ color: '#a78bfa' }}>Stock</span>
             </button>
         </div>
     );
