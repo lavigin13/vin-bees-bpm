@@ -23,6 +23,7 @@ const BeeInvadersGame = () => {
     const canvasRef = useRef(null);
     const [score, setScore] = useState(0);
     const [level, setLevel] = useState(1);
+    const [lives, setLives] = useState(3);
     const [gameOver, setGameOver] = useState(false);
     const [gameStarted, setGameStarted] = useState(false);
     const [introStep, setIntroStep] = useState(0); // 0 = menu, 1 = slide1, 2 = slide2
@@ -114,6 +115,7 @@ const BeeInvadersGame = () => {
         setGameStarted(true);
         setScore(0);
         setLevel(1);
+        setLives(3);
         
         gameState.current = {
             player: { x: GAME_WIDTH / 2 - PLAYER_SIZE / 2, y: GAME_HEIGHT - PLAYER_SIZE - 20, width: PLAYER_SIZE, height: PLAYER_SIZE },
@@ -125,7 +127,9 @@ const BeeInvadersGame = () => {
             isGameOver: false,
             score: 0,
             level: 1,
+            lives: 3,
             bgY: 0,
+            damageFlash: 0,
             lastFrameTime: 0,
             particles: [],
             joystick: {
@@ -136,6 +140,8 @@ const BeeInvadersGame = () => {
                 y: 0,
                 radius: 70
             },
+            powerups: [],
+            activeBuffs: { bigBullets: 0, shield: 0, doubleShot: 0 },
             telemetry: {
                 enemiesKilled: 0,
                 misses: 0,
@@ -279,12 +285,29 @@ const BeeInvadersGame = () => {
 
         // Auto Shoot
         if (timestamp - state.lastShootTime > SHOOT_INTERVAL) {
-            state.bullets.push({
-                x: state.player.x + state.player.width / 2 - BULLET_WIDTH / 2,
-                y: state.player.y,
-                width: BULLET_WIDTH,
-                height: BULLET_HEIGHT
-            });
+            const hasDouble = state.activeBuffs.doubleShot > timestamp;
+            const hasBig = state.activeBuffs.bigBullets > timestamp;
+            const bWidth = hasBig ? BULLET_WIDTH * 2 : BULLET_WIDTH;
+            const bHeight = hasBig ? BULLET_HEIGHT * 2 : BULLET_HEIGHT;
+            
+            if (hasDouble) {
+                state.bullets.push({
+                    x: state.player.x + state.player.width / 4 - bWidth / 2,
+                    y: state.player.y,
+                    width: bWidth, height: bHeight
+                });
+                state.bullets.push({
+                    x: state.player.x + (state.player.width * 3) / 4 - bWidth / 2,
+                    y: state.player.y,
+                    width: bWidth, height: bHeight
+                });
+            } else {
+                state.bullets.push({
+                    x: state.player.x + state.player.width / 2 - bWidth / 2,
+                    y: state.player.y,
+                    width: bWidth, height: bHeight
+                });
+            }
             state.lastShootTime = timestamp;
         }
 
@@ -294,6 +317,29 @@ const BeeInvadersGame = () => {
         });
         // Remove off-screen bullets
         state.bullets = state.bullets.filter(b => b.y + b.height > 0);
+
+        // Move and Collect Powerups
+        for (let i = state.powerups.length - 1; i >= 0; i--) {
+            let p = state.powerups[i];
+            p.y += 2;
+            if (p.y > GAME_HEIGHT) {
+                state.powerups.splice(i, 1);
+                continue;
+            }
+            if (checkCollision(p, state.player)) {
+                if (p.type === 4) { // Heal
+                    state.lives = Math.min(state.lives + 1, 5);
+                    setLives(state.lives);
+                } else if (p.type === 1) { // Big Bullets
+                    state.activeBuffs.bigBullets = timestamp + 10000;
+                } else if (p.type === 2) { // Shield
+                    state.activeBuffs.shield = timestamp + 10000;
+                } else if (p.type === 3) { // Double Shot
+                    state.activeBuffs.doubleShot = timestamp + 10000;
+                }
+                state.powerups.splice(i, 1);
+            }
+        }
 
         // Spawn Enemies
         if (timestamp - state.lastSpawnTime > currentSpawnInterval) {
@@ -386,7 +432,7 @@ const BeeInvadersGame = () => {
                 continue;
             }
 
-            // Enemy hits player (Game Over)
+            // Enemy hits player
             // make player hitbox slightly smaller to be forgiving
             const playerHitbox = {
                 x: state.player.x + 5,
@@ -395,34 +441,66 @@ const BeeInvadersGame = () => {
                 height: state.player.height - 10
             };
             if (checkCollision(enemy, playerHitbox)) {
-                state.isGameOver = true;
-                setGameOver(true);
-                audioEngine.stopMusic();
-                
-                // Submit score and anti-cheat telemetry
-                const playTimeMs = Math.round(performance.now() - state.telemetry.playTimeStart);
-                const tokenString = `${state.score}_${state.telemetry.enemiesKilled}_${playTimeMs}_secretSalt123`;
-                const verifyToken = btoa(tokenString);
-                
-                const scoreData = {
-                    score: state.score,
-                    metrics: {
-                        kills: state.telemetry.enemiesKilled,
-                        misses: state.telemetry.misses,
-                        playTimeMs: playTimeMs,
-                        levelReached: state.level
-                    },
-                    verifyToken
-                };
-                
-                saveBeeInvadersScore(scoreData).then(() => {
-                    // Refresh leaderboard silently
-                    fetchBeeInvadersLeaderboard().then(data => {
-                        if (Array.isArray(data)) setLeaderboard(data);
-                    });
+                audioEngine.playExplosion();
+                state.explosions = state.explosions || [];
+                state.explosions.push({
+                    x: enemy.x + enemy.width / 2,
+                    y: enemy.y + enemy.height / 2,
+                    radius: 0,
+                    maxRadius: enemy.width,
+                    alpha: 1
                 });
                 
-                return;
+                state.telemetry.enemiesKilled += 1;
+                state.score += (enemy.type === 'lancet' ? 50 : 20);
+                setScore(state.score);
+                
+                if (Math.random() < 0.1) {
+                    const typeId = Math.floor(Math.random() * 4) + 1;
+                    state.powerups.push({ x: enemy.x, y: enemy.y, width: 30, height: 30, type: typeId });
+                }
+                
+                state.enemies.splice(i, 1);
+                
+                if (state.activeBuffs.shield > timestamp) {
+                    // Shield protects from damage
+                } else {
+                    state.lives -= 1;
+                    setLives(state.lives);
+                    
+                    if (state.lives <= 0) {
+                    state.isGameOver = true;
+                    setGameOver(true);
+                    audioEngine.stopMusic();
+                    
+                    // Submit score and anti-cheat telemetry
+                    const playTimeMs = Math.round(performance.now() - state.telemetry.playTimeStart);
+                    const tokenString = `${state.score}_${state.telemetry.enemiesKilled}_${playTimeMs}_secretSalt123`;
+                    const verifyToken = btoa(tokenString);
+                    
+                    const scoreData = {
+                        score: state.score,
+                        metrics: {
+                            kills: state.telemetry.enemiesKilled,
+                            misses: state.telemetry.misses,
+                            playTimeMs: playTimeMs,
+                            levelReached: state.level
+                        },
+                        verifyToken
+                    };
+                    
+                    saveBeeInvadersScore(scoreData).then(() => {
+                        // Refresh leaderboard silently
+                        fetchBeeInvadersLeaderboard().then(data => {
+                            if (Array.isArray(data)) setLeaderboard(data);
+                        });
+                    });
+                } else {
+                    state.damageFlash = 15;
+                }
+                }
+                
+                continue;
             }
 
             // Enemy hits bullet
@@ -450,6 +528,11 @@ const BeeInvadersGame = () => {
                         state.score += enemy.type === 'lancet' ? 15 : 10; // slightly more points for Lancet
                         state.telemetry.enemiesKilled += 1;
                         setScore(state.score);
+                        
+                        if (Math.random() < 0.1) {
+                            const typeId = Math.floor(Math.random() * 4) + 1;
+                            state.powerups.push({ x: enemy.x, y: enemy.y, width: 30, height: 30, type: typeId });
+                        }
                     } else {
                         // Armor hit (sparks)
                         for (let p = 0; p < 5; p++) {
@@ -490,12 +573,41 @@ const BeeInvadersGame = () => {
 
         // Draw Player (with bobbing animation)
         const hoverOffset = Math.sin(currentTimestamp / 150) * 4;
+        
+        if (state.damageFlash > 0) {
+            ctx.globalAlpha = (state.damageFlash % 4 > 1) ? 0.3 : 1.0;
+            state.damageFlash -= 1;
+        }
+        
         if (imgs.player) {
             ctx.drawImage(imgs.player, state.player.x, state.player.y + hoverOffset, state.player.width, state.player.height);
         } else {
             ctx.fillStyle = 'yellow';
             ctx.fillRect(state.player.x, state.player.y + hoverOffset, state.player.width, state.player.height);
         }
+        ctx.globalAlpha = 1.0;
+        
+        if (state.activeBuffs.shield > currentTimestamp) {
+            ctx.beginPath();
+            ctx.arc(state.player.x + state.player.width/2, state.player.y + state.player.height/2 + hoverOffset, state.player.width/2 + 5, 0, Math.PI * 2);
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+            ctx.fill();
+        }
+
+        // Draw Powerups
+        state.powerups.forEach(p => {
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            let icon = '🟢';
+            if (p.type === 2) icon = '🛡️';
+            if (p.type === 3) icon = '♊';
+            if (p.type === 4) icon = '❤️';
+            ctx.fillText(icon, p.x + p.width/2, p.y + p.height/2);
+        });
 
         // Draw Enemies (with rocking animation and targeting)
         state.enemies.forEach(e => {
@@ -635,6 +747,9 @@ const BeeInvadersGame = () => {
 
             <div className="game-overlay">
                 <div className="game-score">ОЧКИ: {score.toString().padStart(5, '0')}</div>
+                <div className="game-level" style={{ color: '#ef4444', fontWeight: 'bold', fontFamily: "'Courier New', Courier, monospace", fontSize: '1.2rem', textShadow: '2px 2px 0 #000' }}>
+                    {'❤️'.repeat(lives)}
+                </div>
                 <div className="game-level" style={{ color: '#ec4899', fontWeight: 'bold', fontFamily: "'Courier New', Courier, monospace" }}>
                     РІВЕНЬ {level}
                 </div>
