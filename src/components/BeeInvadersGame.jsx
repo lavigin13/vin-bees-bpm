@@ -33,7 +33,7 @@ const BeeInvadersGame = () => {
     const keys = useRef({ left: false, right: false, up: false, down: false });
     
     // Images
-    const imagesRef = useRef({ player: null, enemy: null, bullet: null, lancet: null, loaded: 0 });
+    const imagesRef = useRef({ player: null, enemy: null, bullet: null, lancet: null, orlan: null, loaded: 0 });
 
     // Game State
     const gameState = useRef({
@@ -78,6 +78,7 @@ const BeeInvadersGame = () => {
         loadImg('/assets/combat_bee.png', 'player');
         loadImg('/assets/shahed_drone.png', 'enemy');
         loadImg('/assets/lancet_drone.png', 'lancet');
+        loadImg('/assets/orlan_drone.png', 'orlan');
         loadImg('/assets/interceptor_projectile.png', 'bullet');
         loadImg('/assets/ground_bg.png', 'background');
     }, []);
@@ -343,33 +344,66 @@ const BeeInvadersGame = () => {
 
         // Spawn Enemies
         if (timestamp - state.lastSpawnTime > currentSpawnInterval) {
+            const hasOrlan = state.enemies.some(e => e.type === 'orlan');
+            let isOrlan = false;
+            let isLancet = false;
+            let isArmored = false;
+            
+            if (!hasOrlan && Math.random() < 0.05) {
+                isOrlan = true;
+            } else {
+                isLancet = Math.random() < 0.25;
+                isArmored = !isLancet && Math.random() < armoredChance;
+            }
+            
+            const eSize = isOrlan ? ENEMY_SIZE * 2 : ENEMY_SIZE;
             const minX = 0;
-            const maxX = GAME_WIDTH - ENEMY_SIZE;
+            const maxX = GAME_WIDTH - eSize;
             const randomX = Math.random() * (maxX - minX) + minX;
-            const isLancet = Math.random() < 0.25; // 25% chance for Lancet
-            const isArmored = !isLancet && Math.random() < armoredChance;
             
             state.enemies.push({
                 id: Math.random(),
                 x: randomX,
-                y: -ENEMY_SIZE,
-                width: ENEMY_SIZE,
-                height: ENEMY_SIZE,
-                type: isLancet ? 'lancet' : 'shahed',
+                y: -eSize,
+                width: eSize,
+                height: eSize,
+                type: isOrlan ? 'orlan' : (isLancet ? 'lancet' : 'shahed'),
                 dodgeTargetX: null,
-                canDodge: isLancet ? false : Math.random() < dodgeChance,
+                canDodge: (isLancet || isOrlan) ? false : Math.random() < dodgeChance,
                 isArmored: isArmored,
-                hp: isLancet ? 1 : (isArmored ? 2 : 1)
+                hp: isOrlan ? 10 : (isLancet ? 1 : (isArmored ? 2 : 1)),
+                moveDir: isOrlan ? (Math.random() > 0.5 ? 1 : -1) : 0
             });
             state.lastSpawnTime = timestamp;
         }
 
+        const isOrlanAlive = state.enemies.some(e => e.type === 'orlan');
+
         // Move Enemies and Dodging AI
         state.enemies.forEach(e => {
-            if (e.type === 'lancet') {
-                // Lancet: Fast, straight down, no homing, no dodging
+            if (e.type === 'orlan') {
+                if (e.y < 50) e.y += currentEnemySpeed;
+                else {
+                    e.x += e.moveDir * currentEnemySpeed;
+                    if (e.x < 0 || e.x + e.width > GAME_WIDTH) {
+                        e.moveDir *= -1;
+                        e.x = Math.max(0, Math.min(GAME_WIDTH - e.width, e.x));
+                    }
+                }
+            } else if (e.type === 'lancet') {
+                // Lancet: Fast, straight down. If Orlan alive -> Homing
                 e.y += currentEnemySpeed * 2.2; // Much faster
-                e.targetAngle = null;
+                
+                if (isOrlanAlive && e.y < state.player.y) {
+                    const distY = state.player.y - e.y;
+                    const distX = state.player.x - e.x;
+                    const distance = Math.sqrt(distX * distX + distY * distY);
+                    const speed = currentEnemySpeed * 1.5;
+                    e.x += (distX / distance) * speed;
+                    e.targetAngle = Math.atan2(distY, distX) - Math.PI / 2;
+                } else {
+                    e.targetAngle = null;
+                }
             } else {
                 // Shahed: Homing and dodging logic
                 const distY = state.player.y - e.y;
@@ -381,27 +415,30 @@ const BeeInvadersGame = () => {
                     const speed = currentEnemySpeed * 1.5;
                     e.x += (distX / distance) * speed;
                     e.y += (distY / distance) * speed;
-                    e.targetAngle = Math.atan2(distY, distX) - Math.PI / 2; // Angle pointing to player
+                    e.targetAngle = Math.atan2(distY, distX) - Math.PI / 2;
                 } else {
                     e.y += currentEnemySpeed;
                     e.targetAngle = null;
 
                     // Dodging logic
-                    if (e.canDodge && e.dodgeTargetX === null) {
+                    const canDodgeNow = e.canDodge || isOrlanAlive;
+                    if (canDodgeNow && e.dodgeTargetX === null) {
                         for (let b of state.bullets) {
                             if (b.y > e.y && b.y - e.y < 200) {
                                 const bCenter = b.x + b.width / 2;
                                 const eCenter = e.x + e.width / 2;
-                                if (Math.abs(bCenter - eCenter) < 30) {
+                                const dodgeThreshold = isOrlanAlive ? 60 : 30;
+                                if (Math.abs(bCenter - eCenter) < dodgeThreshold) {
                                     const direction = Math.random() > 0.5 ? 1 : -1;
-                                    e.dodgeTargetX = Math.max(0, Math.min(GAME_WIDTH - e.width, e.x + direction * 60));
+                                    const dodgeDist = isOrlanAlive ? 100 : 60;
+                                    e.dodgeTargetX = Math.max(0, Math.min(GAME_WIDTH - e.width, e.x + direction * dodgeDist));
                                     break;
                                 }
                             }
                         }
                     } else if (e.dodgeTargetX !== null) {
                         if (Math.abs(e.x - e.dodgeTargetX) > 2) {
-                            e.x += (e.dodgeTargetX > e.x ? 1 : -1) * (currentEnemySpeed * 1.5);
+                            e.x += (e.dodgeTargetX > e.x ? 1 : -1) * (currentEnemySpeed * (isOrlanAlive ? 2.5 : 1.5));
                         } else {
                             e.dodgeTargetX = null;
                         }
@@ -520,18 +557,40 @@ const BeeInvadersGame = () => {
                                 vy: (Math.random() - 0.5) * 6,
                                 life: Math.random() * 20 + 10,
                                 maxLife: 30,
-                                color: Math.random() > 0.5 ? '#ef4444' : '#f59e0b'
+                                color: enemy.type === 'orlan' ? '#3b82f6' : (Math.random() > 0.5 ? '#ef4444' : '#f59e0b')
                             });
                         }
                         audioEngine.playExplosion();
                         state.enemies.splice(i, 1);
-                        state.score += enemy.type === 'lancet' ? 15 : 10; // slightly more points for Lancet
+                        state.score += enemy.type === 'orlan' ? 200 : (enemy.type === 'lancet' ? 15 : 10);
                         state.telemetry.enemiesKilled += 1;
                         setScore(state.score);
                         
                         if (Math.random() < 0.1) {
                             const typeId = Math.floor(Math.random() * 4) + 1;
                             state.powerups.push({ x: enemy.x, y: enemy.y, width: 30, height: 30, type: typeId });
+                        }
+
+                        if (enemy.type === 'orlan') {
+                            const remainingEnemies = [...state.enemies];
+                            state.enemies = []; // Kill all other enemies
+                            remainingEnemies.forEach(otherE => {
+                                for (let p = 0; p < 15; p++) {
+                                    state.particles.push({
+                                        x: otherE.x + otherE.width / 2,
+                                        y: otherE.y + otherE.height / 2,
+                                        vx: (Math.random() - 0.5) * 6,
+                                        vy: (Math.random() - 0.5) * 6,
+                                        life: Math.random() * 20 + 10,
+                                        maxLife: 30,
+                                        color: Math.random() > 0.5 ? '#ef4444' : '#f59e0b'
+                                    });
+                                }
+                                state.score += otherE.type === 'lancet' ? 15 : 10;
+                                state.telemetry.enemiesKilled += 1;
+                            });
+                            audioEngine.playExplosion(); // Extra boom sound
+                            setScore(state.score);
                         }
                     } else {
                         // Armor hit (sparks)
@@ -611,17 +670,23 @@ const BeeInvadersGame = () => {
 
         // Draw Enemies (with rocking animation and targeting)
         state.enemies.forEach(e => {
-            // Use targetAngle if homing, otherwise default downward with rocking
-            // Lancet image already faces down, so rotation = 0
-            const rockAngle = e.type === 'lancet' ? 0 : Math.PI + Math.sin(currentTimestamp / 150 + e.id) * 0.15;
+            const rockAngle = e.type === 'lancet' || e.type === 'orlan' ? 0 : Math.PI + Math.sin(currentTimestamp / 150 + e.id) * 0.15;
             const finalAngle = e.targetAngle !== null && e.targetAngle !== undefined ? Math.PI + e.targetAngle : rockAngle;
             
-            const imgToDraw = e.type === 'lancet' ? imgs.lancet : imgs.enemy;
+            let imgToDraw = imgs.enemy;
+            if (e.type === 'lancet') imgToDraw = imgs.lancet;
+            if (e.type === 'orlan') imgToDraw = imgs.orlan;
 
             if (imgToDraw) {
                 ctx.save();
                 ctx.translate(e.x + e.width / 2, e.y + e.height / 2);
-                ctx.rotate(finalAngle);
+                
+                if (e.type === 'orlan') {
+                    const orlanHover = Math.sin(currentTimestamp / 300 + e.id) * 5;
+                    ctx.translate(0, orlanHover);
+                } else {
+                    ctx.rotate(finalAngle);
+                }
                 
                 // Visual distinction for armored enemies
                 if (e.isArmored) {
