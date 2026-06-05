@@ -57,17 +57,17 @@ const CraftingModal = ({ isOpen, onClose, recipes, inventory, onCraft }) => {
                 </button>
 
                 <h2 className="modal-title">
-                    <Hammer size={20} /> Crafting Station
+                    <Hammer size={20} /> Станція Крафту
                 </h2>
 
                 <div className="recipe-selector">
-                    <label className="label">Select Blueprint</label>
+                    <label className="label">Оберіть креслення</label>
                     <select
                         className="rpg-select"
                         onChange={(e) => setSelectedRecipe(recipes.find(r => r.id === e.target.value))}
                         value={selectedRecipe?.id || ''}
                     >
-                        <option value="">-- Choose Recipe --</option>
+                        <option value="">-- Оберіть рецепт --</option>
                         {recipes.map(recipe => (
                             <option key={recipe.id} value={recipe.id}>{recipe.name}</option>
                         ))}
@@ -85,7 +85,7 @@ const CraftingModal = ({ isOpen, onClose, recipes, inventory, onCraft }) => {
                         </div>
 
                         <div className="craft-settings">
-                            <label className="label">Quantity to Craft</label>
+                            <label className="label">Кількість для крафту</label>
                             <input
                                 type="number"
                                 min="1"
@@ -96,7 +96,7 @@ const CraftingModal = ({ isOpen, onClose, recipes, inventory, onCraft }) => {
                         </div>
 
                         <div className="ingredients-list">
-                            <label className="label">Required Materials (Editable)</label>
+                            <label className="label">Необхідні матеріали (редагуються)</label>
                             {selectedRecipe.ingredients.map(ing => {
                                 const available = getInventoryQuantity(ing.name);
                                 const required = consumedMaterials[ing.name] || 0;
@@ -104,7 +104,7 @@ const CraftingModal = ({ isOpen, onClose, recipes, inventory, onCraft }) => {
 
                                 return (
                                     <div key={ing.name} className={`ingredient-row ${isEnough ? 'enough' : 'missing'}`}>
-                                        <span className="ing-name">{ing.name} (Avail: {available})</span>
+                                        <span className="ing-name">{ing.name} (В наявності: {available})</span>
                                         <div className="ing-input-wrapper">
                                             <input
                                                 type="number"
@@ -121,7 +121,7 @@ const CraftingModal = ({ isOpen, onClose, recipes, inventory, onCraft }) => {
 
                         <div className="additional-cost-section">
                             <label className="label">
-                                <Coins size={14} /> Additional Cost (Honey)
+                                <Coins size={14} /> Додаткова вартість (Мед)
                             </label>
                             <input
                                 type="number"
@@ -137,7 +137,7 @@ const CraftingModal = ({ isOpen, onClose, recipes, inventory, onCraft }) => {
                             disabled={!canCraft}
                             onClick={handleCraft}
                         >
-                            Craft {craftQuantity} Item{craftQuantity > 1 ? 's' : ''}
+                            Створити {craftQuantity} предмет(ів)
                         </button>
                     </div>
                 )}

@@ -1,85 +1,67 @@
 export const INITIAL_USER = {
-    id: 999, // Main User ID
-    name: "Alex Bee",
-    role: "Senior Drone",
+    id: 999,
+    name: "Алекс Бджіл",
+    role: "Старший Дрон",
     level: 5,
     xp: 3500,
     nextLevelXp: 5000,
     honey: 1250,
     reputation: 850,
     avatar: "/bee-avatar.png",
-    gender: "Male",
+    gender: "Male", // Keep internal gender English, UI will map it if needed
     children: 0,
-    hobby: "Beekeeping",
+    hobby: "Бджільництво",
     birthday: "1995-05-20",
-    subordinates: [101, 102] // For testing approval mode
+    subordinates: [101, 102]
 };
 
 export const INVENTORY_ITEMS = [
-    {
-        id: 1,
-        name: "MacBook Pro M1",
-        rarity: "Legendary",
-        icon: "laptop",
-        type: "equipment",
-        quantity: 1,
-        auditRequired: true
-    },
-    { id: 2, name: "Corporate Card", rarity: "Epic", icon: "card", type: "equipment", quantity: 1 },
-    { id: 3, name: "Office Chair", rarity: "Common", icon: "chair", type: "equipment", quantity: 1 },
-    {
-        id: 4,
-        name: "iPhone 15",
-        rarity: "Rare",
-        icon: "phone",
-        type: "equipment",
-        quantity: 1,
-        auditRequired: true
-    },
-    { id: 5, name: "Company Car", rarity: "Legendary", icon: "car", type: "equipment", quantity: 1 },
-    // Resources
-    { id: 6, name: "Battery Cell", rarity: "Common", icon: "battery", type: "resource", quantity: 12 },
-    { id: 7, name: "Scrap Metal", rarity: "Common", icon: "box", type: "resource", quantity: 45 },
-    { id: 8, name: "Circuit Board", rarity: "Rare", icon: "cpu", type: "resource", quantity: 3 }
+    { id: 1, name: "MacBook Pro M1", rarity: "Legendary", icon: "laptop", type: "equipment", quantity: 1, auditRequired: true },
+    { id: 2, name: "Корпоративна картка", rarity: "Epic", icon: "card", type: "equipment", quantity: 1 },
+    { id: 3, name: "Офісне крісло", rarity: "Common", icon: "chair", type: "equipment", quantity: 1 },
+    { id: 4, name: "iPhone 15", rarity: "Rare", icon: "phone", type: "equipment", quantity: 1, auditRequired: true },
+    { id: 5, name: "Службове авто", rarity: "Legendary", icon: "car", type: "equipment", quantity: 1 },
+    { id: 6, name: "Елемент живлення", rarity: "Common", icon: "battery", type: "resource", quantity: 12 },
+    { id: 7, name: "Металобрухт", rarity: "Common", icon: "box", type: "resource", quantity: 45 },
+    { id: 8, name: "Друкована плата", rarity: "Rare", icon: "cpu", type: "resource", quantity: 3 }
 ];
 
 export const COLLEAGUES = [
-    { id: 100, name: "Queen Bee (CEO)", role: "CEO", avatar: "👑", managerId: null },
-    { id: 106, name: "Honey Bear (COO)", role: "COO", avatar: "🧸", managerId: null },
-    { id: 101, name: "Bumble Bee (QA Lead)", role: "QA Lead", avatar: "🐝", managerId: 100 },
-    { id: 102, name: "Killer Bee (CTO)", role: "CTO", avatar: "🕶️", managerId: 100 },
-    { id: 103, name: "Worker Bee (Dev)", role: "Developer", avatar: "👷", managerId: 102 },
-    { id: 104, name: "Busy Bee (HR)", role: "HR Manager", avatar: "📋", managerId: 100 },
-    { id: 105, name: "Junior Bee (Intern)", role: "Intern", avatar: "👶", managerId: 103 },
-    { id: 107, name: "Field Bee (Ops Lead)", role: "Operations Lead", avatar: "🚚", managerId: 106 },
-    { id: 999, name: "Alex Bee (You)", role: "Senior Drone", avatar: "👤", managerId: 102 } // You
+    { id: 100, name: "Королева Бджіл (CEO)", role: "Генеральний директор", avatar: "👑", managerId: null },
+    { id: 106, name: "Ведмідь (COO)", role: "Операційний директор", avatar: "🧸", managerId: null },
+    { id: 101, name: "Джміль (QA Lead)", role: "Керівник QA", avatar: "🐝", managerId: 100 },
+    { id: 102, name: "Бджола-вбивця (CTO)", role: "Технічний директор", avatar: "🕶️", managerId: 100 },
+    { id: 103, name: "Робоча Бджола (Dev)", role: "Розробник", avatar: "👷", managerId: 102 },
+    { id: 104, name: "Зайнята Бджола (HR)", role: "HR Менеджер", avatar: "📋", managerId: 100 },
+    { id: 105, name: "Молодша Бджола (Intern)", role: "Інтерн", avatar: "👶", managerId: 103 },
+    { id: 107, name: "Польова Бджола (Ops Lead)", role: "Керівник операцій", avatar: "🚚", managerId: 106 },
+    { id: 999, name: "Алекс Бджіл (Ви)", role: "Старший Дрон", avatar: "👤", managerId: 102 }
 ];
 
 export const MOCK_INCOMING_TRANSFERS = [
     {
         id: 't_1',
-        fromUser: { name: "Queen Bee (PM)" },
-        item: { name: "Project Specs", rarity: "Epic", icon: "file", type: "resource" },
+        fromUser: { name: "Королева Бджіл (PM)" },
+        item: { name: "Специфікації проєкту", rarity: "Epic", icon: "file", type: "resource" },
         quantity: 1,
         timestamp: "2023-10-27T10:00:00Z"
     },
     {
         id: 't_2',
-        fromUser: { name: "Worker Bee (Dev)" },
-        item: { name: "Bug Report", rarity: "Common", icon: "bug", type: "resource" },
+        fromUser: { name: "Робоча Бджола (Dev)" },
+        item: { name: "Звіт про помилку", rarity: "Common", icon: "bug", type: "resource" },
         quantity: 5,
         timestamp: "2023-10-27T11:30:00Z"
     }
 ];
 
 export const MARKETPLACE_ITEMS = [
-    // Company Store Items (System)
     {
         id: 'm_1',
         seller: 'system',
-        name: "Extra Day Off",
+        name: "Додатковий вихідний",
         price: 500,
-        description: "Voucher for one additional paid leave day.",
+        description: "Ваучер на один додатковий оплачуваний вихідний.",
         icon: "calendar",
         rarity: "Legendary",
         type: "perk"
@@ -87,9 +69,9 @@ export const MARKETPLACE_ITEMS = [
     {
         id: 'm_2',
         seller: 'system',
-        name: "Premium Coffee Pass",
+        name: "Преміум кава-пас",
         price: 150,
-        description: "Unlimited premium coffee for a week.",
+        description: "Безлімітна преміум кава на тиждень.",
         icon: "coffee",
         rarity: "Rare",
         type: "perk"
@@ -97,56 +79,54 @@ export const MARKETPLACE_ITEMS = [
     {
         id: 'm_3',
         seller: 'system',
-        name: "VinBees Hoodie",
+        name: "Худі VinBees",
         price: 800,
-        description: "Limited edition corporate hoodie.",
+        description: "Лімітована корпоративна худі.",
         icon: "shirt",
         rarity: "Epic",
         type: "merch"
     },
-    // P2P Items (Colleagues)
     {
         id: 'm_4',
-        seller: 'Worker Bee (Dev)',
+        seller: 'Робоча Бджола (Dev)',
         sellerId: 103,
-        name: "Mechanical Keyboard",
+        name: "Механічна клавіатура",
         price: 300,
-        description: "Blue switches, barely used.",
+        description: "Сині свічі, майже не використовувалась.",
         icon: "keyboard",
         rarity: "Rare",
         type: "equipment"
     },
     {
         id: 'm_5',
-        seller: 'Queen Bee (PM)',
+        seller: 'Королева Бджіл (PM)',
         sellerId: 102,
-        name: "Mentorship Session",
+        name: "Менторська сесія",
         price: 1000,
-        description: "1 hour career consultation.",
+        description: "1 година кар'єрної консультації.",
         icon: "users",
         rarity: "Legendary",
         type: "service"
     }
 ];
 
-
 export const RECIPES = [
     {
         id: 'power_pack',
-        name: "Power Pack",
-        outputItem: { name: "Power Pack", rarity: "Rare", icon: "battery", type: "equipment", quantity: 1 },
+        name: "Блок живлення",
+        outputItem: { name: "Блок живлення", rarity: "Rare", icon: "battery", type: "equipment", quantity: 1 },
         ingredients: [
-            { name: "Battery Cell", quantity: 5 },
-            { name: "Scrap Metal", quantity: 2 }
+            { name: "Елемент живлення", quantity: 5 },
+            { name: "Металобрухт", quantity: 2 }
         ]
     },
     {
         id: 'super_computer',
-        name: "Super Computer",
-        outputItem: { name: "Super Computer", rarity: "Legendary", icon: "cpu", type: "equipment", quantity: 1 },
+        name: "Суперкомп'ютер",
+        outputItem: { name: "Суперкомп'ютер", rarity: "Legendary", icon: "cpu", type: "equipment", quantity: 1 },
         ingredients: [
-            { name: "Circuit Board", quantity: 3 },
-            { name: "Scrap Metal", quantity: 10 }
+            { name: "Друкована плата", quantity: 3 },
+            { name: "Металобрухт", quantity: 10 }
         ]
     }
 ];
@@ -157,8 +137,8 @@ export const MOCK_TRIPS = [
         status: 'approved',
         dateFrom: '2023-11-01',
         dateTo: '2023-11-05',
-        destination: 'Paris, Hive Branch',
-        goal: 'Strategy Meeting',
+        destination: 'Париж, Відділення',
+        goal: 'Стратегічна нарада',
         expenses: [
             { id: 1, type: 'Flight', currency: 'EUR', amount: 450, fileName: 'ticket.pdf' },
             { id: 2, type: 'Hotel', currency: 'EUR', amount: 800, fileName: 'hotel_invoice.pdf' }
@@ -169,25 +149,24 @@ export const MOCK_TRIPS = [
         status: 'draft',
         dateFrom: '2023-12-10',
         dateTo: '2023-12-12',
-        destination: 'Kyiv, HQ',
-        goal: 'Annual Audit',
+        destination: 'Київ, Головний офіс',
+        goal: 'Щорічний аудит',
         expenses: []
     }
 ];
 
 export const MOCK_DAILY_REPORTS = {
-    // Format: "YYYY-MM-DD": { type: "Work", tasks: [...] }
     "2023-10-25": {
         type: "Work",
         tasks: [
-            { id: 1, workType: "Development", comment: "Built new feature", quantity: 1, hours: 6 },
-            { id: 2, workType: "Meeting", comment: "Daily standup", quantity: 1, hours: 0.5 }
+            { id: 1, workType: "Development", comment: "Створено нову функцію", quantity: 1, hours: 6 },
+            { id: 2, workType: "Meeting", comment: "Щоденний мітинг", quantity: 1, hours: 0.5 }
         ]
     },
     "2023-10-26": {
         type: "Work",
         tasks: [
-            { id: 3, workType: "Bugfix", comment: "Fixed critical bug #123", quantity: 3, hours: 7 }
+            { id: 3, workType: "Bugfix", comment: "Виправлено критичний баг #123", quantity: 3, hours: 7 }
         ]
     },
     "2023-10-27": {
@@ -215,12 +194,12 @@ export const DAY_TYPES = [
 ];
 
 export const REQUEST_CATEGORIES = [
-    { id: 'cat_1', name: "Hardware" },
-    { id: 'cat_2', name: "Software License" },
-    { id: 'cat_3', name: "Office Supplies" },
-    { id: 'cat_4', name: "Furniture" },
-    { id: 'cat_5', name: "Access/Permissions" },
-    { id: 'cat_6', name: "Other" }
+    { id: 'cat_1', name: "Обладнання" },
+    { id: 'cat_2', name: "Ліцензія на ПЗ" },
+    { id: 'cat_3', name: "Канцелярія" },
+    { id: 'cat_4', name: "Меблі" },
+    { id: 'cat_5', name: "Доступи/Дозволи" },
+    { id: 'cat_6', name: "Інше" }
 ];
 
 export const MOCK_REQUESTS = [
@@ -229,17 +208,17 @@ export const MOCK_REQUESTS = [
         status: 'approved',
         date: '2023-11-10',
         categoryId: 'cat_1',
-        shortDesc: 'Need new mouse',
-        fullDesc: 'My current mouse is double-clicking unexpectedly. Need a replacement.',
-        createdBy: 999 // Current user
+        shortDesc: 'Потрібна нова мишка',
+        fullDesc: 'Моя поточна мишка постійно робить подвійний клік. Потрібна заміна.',
+        createdBy: 999 
     },
     {
         id: 'req_2',
         status: 'pending',
         date: '2023-11-15',
         categoryId: 'cat_2',
-        shortDesc: 'WebStorm License',
-        fullDesc: 'Renewal for annual WebStorm license.',
+        shortDesc: 'Ліцензія WebStorm',
+        fullDesc: 'Подовження щорічної ліцензії WebStorm.',
         createdBy: 999
     },
     {
@@ -247,9 +226,9 @@ export const MOCK_REQUESTS = [
         status: 'new',
         date: '2023-11-12',
         categoryId: 'cat_3',
-        shortDesc: 'Notebooks for team',
-        fullDesc: '5 notebooks for new interns.',
-        createdBy: 103 // Subordinate (Worker Bee)
+        shortDesc: 'Блокноти для команди',
+        fullDesc: '5 блокнотів для нових інтернів.',
+        createdBy: 103
     }
 ];
 
@@ -257,7 +236,7 @@ export const MOCK_SUBORDINATE_DATA = {
     'sub1': {
         id: 'sub1',
         name: 'Олена Коваль',
-        role: 'Junior Analyst',
+        role: 'Молодший аналітик',
         reports: {
             '2026-02-02': { type: 'Work', regularHours: 8, overtimeHours: 1, status: 'approved' },
             '2026-02-03': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
@@ -275,7 +254,7 @@ export const MOCK_SUBORDINATE_DATA = {
     'sub2': {
         id: 'sub2',
         name: 'Андрій Мельник',
-        role: 'Sales Manager',
+        role: 'Менеджер з продажу',
         reports: {
             '2026-02-03': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
             '2026-02-04': { type: 'Work', regularHours: 8, overtimeHours: 1, status: 'approved' },
@@ -291,7 +270,7 @@ export const MOCK_SUBORDINATE_DATA = {
     'sub3': {
         id: 'sub3',
         name: 'Марія Іваненко',
-        role: 'Designer',
+        role: 'Дизайнер',
         reports: {
             '2026-02-01': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
             '2026-02-05': { type: 'Work', regularHours: 8, overtimeHours: 2, status: 'approved' },
@@ -306,7 +285,7 @@ export const MOCK_SUBORDINATE_DATA = {
     'sub4': {
         id: 'sub4',
         name: 'Павло Дорош',
-        role: 'Support Engineer',
+        role: 'Інженер підтримки',
         reports: {
             '2026-02-02': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
             '2026-02-03': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
@@ -321,7 +300,7 @@ export const MOCK_SUBORDINATE_DATA = {
     'sub5': {
         id: 'sub5',
         name: 'Ірина Стецюк',
-        role: 'Account Manager',
+        role: 'Акаунт-менеджер',
         reports: {
             '2026-02-04': { type: 'Work', regularHours: 8, overtimeHours: 0, status: 'approved' },
             '2026-02-05': { type: 'Business Trip', regularHours: 8, overtimeHours: 0, status: 'approved' },
@@ -369,27 +348,27 @@ export const MOCK_TEAM_SALARY = {
     groups: [
         {
             id: 'mng',
-            title: 'Management (Керівництво)',
+            title: 'Керівництво',
             items: [
-                { id: 1, name: 'Queen Bee', role: 'CEO', kpi: '100%', amount: 10000 },
-                { id: 2, name: 'Alex Supervisor', role: 'Manager', kpi: '95%', amount: 4500 }
+                { id: 1, name: 'Королева Бджіл', role: 'Генеральний директор', kpi: '100%', amount: 10000 },
+                { id: 2, name: 'Олексій (Менеджер)', role: 'Менеджер', kpi: '95%', amount: 4500 }
             ]
         },
         {
             id: 'dev',
-            title: 'IT Department (Розробка)',
+            title: 'Відділ розробки',
             items: [
-                { id: 3, name: 'John Coder', role: 'Senior Dev', kpi: '110%', amount: 3000 },
-                { id: 4, name: 'Jane Frontend', role: 'Middle Dev', kpi: '98%', amount: 2200 },
-                { id: 5, name: 'Bob Tester', role: 'QA', kpi: '100%', amount: 1800 }
+                { id: 3, name: 'Джон Кодер', role: 'Senior Розробник', kpi: '110%', amount: 3000 },
+                { id: 4, name: 'Джейн Фронтенд', role: 'Middle Розробник', kpi: '98%', amount: 2200 },
+                { id: 5, name: 'Боб Тестер', role: 'QA', kpi: '100%', amount: 1800 }
             ]
         },
         {
             id: 'sales',
-            title: 'Sales (Продажі)',
+            title: 'Відділ продажів',
             items: [
-                { id: 6, name: 'Alice Seller', role: 'Sales Lead', kpi: '120%', amount: 2500 },
-                { id: 7, name: 'Mike Dealer', role: 'Sales Agent', kpi: '80%', amount: 500 }
+                { id: 6, name: 'Аліса Продавець', role: 'Керівник продажів', kpi: '120%', amount: 2500 },
+                { id: 7, name: 'Майк Дилер', role: 'Агент з продажів', kpi: '80%', amount: 500 }
             ]
         }
     ]

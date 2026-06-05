@@ -73,11 +73,11 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
                 // Directly add item instead of setting currentItem for review
                 handleAddItemDirectly(product);
             } else {
-                alert('Item not found');
+                alert('Товар не знайдено');
             }
         } catch (error) {
             console.error(error);
-            alert('Error searching for item');
+            alert('Помилка пошуку товару');
         } finally {
             setIsLoading(false);
         }
@@ -132,7 +132,7 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
         <div className="warehouse-modal-overlay" onClick={onClose}>
             <div className="warehouse-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="warehouse-header">
-                    <h2>Warehouse Inventory</h2>
+                    <h2>Інвентаризація складу</h2>
                     <button className="close-btn" onClick={onClose}>
                         <X size={24} />
                     </button>
@@ -141,14 +141,14 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
                 <div className="warehouse-body">
                     {stage === 'select-document' ? (
                         <div className="warehouse-section">
-                            <label>Select Inventory Document:</label>
+                            <label>Оберіть документ інвентаризації:</label>
                             
                             {isLoading ? (
-                                <div style={{ color: '#9ca3af', padding: 20, textAlign: 'center' }}>Loading documents...</div>
+                                <div style={{ color: '#9ca3af', padding: 20, textAlign: 'center' }}>Завантаження документів...</div>
                             ) : (
                                 <div className="documents-list">
                                     {documents.length === 0 ? (
-                                        <div style={{ color: '#9ca3af', padding: 20, textAlign: 'center' }}>No open inventory documents found.</div>
+                                        <div style={{ color: '#9ca3af', padding: 20, textAlign: 'center' }}>Відкритих документів інвентаризації не знайдено.</div>
                                     ) : (
                                         documents.map(doc => (
                                             <div 
@@ -174,7 +174,7 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
                                 onClick={handleStartInventory}
                                 style={{ marginTop: 'auto' }}
                             >
-                                Start Scanning
+                                Почати сканування
                             </button>
                         </div>
                     ) : (
@@ -185,7 +185,7 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
                                     <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{selectedDoc?.warehouseName}</span>
                                 </div>
                                 <span style={{ fontSize: '0.8rem', color: '#fbbf24', alignSelf: 'center' }}>
-                                    {inventoryList.length} items
+                                    {inventoryList.length} товарів
                                 </span>
                             </div>
 
@@ -193,15 +193,15 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
                                         <table className="inventory-table">
                                             <thead>
                                                 <tr>
-                                                    <th width="65%">Item</th>
-                                                    <th width="35%" align="center">Qty</th>
+                                                    <th width="65%">Товар</th>
+                                                    <th width="35%" align="center">Кіл-ть</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {inventoryList.length === 0 ? (
                                                     <tr>
                                                         <td colSpan="2" style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
-                                                            No items scanned yet.
+                                                            Ще немає відсканованих товарів.
                                                         </td>
                                                     </tr>
                                                 ) : (
@@ -243,7 +243,7 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
                             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 <button className="scan-trigger-btn" onClick={() => setIsScannerOpen(true)}>
                                     <ScanBarcode size={24} />
-                                    <span>Scan Barcode</span>
+                                    <span>Сканувати штрихкод</span>
                                 </button>
                                 
                                 <div style={{ display: 'flex', gap: 12 }}>
@@ -252,14 +252,14 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
                                         onClick={() => handleFinish(true)} 
                                         style={{ marginTop: 0, background: '#374151', border: '1px solid #4b5563', color: 'white', flex: 1 }}
                                     >
-                                        Save Draft
+                                        Зберегти чернетку
                                     </button>
                                     <button 
                                         className="finish-btn" 
                                         onClick={() => handleFinish(false)} 
                                         style={{ marginTop: 0, flex: 1 }}
                                     >
-                                        Finish Inventory
+                                        Завершити інвентаризацію
                                     </button>
                                 </div>
                             </div>

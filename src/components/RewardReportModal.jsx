@@ -55,10 +55,10 @@ const RewardReportModal = ({ isOpen, onClose }) => {
                 year
             });
             
-            alert('Question sent successfully!');
+            alert('Питання успішно надіслано!');
         } catch (error) {
             console.error("Failed to send question", error);
-            alert("Failed to send question.");
+            alert("Не вдалося надіслати питання.");
         }
     };
 
@@ -68,7 +68,7 @@ const RewardReportModal = ({ isOpen, onClose }) => {
         <div className="report-modal-overlay" onClick={onClose}>
             <div className="report-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="report-header">
-                    <h2>Reward Report</h2>
+                    <h2>Звіт по винагороді</h2>
                     <button className="close-btn" onClick={onClose}>
                         <X size={24} />
                     </button>
@@ -81,14 +81,14 @@ const RewardReportModal = ({ isOpen, onClose }) => {
                             onClick={() => setViewMode('personal')}
                         >
                             <User size={16} />
-                            <span>My Report</span>
+                            <span>Мій звіт</span>
                         </button>
                         <button 
                             className={`toggle-btn ${viewMode === 'team' ? 'active' : ''}`}
                             onClick={() => setViewMode('team')}
                         >
                             <Users size={16} />
-                            <span>Team Report</span>
+                            <span>Звіт команди</span>
                         </button>
                     </div>
 
@@ -103,7 +103,7 @@ const RewardReportModal = ({ isOpen, onClose }) => {
                             />
                         </div>
                         <button className="refresh-btn" onClick={loadReport} disabled={isLoading}>
-                            {isLoading ? 'Loading...' : 'Generate'}
+                            {isLoading ? 'Завантаження...' : 'Згенерувати'}
                         </button>
                         <button 
                             className="refresh-btn" 
@@ -117,17 +117,17 @@ const RewardReportModal = ({ isOpen, onClose }) => {
 
                 <div className="report-body">
                     {!reportData ? (
-                        <div className="empty-state">Select a month and generate report</div>
+                        <div className="empty-state">Оберіть місяць та згенеруйте звіт</div>
                     ) : (
                         <div className="report-table-container">
                             <div className="report-summary">
                                 <div className="summary-item">
-                                    <span className="label">Total Payout</span>
+                                    <span className="label">Загальна виплата</span>
                                     <span className="value">{reportData.totalAmount?.toLocaleString()} 🍯</span>
                                 </div>
                                 {viewMode === 'team' && (
                                     <div className="summary-item">
-                                        <span className="label">Employees</span>
+                                        <span className="label">Співробітники</span>
                                         <span className="value">{reportData.totalEmployees}</span>
                                     </div>
                                 )}

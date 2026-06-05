@@ -81,7 +81,7 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
         <div className="scanner-modal-overlay" onClick={onClose}>
             <div className="scanner-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="scanner-header">
-                    <h3>Scan Barcode</h3>
+                    <h3>Сканувати штрихкод</h3>
                     <button className="close-btn" onClick={onClose}>
                         <X size={24} />
                     </button>
@@ -93,7 +93,7 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
                             ref={inputRef}
                             type="text"
                             className="scanner-input"
-                            placeholder="Enter barcode manually..."
+                            placeholder="Введіть штрихкод вручну..."
                             value={barcode}
                             onChange={(e) => setBarcode(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
@@ -104,20 +104,20 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
                     </div>
 
                     <div className="divider">
-                        <span>OR</span>
+                        <span>АБО</span>
                     </div>
 
                     {isCameraActive ? (
                         <div className="camera-container">
                             <div id="reader"></div>
                             <button className="stop-camera-btn" onClick={() => setIsCameraActive(false)}>
-                                Stop Camera
+                                Зупинити камеру
                             </button>
                         </div>
                     ) : (
                         <button className="start-camera-btn" onClick={() => setIsCameraActive(true)}>
                             <Camera size={24} />
-                            <span>Scan with Camera</span>
+                            <span>Сканувати камерою</span>
                         </button>
                     )}
                 </div>

@@ -48,7 +48,7 @@ const VirtualizedList = ({ items, onNodeClick, childrenCountById, emptyText }) =
                                 <span className="card-avatar">{node.avatar || '👤'}</span>
                                 <span className="card-info">
                                     <span className="card-name">{node.name}</span>
-                                    <span className="card-role">{node.role || 'No role'}</span>
+                                    <span className="card-role">{node.role || 'Без посади'}</span>
                                 </span>
                                 {reportsCount > 0 && (
                                     <span className="card-reports-count">
@@ -173,7 +173,7 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
                 <div className="org-header">
                     <h2 className="modal-title">
                         <Network size={18} className="text-gold" />
-                        <span>Org Chart</span>
+                        <span>Структура організації</span>
                     </h2>
                     <button className="close-btn" onClick={onClose} type="button">
                         <X size={24} />
@@ -185,7 +185,7 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
                     <input
                         type="text"
                         className="org-search-input"
-                        placeholder="Search by name or role..."
+                        placeholder="Пошук за ім'ям або посадою..."
                         value={searchInput}
                         onChange={(event) => setSearchInput(event.target.value)}
                     />
@@ -195,7 +195,7 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
                     <>
                         {hasMultipleTopLeaders && (
                             <div className="org-top-leaders">
-                                <div className="section-label">Top Leaders</div>
+                                <div className="section-label">Керівництво</div>
                                 <div className="org-top-leaders-list">
                                     {topLeaders.map((leader) => {
                                         const isActive = currentTopRoot?.id === leader.id;
@@ -236,10 +236,10 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
                             <div className="hero-avatar">{currentNode.avatar || '👤'}</div>
                             <div className="hero-info">
                                 <h3>{currentNode.name}</h3>
-                                <div className="hero-role">{currentNode.role || 'No role'}</div>
+                                <div className="hero-role">{currentNode.role || 'Без посади'}</div>
                                 <div className="hero-stats">
                                     <Users size={14} />
-                                    <span>{directReports.length} direct reports</span>
+                                    <span>{directReports.length} у прямому підпорядкуванні</span>
                                 </div>
                             </div>
                         </div>
@@ -252,7 +252,7 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
                                 disabled={!currentManager}
                             >
                                 <ChevronLeft size={14} />
-                                Manager
+                                Керівник
                             </button>
                             <button
                                 className="org-nav-btn"
@@ -260,16 +260,16 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
                                 onClick={() => currentTopRoot && onNodeClick(currentTopRoot.id)}
                                 disabled={!currentTopRoot || currentNode.id === currentTopRoot.id}
                             >
-                                Top
+                                Вгору
                             </button>
                         </div>
 
-                        <div className="section-label">Direct Reports</div>
+                        <div className="section-label">Прямі підлеглі</div>
                         <VirtualizedList
                             items={directReports}
                             onNodeClick={onNodeClick}
                             childrenCountById={childrenCountById}
-                            emptyText="No direct reports"
+                            emptyText="Немає прямих підлеглих"
                         />
                     </>
                 )}
@@ -277,14 +277,14 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
                 {showingSearch && (
                     <>
                         <div className="section-label">
-                            {searchState.total} result{searchState.total === 1 ? '' : 's'}
-                            {searchState.isLimited ? ` (showing first ${SEARCH_LIMIT})` : ''}
+                            {searchState.total} результатів
+                            {searchState.isLimited ? ` (показано перші ${SEARCH_LIMIT})` : ''}
                         </div>
                         <VirtualizedList
                             items={searchState.results}
                             onNodeClick={onNodeClick}
                             childrenCountById={childrenCountById}
-                            emptyText={`No results found for "${searchInput.trim()}"`}
+                            emptyText={`Нічого не знайдено за запитом "${searchInput.trim()}"`}
                         />
                     </>
                 )}

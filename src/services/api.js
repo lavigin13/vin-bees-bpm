@@ -1,5 +1,5 @@
 import { MOCK_SUBORDINATE_DATA, MOCK_PERSONAL_SALARY, MOCK_TEAM_SALARY } from '../data/mockData';
-import { isTelegram, getApiBaseUrl } from './env';
+import { getApiBaseUrl } from './env';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -23,13 +23,9 @@ const getHeaders = () => {
         'Content-Type': 'application/json'
     };
 
-    if (isTelegram()) {
-        headers['X-Telegram-Init-Data'] = window.Telegram.WebApp.initData;
-    } else {
-        const token = localStorage.getItem('authToken') || '';
-        if (token) {
-            headers['Authorization'] = `Basic ${token}`;
-        }
+    const token = localStorage.getItem('authToken') || '';
+    if (token) {
+        headers['Authorization'] = `Basic ${token}`;
     }
 
     return headers;
@@ -736,5 +732,35 @@ export const fetchRemainingItems = async (filters = {}) => {
     } catch (error) {
         console.error('Failed to fetch remaining items:', error);
         throw error;
+    }
+};
+
+// --- Games (Bee Invaders) ---
+
+export const fetchBeeInvadersLeaderboard = async () => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/games/bee-invaders/leaderboard`, { method: 'GET', headers });
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch leaderboard:', error);
+        return [];
+    }
+};
+
+export const saveBeeInvadersScore = async (scoreData) => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/games/bee-invaders/score`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(scoreData)
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to save score:', error);
+        return null;
     }
 };

@@ -34,21 +34,21 @@ const CreateListingModal = ({ isOpen, onClose, onDetailSubmit }) => {
                 <button className="close-btn" onClick={onClose}><X size={24} /></button>
                 
                 <h2 className="modal-title">
-                    <Plus size={20} /> Sell Item
+                    <Plus size={20} /> Продати предмет
                 </h2>
 
                 <div className="craft-settings" style={{ marginTop: 20 }}>
-                    <label className="label">Item Name</label>
+                    <label className="label">Назва предмета</label>
                     <input 
                         className="rpg-input" 
                         value={name} 
                         onChange={(e) => setName(e.target.value)} 
-                        placeholder="e.g. Old Laptop"
+                        placeholder="напр. Старий ноутбук"
                     />
                 </div>
 
                 <div className="craft-settings">
-                    <label className="label">Price (Honey)</label>
+                    <label className="label">Ціна (Мед)</label>
                     <div style={{ position: 'relative' }}>
                         <Coins size={16} style={{ position: 'absolute', top: 12, left: 12, color: 'var(--accent-gold)' }} />
                         <input 
@@ -63,12 +63,12 @@ const CreateListingModal = ({ isOpen, onClose, onDetailSubmit }) => {
                 </div>
 
                 <div className="craft-settings">
-                    <label className="label">Description</label>
+                    <label className="label">Опис</label>
                     <textarea 
                         className="rpg-input" 
                         value={description} 
                         onChange={(e) => setDescription(e.target.value)} 
-                        placeholder="Describe item condition..."
+                        placeholder="Опишіть стан предмета..."
                         rows={3}
                         style={{ resize: 'none' }}
                     />
@@ -79,7 +79,7 @@ const CreateListingModal = ({ isOpen, onClose, onDetailSubmit }) => {
                     disabled={!name || !price}
                     onClick={handleSubmit}
                 >
-                    Create Listing
+                    Створити оголошення
                 </button>
             </div>
         </div>

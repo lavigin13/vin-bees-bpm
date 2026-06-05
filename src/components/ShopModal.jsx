@@ -22,12 +22,12 @@ const ShopModal = ({ isOpen, onClose, items, userHoney, onBuy, onSellClick }) =>
                 <button className="close-btn" onClick={onClose}><X size={24} /></button>
                 
                 <h2 className="modal-title">
-                    <ShoppingBag size={20} /> Marketplace
+                    <ShoppingBag size={20} /> Магазин
                 </h2>
 
                 {/* Balance Header */}
                 <div className="shop-balance-header">
-                    <span>Your Balance:</span>
+                    <span>Ваш баланс:</span>
                     <div className="shop-balance-amount">
                         <Coins size={16} fill="var(--accent-gold)" color="var(--accent-gold)" />
                         {userHoney.toLocaleString()}
@@ -40,13 +40,13 @@ const ShopModal = ({ isOpen, onClose, items, userHoney, onBuy, onSellClick }) =>
                         className={`tab-btn ${activeTab === 'company' ? 'active' : ''}`}
                         onClick={() => setActiveTab('company')}
                     >
-                        🏢 Company Store
+                        🏢 Корпоративний магазин
                     </button>
                     <button
                         className={`tab-btn ${activeTab === 'community' ? 'active' : ''}`}
                         onClick={() => setActiveTab('community')}
                     >
-                        👥 Community
+                        👥 Спільнота
                     </button>
                 </div>
 
@@ -56,14 +56,14 @@ const ShopModal = ({ isOpen, onClose, items, userHoney, onBuy, onSellClick }) =>
                         <Search size={14} />
                         <input 
                             type="text" 
-                            placeholder="Search items..." 
+                            placeholder="Пошук предметів..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                     {activeTab === 'community' && (
                         <button className="sell-btn" onClick={onSellClick}>
-                            <Plus size={14} /> Sell Item
+                            <Plus size={14} /> Продати предмет
                         </button>
                     )}
                 </div>
@@ -71,7 +71,7 @@ const ShopModal = ({ isOpen, onClose, items, userHoney, onBuy, onSellClick }) =>
                 {/* Items Grid */}
                 <div className="shop-grid">
                     {filteredItems.length === 0 ? (
-                        <div className="empty-shop">No items found in this section.</div>
+                        <div className="empty-shop">В цьому розділі нічого не знайдено.</div>
                     ) : (
                         filteredItems.map(item => {
                             const canAfford = userHoney >= item.price;
@@ -105,7 +105,7 @@ const ShopModal = ({ isOpen, onClose, items, userHoney, onBuy, onSellClick }) =>
                                             <Coins size={12} fill={canAfford ? "#000" : "#fff"} />
                                             {item.price}
                                         </div>
-                                        {canAfford ? 'Buy Now' : 'Not Enough'}
+                                        {canAfford ? 'Придбати' : 'Недостатньо'}
                                     </button>
                                 </div>
                             );

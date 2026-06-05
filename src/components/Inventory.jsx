@@ -22,13 +22,13 @@ const Inventory = ({ items = [], onCraftClick, onTransferClick, onValidateClick,
     return (
         <div className="inventory-container">
             <div className="inventory-header">
-                <h2 className="section-title">Inventory</h2>
+                <h2 className="section-title">Інвентар</h2>
                 <div className="inventory-tabs">
                     <button
                         className={`tab-btn ${activeTab === 'equipment' ? 'active' : ''}`}
                         onClick={() => setActiveTab('equipment')}
                     >
-                        Gear
+                        Спорядження
                     </button>
                 </div>
             </div>
@@ -42,7 +42,7 @@ const Inventory = ({ items = [], onCraftClick, onTransferClick, onValidateClick,
                     return (
                         <div key={item.id} className={`inventory-item rarity-${item.rarity.toLowerCase()} ${isAudit ? 'audit-required' : ''}`} style={isMissing ? { opacity: 0.5, border: '2px dashed #ef4444' } : {}}>
                             {isAudit && (
-                                <div className="audit-badge" title="Validation Required">
+                                <div className="audit-badge" title="Потрібна перевірка">
                                     <AlertTriangle size={14} strokeWidth={2.5} />
                                 </div>
                             )}
@@ -56,7 +56,7 @@ const Inventory = ({ items = [], onCraftClick, onTransferClick, onValidateClick,
                             <div className="item-details">
                                 <div className="item-name">{item.name}</div>
                                 <div className="item-rarity">
-                                    {isMissing ? <span style={{color: '#ef4444', fontWeight: 'bold'}}>MISSING</span> : item.rarity}
+                                    {isMissing ? <span style={{color: '#ef4444', fontWeight: 'bold'}}>ВІДСУТНІЙ</span> : item.rarity}
                                 </div>
                             </div>
 
@@ -69,7 +69,7 @@ const Inventory = ({ items = [], onCraftClick, onTransferClick, onValidateClick,
                                             onReportMissing(item);
                                         }}
                                     >
-                                        <XCircle size={14} /> Missing
+                                        <XCircle size={14} /> Відсутній
                                     </button>
                                     <button 
                                         className="validate-btn"
@@ -78,7 +78,7 @@ const Inventory = ({ items = [], onCraftClick, onTransferClick, onValidateClick,
                                             onValidateClick(item);
                                         }}
                                     >
-                                        <CheckCircle size={14} /> OK
+                                        <CheckCircle size={14} /> ОК
                                     </button>
                                 </div>
                             ) : !isMissing && (
@@ -88,7 +88,7 @@ const Inventory = ({ items = [], onCraftClick, onTransferClick, onValidateClick,
                                         e.stopPropagation();
                                         onTransferClick(item);
                                     }}
-                                    title="Transfer Item"
+                                    title="Передати предмет"
                                 >
                                     <Send size={14} />
                                 </button>

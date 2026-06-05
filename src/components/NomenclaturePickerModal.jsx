@@ -78,17 +78,17 @@ const NomenclaturePickerModal = ({
         <div className="picker-overlay" onClick={onClose}>
             <div className="picker-modal" onClick={e => e.stopPropagation()}>
                 <div className="picker-header">
-                    <h3>Select items</h3>
+                    <h3>Оберіть товари</h3>
                     <div className="picker-header-actions">
                         <button className="picker-btn-cancel" onClick={onClose}>
-                            Cancel
+                            Скасувати
                         </button>
                         <button
                             className="picker-btn-done"
                             onClick={handleConfirm}
                             disabled={loading}
                         >
-                            Done{draftIds.size > 0 ? ` (${draftIds.size})` : ''}
+                            Готово{draftIds.size > 0 ? ` (${draftIds.size})` : ''}
                         </button>
                     </div>
                 </div>
@@ -97,7 +97,7 @@ const NomenclaturePickerModal = ({
                     <Search size={14} />
                     <input
                         type="text"
-                        placeholder="Search by name..."
+                        placeholder="Пошук за назвою..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
@@ -106,11 +106,11 @@ const NomenclaturePickerModal = ({
                 <div className="picker-list">
                     {loading ? (
                         <div className="picker-loading">
-                            <Loader2 size={18} className="spin" /> Loading...
+                            <Loader2 size={18} className="spin" /> Завантаження...
                         </div>
                     ) : filtered.length === 0 ? (
                         <div className="picker-empty">
-                            {nomenclature.length === 0 ? 'No items in this warehouse' : 'Nothing matches'}
+                            {nomenclature.length === 0 ? 'Немає товарів на цьому складі' : 'Нічого не знайдено'}
                         </div>
                     ) : (
                         filtered.map(item => {
@@ -123,7 +123,7 @@ const NomenclaturePickerModal = ({
                                 >
                                     <div className="picker-item-info">
                                         <span className="picker-item-name">{item.name}</span>
-                                        <span className="picker-item-meta">In stock: {item.count}</span>
+                                        <span className="picker-item-meta">В наявності: {item.count}</span>
                                     </div>
                                     {isSelected
                                         ? <CheckCircle2 size={20} className="picker-check" />

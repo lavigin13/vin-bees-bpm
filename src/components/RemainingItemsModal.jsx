@@ -32,7 +32,7 @@ const exportToExcel = async (grouped) => {
     ws['!cols'] = colWidths;
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Stock Report');
+    XLSX.utils.book_append_sheet(wb, ws, 'Залишки');
 
     // Build filename
     const now = new Date();
@@ -105,7 +105,7 @@ const MultiSelect = ({ options, selected, onChange, placeholder }) => {
                 <div className="ri-multi-select-dropdown">
                     {options.length === 0 && (
                         <div style={{ padding: '10px 12px', color: '#6b7280', fontSize: '0.85rem' }}>
-                            No options
+                            Немає опцій
                         </div>
                     )}
                     {options.map(opt => {
@@ -209,7 +209,7 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
             if (!groups[whGuid]) {
                 groups[whGuid] = {
                     warehouseGUID: whGuid,
-                    warehouseName: whNameMap[whGuid] || 'Unknown Warehouse',
+                    warehouseName: whNameMap[whGuid] || 'Невідомий склад',
                     products: []
                 };
             }
@@ -249,7 +249,7 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                 <div className="ri-header">
                     <h2 className="ri-title">
                         <BarChart3 size={20} />
-                        Stock Report
+                        Звіт по залишках
                     </h2>
                     <button className="ri-close" onClick={handleClose}>
                         <X size={22} />
@@ -260,34 +260,34 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                     {/* Filters */}
                     <div className="ri-filters">
                         <div className="ri-filter-row">
-                            <span className="ri-filter-label">Warehouse</span>
+                            <span className="ri-filter-label">Склад</span>
                             <MultiSelect
                                 options={availableWarehouses}
                                 selected={selectedWarehouses}
                                 onChange={setSelectedWarehouses}
-                                placeholder="All warehouses"
+                                placeholder="Всі склади"
                             />
                         </div>
 
                         {availableFolders.length > 0 && (
                             <div className="ri-filter-row">
-                                <span className="ri-filter-label">Folder</span>
+                                <span className="ri-filter-label">Папка</span>
                                 <MultiSelect
                                     options={availableFolders}
                                     selected={selectedFolders}
                                     onChange={setSelectedFolders}
-                                    placeholder="All folders"
+                                    placeholder="Всі папки"
                                 />
                             </div>
                         )}
 
                         <div className="ri-filter-row">
-                            <span className="ri-filter-label">Category</span>
+                            <span className="ri-filter-label">Категорія</span>
                             <MultiSelect
                                 options={availableCategories}
                                 selected={selectedCategories}
                                 onChange={setSelectedCategories}
-                                placeholder="All categories"
+                                placeholder="Всі категорії"
                             />
                         </div>
 
@@ -298,8 +298,8 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                                 disabled={isLoading}
                             >
                                 {isLoading
-                                    ? <><Loader2 size={16} className="ri-spin" /> Loading...</>
-                                    : <><Search size={16} /> Load Report</>
+                                    ? <><Loader2 size={16} className="ri-spin" /> Завантаження...</>
+                                    : <><Search size={16} /> Завантажити звіт</>
                                 }
                             </button>
                             <button
@@ -316,7 +316,7 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                     {isLoading && (
                         <div className="ri-loading">
                             <Loader2 size={20} className="ri-spin" />
-                            Loading report...
+                            Завантаження звіту...
                         </div>
                     )}
 
@@ -324,7 +324,7 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                     {!isLoading && hasLoaded && totalProducts === 0 && (
                         <div className="ri-empty">
                             <Package size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
-                            <div>No items found</div>
+                            <div>Товарів не знайдено</div>
                         </div>
                     )}
 
@@ -335,15 +335,15 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                             <div className="ri-summary">
                                 <div className="ri-summary-item">
                                     <span className="ri-summary-value">{totalProducts}</span>
-                                    <span className="ri-summary-label">Items</span>
+                                    <span className="ri-summary-label">Товари</span>
                                 </div>
                                 <div className="ri-summary-item">
                                     <span className="ri-summary-value">{totalQty.toLocaleString()}</span>
-                                    <span className="ri-summary-label">Total Qty</span>
+                                    <span className="ri-summary-label">Загальна кіл-ть</span>
                                 </div>
                                 <div className="ri-summary-item">
                                     <span className="ri-summary-value">{groupedProducts.length}</span>
-                                    <span className="ri-summary-label">Groups</span>
+                                    <span className="ri-summary-label">Групи</span>
                                 </div>
                             </div>
 
@@ -352,7 +352,7 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                                 <input
                                     type="text"
                                     className="ri-search-input"
-                                    placeholder="Search products..."
+                                    placeholder="Пошук товарів..."
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
                                 />
@@ -373,7 +373,7 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                                                     {group.warehouseName}
                                                 </span>
                                                 <span className="ri-warehouse-count">
-                                                    {group.products.length} items
+                                                    {group.products.length} товарів
                                                 </span>
                                                 <ChevronDown
                                                     size={16}

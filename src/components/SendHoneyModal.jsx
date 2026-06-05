@@ -69,17 +69,17 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
                 <button className="close-btn" onClick={onClose}><X size={24} /></button>
                 
                 <h2 className="modal-title">
-                    <Coins size={20} color="var(--accent-gold)" /> Send Honey
+                    <Coins size={20} color="var(--accent-gold)" /> Надіслати Мед
                 </h2>
 
                 <div className="craft-settings" style={{ marginTop: 24, position: 'relative' }} ref={dropdownRef}>
-                    <label className="label">Recipient</label>
+                    <label className="label">Отримувач</label>
                     
                     <div style={{ position: 'relative' }}>
                         <Search size={16} style={{ position: 'absolute', top: 12, right: 12, opacity: 0.5, pointerEvents: 'none' }} />
                         <input
                             className="rpg-input"
-                            placeholder="Search by name or role..."
+                            placeholder="Пошук за ім'ям або посадою..."
                             value={searchTerm}
                             onChange={(e) => {
                                 setSearchTerm(e.target.value);
@@ -112,14 +112,14 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
                     {isDropdownOpen && filteredColleagues.length === 0 && (
                         <div className="search-dropdown-list">
                             <div className="search-option" style={{ justifyContent: 'center', opacity: 0.5, cursor: 'default' }}>
-                                No colleagues found
+                                Колег не знайдено
                             </div>
                         </div>
                     )}
                 </div>
 
                 <div className="craft-settings">
-                    <label className="label">Amount</label>
+                    <label className="label">Кількість</label>
                     <div style={{ display: 'flex', gap: 8 }}>
                         <input
                             type="number"
@@ -136,11 +136,11 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
                             onClick={handleMax}
                             style={{ background: 'rgba(255, 215, 0, 0.1)', color: 'var(--accent-gold)', border: '1px solid var(--accent-gold)' }}
                         >
-                            MAX
+                            МАКС
                         </button>
                     </div>
                     <div style={{ fontSize: 10, opacity: 0.6, marginTop: 4, textAlign: 'right' }}>
-                        Balance: {userBalance.toLocaleString()}
+                        Баланс: {userBalance.toLocaleString()}
                     </div>
                 </div>
 
@@ -149,7 +149,7 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
                     disabled={!selectedColleagueId || !amount || parseInt(amount) > userBalance || parseInt(amount) <= 0}
                     onClick={handleSend}
                 >
-                    Send {amount ? `${amount} Honey` : ''}
+                    Надіслати {amount ? `${amount} Меду` : ''}
                 </button>
             </div>
         </div>

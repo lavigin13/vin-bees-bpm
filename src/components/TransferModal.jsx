@@ -54,7 +54,7 @@ const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
         
         if (!colleague) {
             console.error("Selected colleague not found in list", { selectedColleagueId, colleagues });
-            alert("Error: Recipient not found.");
+            alert("Помилка: отримувача не знайдено.");
             return;
         }
 
@@ -68,7 +68,7 @@ const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
                 <button className="close-btn" onClick={onClose}><X size={24} /></button>
                 
                 <h2 className="modal-title">
-                    <Send size={20} /> Transfer Asset
+                    <Send size={20} /> Передати актив
                 </h2>
 
                 <div className="recipe-details" style={{ marginTop: 20 }}>
@@ -80,13 +80,13 @@ const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
                     </div>
 
                     <div className="craft-settings" ref={dropdownRef} style={{ position: 'relative' }}>
-                        <label className="label"><User size={14}/> Select Recipient</label>
+                        <label className="label"><User size={14}/> Оберіть отримувача</label>
                         
                         <div style={{ position: 'relative' }}>
                             <Search size={16} style={{ position: 'absolute', top: 12, right: 12, opacity: 0.5, pointerEvents: 'none' }} />
                             <input
                                 className="rpg-input"
-                                placeholder="Search by name or role..."
+                                placeholder="Пошук за ім'ям або посадою..."
                                 value={searchTerm}
                                 onChange={(e) => {
                                     setSearchTerm(e.target.value);
@@ -119,14 +119,14 @@ const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
                         {isDropdownOpen && filteredColleagues.length === 0 && (
                             <div className="search-dropdown-list">
                                 <div className="search-option" style={{ justifyContent: 'center', opacity: 0.5, cursor: 'default' }}>
-                                    No colleagues found
+                                    Колег не знайдено
                                 </div>
                             </div>
                         )}
                     </div>
 
                     <div className="craft-settings">
-                        <label className="label">Quantity</label>
+                        <label className="label">Кількість</label>
                         <input
                             type="number"
                             min="1"
@@ -136,7 +136,7 @@ const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
                             onChange={(e) => setQuantity(Math.max(1, Math.min(item.quantity, parseInt(e.target.value) || 1)))}
                         />
                         <div style={{fontSize: 12, opacity: 0.6, marginTop: 4, textAlign: 'right'}}>
-                            Available: {item.quantity}
+                            Доступно: {item.quantity}
                         </div>
                     </div>
 
@@ -145,7 +145,7 @@ const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
                         disabled={!selectedColleagueId}
                         onClick={handleSend}
                     >
-                        Send Request
+                        Надіслати запит
                     </button>
                 </div>
             </div>

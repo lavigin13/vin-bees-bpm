@@ -1,6 +1,6 @@
 .action-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
     gap: 8px; /* Reduced gap */
     margin-top: 16px;
     margin-bottom: 16px;
@@ -53,6 +53,9 @@
     text-align: center;
     color: #9ca3af;
     line-height: 1.1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
 }
 
 .action-badge {

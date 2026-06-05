@@ -73,7 +73,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
             }
         } catch (e) {
             console.warn('Failed to load subordinate data', e);
-            setError('Failed to load subordinate data');
+            setError('Не вдалося завантажити дані підлеглих');
             setSubordinateData({});
         } finally {
             setIsLoading(false);
@@ -128,12 +128,12 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
             if (result.success) {
                 applyStatusToSelectedReports('approved');
                 setSelectedReports([]);
-                alert(`✅ Approved ${result.approved} reports`);
+                alert(`✅ Погоджено ${result.approved} записів`);
                 await loadSubordinateData();
             }
         } catch (e) {
             console.error('Failed to approve', e);
-            alert('❌ Approval failed');
+            alert('❌ Помилка при погодженні');
         } finally {
             setIsProcessing(false);
         }
@@ -141,19 +141,19 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
 
     const handleRejectSelected = async () => {
         if (selectedReports.length === 0) return;
-        const reason = prompt('Rejection reason (optional):');
+        const reason = prompt('Причина відхилення (опційно):');
         setIsProcessing(true);
         try {
             const result = await rejectTimesheetReports(selectedReports, reason);
             if (result.success) {
                 applyStatusToSelectedReports('rejected');
                 setSelectedReports([]);
-                alert(`❌ Rejected ${result.rejected} reports`);
+                alert(`❌ Відхилено ${result.rejected} записів`);
                 await loadSubordinateData();
             }
         } catch (e) {
             console.error('Failed to reject', e);
-            alert('❌ Rejection failed');
+            alert('❌ Помилка при відхиленні');
         } finally {
             setIsProcessing(false);
         }
@@ -206,7 +206,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                 <button className="close-btn" onClick={onClose}><X size={24} /></button>
 
                 <h2 className="modal-title">
-                    <Users size={20} /> Approval
+                    <Users size={20} /> Погодження табелів
                 </h2>
 
                 <div className="timesheet-container">
@@ -222,47 +222,47 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
 
                     <div className="approval-controls-row">
                         <div className="approval-control">
-                            <label className="approval-control-label">Status</label>
+                            <label className="approval-control-label">Статус</label>
                             <select
                                 className="approval-control-select"
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
                             >
-                                <option value="all">All</option>
-                                <option value="approved">Approved</option>
-                                <option value="pending">Pending</option>
-                                <option value="rejected">Rejected</option>
+                                <option value="all">Всі</option>
+                                <option value="approved">Погоджено</option>
+                                <option value="pending">Очікують</option>
+                                <option value="rejected">Відхилено</option>
                             </select>
                         </div>
                         <div className="approval-control">
-                            <label className="approval-control-label">Group by</label>
+                            <label className="approval-control-label">Групувати за</label>
                             <select
                                 className="approval-control-select"
                                 value={groupByTopLevel}
                                 onChange={(e) => setGroupByTopLevel(e.target.value)}
                             >
-                                <option value="employee">Employee → Week</option>
-                                <option value="week">Week → Employee</option>
+                                <option value="employee">Співробітник → Тиждень</option>
+                                <option value="week">Тиждень → Співробітник</option>
                             </select>
                         </div>
                     </div>
 
                     {selectedReports.length > 0 && (
                         <div className="approval-actions-top">
-                            <div className="actions-header">Selected: {selectedReports.length}</div>
+                            <div className="actions-header">Обрано: {selectedReports.length}</div>
                             <div className="actions-buttons">
                                 <button className="action-btn approve" onClick={handleApproveSelected} disabled={isProcessing}>
-                                    <CheckCircle size={16} /> Approve
+                                    <CheckCircle size={16} /> Погодити
                                 </button>
                                 <button className="action-btn reject" onClick={handleRejectSelected} disabled={isProcessing}>
-                                    <XCircle size={16} /> Reject
+                                    <XCircle size={16} /> Відхилити
                                 </button>
                             </div>
                         </div>
                     )}
 
                     {isLoading ? (
-                        <div className="timesheet-loading">Loading...</div>
+                        <div className="timesheet-loading">Завантаження...</div>
                     ) : (
                         <div className="subordinate-list">
                             {groupByTopLevel === 'employee' ? (
@@ -321,9 +321,9 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                             <button type="button" className="week-group-header" onClick={() => toggleWeekExpansion(employee.id, group.weekNumber)}>
                                                                 <span className="week-group-label">
                                                                     {expandedWeeks[`${employee.id}_week_${group.weekNumber}`] ?? true ? <ChevronDown size={14} /> : <ChevronRightIcon size={14} />}
-                                                                    Week {group.weekNumber}
+                                                                    Тиждень {group.weekNumber}
                                                                 </span>
-                                                                <span className="week-group-meta">{group.items.length} days</span>
+                                                                <span className="week-group-meta">{group.items.length} дн.</span>
                                                             </button>
                                                             <div className="week-days-grid">
                                                                 {group.items.map(([date, report]) => {
@@ -339,17 +339,17 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                                 <div className={`ds-status ${report.status}`} />
                                                                             </div>
                                                                             <div className="ds-body">
-                                                                                {report.type === 'Work' ? (
+                                                                                {report.type === 'Work' || report.type === 'Робочий' ? (
                                                                                     <>
                                                                                         <div className="ds-hours">{report.regularHours}</div>
                                                                                         {report.overtimeHours > 0 && <div className="ds-ot">+{report.overtimeHours}</div>}
                                                                                     </>
                                                                                 ) : (
                                                                                     <div className="ds-icon">
-                                                                                        {report.type === 'Vacation' && '⛱️'}
-                                                                                        {report.type === 'Sick' && '💊'}
-                                                                                        {report.type === 'Business Trip' && '💼'}
-                                                                                        {report.type === 'Day Off' && '☕'}
+                                                                                        {report.type === 'Vacation' || report.type === 'Відпустка' ? '⛱️' : null}
+                                                                                        {report.type === 'Sick' || report.type === 'Лікарняний' ? '💊' : null}
+                                                                                        {report.type === 'Business Trip' || report.type === 'Відрядження' ? '💼' : null}
+                                                                                        {report.type === 'Day Off' || report.type === 'Вихідний' ? '☕' : null}
                                                                                         {(report.type === 'omitted' || report.type === 'Omitted') && '❌'}
                                                                                     </div>
                                                                                 )}
@@ -387,7 +387,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                     const topWeekGroups = Object.values(reportsByTopWeek).sort((a, b) => a.weekNumber - b.weekNumber);
 
                                     if (topWeekGroups.length === 0) {
-                                        return <div className="approval-empty">No records for current filter</div>;
+                                        return <div className="approval-empty">Немає записів для поточного фільтра</div>;
                                     }
 
                                     return topWeekGroups.map(group => {
@@ -403,8 +403,8 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                         {isWeekExpanded ? <ChevronDown size={20} /> : <ChevronRightIcon size={20} />}
                                                     </div>
                                                     <div className="group-info">
-                                                        <div className="group-name">Week {group.weekNumber}</div>
-                                                        <div className="group-role">{weekEmployees.length} employees • {weekItemsCount} records</div>
+                                                        <div className="group-name">Тиждень {group.weekNumber}</div>
+                                                        <div className="group-role">{weekEmployees.length} співробітників • {weekItemsCount} записів</div>
                                                     </div>
                                                 </div>
 
@@ -425,7 +425,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                             <div className="week-employee-role">{employee.role}</div>
                                                                         </div>
                                                                         <div className="week-employee-stats">
-                                                                            <span>{items.length} days</span>
+                                                                            <span>{items.length} дн.</span>
                                                                             <input
                                                                                 type="checkbox"
                                                                                 className="group-checkbox"
@@ -449,17 +449,17 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                                         <div className={`ds-status ${report.status}`} />
                                                                                     </div>
                                                                                     <div className="ds-body">
-                                                                                        {report.type === 'Work' ? (
+                                                                                        {report.type === 'Work' || report.type === 'Робочий' ? (
                                                                                             <>
                                                                                                 <div className="ds-hours">{report.regularHours}</div>
                                                                                                 {report.overtimeHours > 0 && <div className="ds-ot">+{report.overtimeHours}</div>}
                                                                                             </>
                                                                                         ) : (
                                                                                             <div className="ds-icon">
-                                                                                                {report.type === 'Vacation' && '⛱️'}
-                                                                                                {report.type === 'Sick' && '💊'}
-                                                                                                {report.type === 'Business Trip' && '💼'}
-                                                                                                {report.type === 'Day Off' && '☕'}
+                                                                                                {report.type === 'Vacation' || report.type === 'Відпустка' ? '⛱️' : null}
+                                                                                                {report.type === 'Sick' || report.type === 'Лікарняний' ? '💊' : null}
+                                                                                                {report.type === 'Business Trip' || report.type === 'Відрядження' ? '💼' : null}
+                                                                                                {report.type === 'Day Off' || report.type === 'Вихідний' ? '☕' : null}
                                                                                                 {(report.type === 'omitted' || report.type === 'Omitted') && '❌'}
                                                                                             </div>
                                                                                         )}

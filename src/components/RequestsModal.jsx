@@ -83,11 +83,11 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
 
     const handleSaveForm = () => {
         if (!currentRequest.categoryId) {
-            alert('Category is required');
+            alert('Потрібно обрати категорію');
             return;
         }
         if (!currentRequest.shortDesc) {
-            alert('Short description is required');
+            alert('Потрібно вказати короткий опис');
             return;
         }
         onSave(currentRequest);
@@ -96,11 +96,11 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
 
     const handleSubmitForm = () => {
         if (!currentRequest.categoryId) {
-            alert('Category is required');
+            alert('Потрібно обрати категорію');
             return;
         }
         if (!currentRequest.shortDesc) {
-            alert('Short description is required');
+            alert('Потрібно вказати короткий опис');
             return;
         }
         onSubmit(currentRequest);
@@ -128,7 +128,7 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
 
                 <div className="requests-header">
                     <h2 className="requests-title">
-                        <span style={{ fontSize: 24 }}>🍯</span> Honey Requests
+                        <span style={{ fontSize: 24 }}>🍯</span> Заявки Вулика
                     </h2>
                 </div>
 
@@ -140,35 +140,35 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                 onClick={() => handleFilterChange('my')}
                             >
                                 <User size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />
-                                My Requests
+                                Мої заявки
                             </button>
                             <button
                                 className={`toggle-btn ${listFilter === 'subordinates' ? 'active' : ''}`}
                                 onClick={() => handleFilterChange('subordinates')}
                             >
                                 <Users size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />
-                                Team Requests
+                                Заявки команди
                             </button>
                         </div>
 
                         <div className="requests-list">
                             {filteredRequests.length === 0 ? (
                                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 20 }}>
-                                    No requests found.
+                                    Заявок не знайдено.
                                 </div>
                             ) : (
                                 filteredRequests.map(req => (
                                     <div key={req.id} className="request-card" onClick={() => handleEdit(req)}>
                                         <div className="request-header">
                                             <span className="request-category">
-                                                {categories.find(c => c.id === req.categoryId)?.name || req.categoryId || 'Unknown'}
+                                                {categories.find(c => c.id === req.categoryId)?.name || req.categoryId || 'Невідомо'}
                                             </span>
                                             <span className={`request-status ${req.status}`}>{req.status}</span>
                                         </div>
                                         <div className="request-desc">{req.shortDesc}</div>
                                         <div className="request-meta">
                                             <span><Calendar size={12} /> {req.date}</span>
-                                            {listFilter === 'subordinates' && <span>By: ID #{req.createdBy}</span>}
+                                            {listFilter === 'subordinates' && <span>Від: ID #{req.createdBy}</span>}
                                         </div>
                                     </div>
                                 ))
@@ -177,7 +177,7 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
 
                         {listFilter === 'my' && (
                             <button className="create-request-btn" onClick={handleCreateNew}>
-                                <Plus size={20} /> New Request
+                                <Plus size={20} /> Нова заявка
                             </button>
                         )}
                     </>
@@ -185,13 +185,13 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                     <div className="request-form-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20, cursor: 'pointer' }} onClick={handleBack}>
                             <ArrowLeft size={20} style={{ marginRight: 10 }} />
-                            <h3>{currentRequest.id ? 'Edit Request' : 'New Request'}</h3>
+                            <h3>{currentRequest.id ? 'Редагування заявки' : 'Нова заявка'}</h3>
                         </div>
 
                         <div className="request-form">
 
                             <div className="form-group">
-                                <label className="form-label">Category</label>
+                                <label className="form-label">Категорія</label>
                                 <select
                                     className="form-select"
                                     value={currentRequest.categoryId}
@@ -200,10 +200,10 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                 >
                                     {!isLoadingCategories && (
                                         <option value="" disabled>
-                                            Select category...
+                                            Оберіть категорію...
                                         </option>
                                     )}
-                                    {isLoadingCategories && <option>Loading...</option>}
+                                    {isLoadingCategories && <option>Завантаження...</option>}
                                     {categories.map(cat => (
                                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                                     ))}
@@ -211,24 +211,24 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Short Description</label>
+                                <label className="form-label">Короткий опис</label>
                                 <input
                                     type="text"
                                     className="form-input"
                                     value={currentRequest.shortDesc}
                                     onChange={(e) => updateField('shortDesc', e.target.value)}
-                                    placeholder="e.g. New Monitor"
+                                    placeholder="напр. Новий монітор"
                                     readOnly={listFilter === 'subordinates' || !isEditable}
                                 />
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Full Description</label>
+                                <label className="form-label">Повний опис</label>
                                 <textarea
                                     className="form-textarea"
                                     value={currentRequest.fullDesc}
                                     onChange={(e) => updateField('fullDesc', e.target.value)}
-                                    placeholder="Provide more details..."
+                                    placeholder="Вкажіть більше деталей..."
                                     readOnly={listFilter === 'subordinates' || !isEditable}
                                 />
                             </div>
@@ -237,10 +237,10 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                         {listFilter === 'my' && isEditable && (
                             <div className="form-actions">
                                 <button className="action-btn btn-secondary" onClick={handleSaveForm}>
-                                    Save Draft
+                                    Зберегти чернетку
                                 </button>
                                 <button className="action-btn btn-primary" onClick={handleSubmitForm}>
-                                    Submit Request
+                                    Відправити заявку
                                 </button>
                             </div>
                         )}
@@ -255,7 +255,7 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                     color: 'var(--text-secondary)',
                                     fontSize: '14px'
                                 }}>
-                                    ReadOnly: Request is {currentRequest.status}
+                                    Тільки читання: Заявка в статусі {currentRequest.status}
                                 </div>
                             </div>
                         )}
@@ -264,10 +264,10 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                 {(currentRequest.status === 'new' || currentRequest.status === 'pending') && !isOwnRequest(currentRequest) ? (
                                     <>
                                         <button className="action-btn" style={{ backgroundColor: '#ef4444', color: 'white' }} onClick={() => { onReject(currentRequest); setView('list'); }}>
-                                            Reject
+                                            Відхилити
                                         </button>
                                         <button className="action-btn" style={{ backgroundColor: '#10b981', color: 'white' }} onClick={() => { onApprove(currentRequest); setView('list'); }}>
-                                            Approve
+                                            Погодити
                                         </button>
                                     </>
                                 ) : (currentRequest.status === 'new' || currentRequest.status === 'pending') && isOwnRequest(currentRequest) ? (
@@ -280,11 +280,11 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                         color: '#fbbf24',
                                         fontSize: '14px'
                                     }}>
-                                        You cannot approve your own request
+                                        Ви не можете погодити власну заявку
                                     </div>
                                 ) : (
                                     <button className="action-btn btn-secondary" onClick={handleBack}>
-                                        Close
+                                        Закрити
                                     </button>
                                 )}
                             </div>

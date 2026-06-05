@@ -38,7 +38,7 @@ const BusinessTripsModal = ({ isOpen, onClose, trips = [], onSave, onSubmit }) =
     };
 
     const handleBack = () => {
-        if (confirm("Discard unsaved changes?")) {
+        if (confirm("Відхилити незбережені зміни?")) {
             setView('list');
         }
     };
@@ -49,7 +49,7 @@ const BusinessTripsModal = ({ isOpen, onClose, trips = [], onSave, onSubmit }) =
     };
 
     const handleSubmit = () => {
-        if (confirm("Submit this trip for approval? It will be locked.")) {
+        if (confirm("Відправити відрядження на погодження? Його буде заблоковано для редагування.")) {
             onSubmit(currentTrip);
             setView('list');
         }
@@ -120,22 +120,22 @@ const BusinessTripsModal = ({ isOpen, onClose, trips = [], onSave, onSubmit }) =
                 <button className="close-btn" onClick={onClose}><X size={24} /></button>
                 
                 <h2 className="modal-title">
-                    <span style={{ fontSize: 24 }}>🐝</span> Hive Business Flights
+                    <span style={{ fontSize: 24 }}>🐝</span> Відрядження Вулика
                 </h2>
 
                 {view === 'list' ? (
                     <div className="trips-container">
                         <button className="new-trip-btn" onClick={handleCreateNew}>
-                            <Plus size={18} /> Plan New Trip
+                            <Plus size={18} /> Запланувати відрядження
                         </button>
 
                         {trips.length === 0 ? (
-                            <div style={{ textAlign: 'center', opacity: 0.5, padding: 20 }}>No trips yet</div>
+                            <div style={{ textAlign: 'center', opacity: 0.5, padding: 20 }}>Поки немає відряджень</div>
                         ) : (
                             trips.map(trip => (
                                 <div key={trip.id} className="trip-card" onClick={() => handleEdit(trip)}>
                                     <div className="trip-info">
-                                        <h3>{trip.destination || "Untitled Trip"}</h3>
+                                        <h3>{trip.destination || "Відрядження без назви"}</h3>
                                         <div className="trip-dates">
                                             <Calendar size={10} /> {trip.dateFrom} - {trip.dateTo}
                                         </div>
@@ -150,22 +150,22 @@ const BusinessTripsModal = ({ isOpen, onClose, trips = [], onSave, onSubmit }) =
                 ) : (
                     <div className="trip-form">
                         <div style={{ marginBottom: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, opacity: 0.7 }} onClick={handleBack}>
-                            <ArrowLeft size={14} /> Back to list
+                            <ArrowLeft size={14} /> Повернутися до списку
                         </div>
 
                         <div className="form-section">
-                            <label className="label">Destination</label>
+                            <label className="label">Місце призначення</label>
                             <input 
                                 className="rpg-input" 
                                 value={currentTrip.destination}
                                 onChange={(e) => updateField('destination', e.target.value)}
-                                placeholder="e.g. New York Hive"
+                                placeholder="напр. Київський офіс"
                             />
                         </div>
 
                         <div className="form-section date-row">
                             <div style={{ flex: 1 }}>
-                                <label className="label">From</label>
+                                <label className="label">З</label>
                                 <input 
                                     type="date" 
                                     className="rpg-input" 
@@ -174,7 +174,7 @@ const BusinessTripsModal = ({ isOpen, onClose, trips = [], onSave, onSubmit }) =
                                 />
                             </div>
                             <div style={{ flex: 1 }}>
-                                <label className="label">To</label>
+                                <label className="label">По</label>
                                 <input 
                                     type="date" 
                                     className="rpg-input" 
@@ -185,26 +185,26 @@ const BusinessTripsModal = ({ isOpen, onClose, trips = [], onSave, onSubmit }) =
                         </div>
 
                         <div className="form-section">
-                            <label className="label">Goal / Description</label>
+                            <label className="label">Мета / Опис</label>
                             <textarea 
                                 className="rpg-input" 
                                 rows={2}
                                 value={currentTrip.goal}
                                 onChange={(e) => updateField('goal', e.target.value)}
-                                placeholder="Why are we going?"
+                                placeholder="Мета відрядження?"
                             />
                         </div>
 
                         <div className="form-section">
-                            <label className="label">Expenses</label>
+                            <label className="label">Витрати</label>
                             <table className="expenses-table">
                                 <thead>
                                     <tr>
-                                        <th style={{width: '25%'}}>Type</th>
-                                        <th style={{width: '25%'}}>Comment</th>
-                                        <th style={{width: '15%'}}>Curr</th>
-                                        <th style={{width: '20%'}}>Amt</th>
-                                        <th style={{width: '5%'}}>Doc</th>
+                                        <th style={{width: '25%'}}>Тип</th>
+                                        <th style={{width: '25%'}}>Коментар</th>
+                                        <th style={{width: '15%'}}>Вал.</th>
+                                        <th style={{width: '20%'}}>Сума</th>
+                                        <th style={{width: '5%'}}>Док</th>
                                         <th style={{width: '10%'}}></th>
                                     </tr>
                                 </thead>
@@ -217,10 +217,10 @@ const BusinessTripsModal = ({ isOpen, onClose, trips = [], onSave, onSubmit }) =
                                                     value={exp.type}
                                                     onChange={(e) => updateExpense(exp.id, 'type', e.target.value)}
                                                 >
-                                                    <option>Transport</option>
-                                                    <option>Hotel</option>
-                                                    <option>Food</option>
-                                                    <option>Other</option>
+                                                    <option>Транспорт</option>
+                                                    <option>Проживання</option>
+                                                    <option>Харчування</option>
+                                                    <option>Інше</option>
                                                 </select>
                                             </td>
                                             <td>
@@ -254,7 +254,7 @@ const BusinessTripsModal = ({ isOpen, onClose, trips = [], onSave, onSubmit }) =
                                             <td style={{ textAlign: 'center' }}>
                                                 <button 
                                                     className={`file-btn ${exp.fileName ? 'attached' : ''}`}
-                                                    title={exp.fileName || "Attach File"}
+                                                    title={exp.fileName || "Прикріпити файл"}
                                                     onClick={() => handleFileClick(exp.id)}
                                                 >
                                                     <Paperclip size={14} />
@@ -270,16 +270,16 @@ const BusinessTripsModal = ({ isOpen, onClose, trips = [], onSave, onSubmit }) =
                                 </tbody>
                             </table>
                             <button className="add-expense-btn" onClick={addExpense}>
-                                <Plus size={14} /> Add Expense
+                                <Plus size={14} /> Додати витрату
                             </button>
                         </div>
 
                         <div className="form-actions">
                             <button className="action-btn btn-save" onClick={handleSave}>
-                                Save Draft
+                                Зберегти чернетку
                             </button>
                             <button className="action-btn btn-submit" onClick={handleSubmit}>
-                                Submit
+                                Відправити
                             </button>
                         </div>
                     </div>

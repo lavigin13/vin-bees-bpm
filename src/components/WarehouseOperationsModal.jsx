@@ -12,21 +12,21 @@ import {
 } from '../services/api';
 
 const OPERATION_TYPES = [
-    { key: 'Writeoff',          label: 'Write-off' },
-    { key: 'Movement',          label: 'Movement' },
-    { key: 'ProductionRequest', label: 'Production Request' },
+    { key: 'Writeoff',          label: 'Списання' },
+    { key: 'Movement',          label: 'Переміщення' },
+    { key: 'ProductionRequest', label: 'Заявка на виробництво' },
 ];
 
 const STATUS_LABEL = {
-    New:         'New',
-    Cancelled:   'Cancelled',
-    Confirmed:   'Confirmed',
+    New:         'Новий',
+    Cancelled:   'Скасовано',
+    Confirmed:   'Підтверджено',
 };
 
 const OP_LABEL = {
-    Movement:          'Movement',
-    Writeoff:          'Write-off',
-    ProductionRequest: 'Production Request',
+    Movement:          'Переміщення',
+    Writeoff:          'Списання',
+    ProductionRequest: 'Заявка на виробництво',
 };
 
 function getCurrentMonth() {
@@ -42,7 +42,7 @@ function getCurrentMonth() {
 const DocListScreen = ({ month, onMonthChange, docs, isLoading, onCreate, onView }) => (
     <>
         <div className="wh-ops-month-row">
-            <label className="wh-form-label" style={{ whiteSpace: 'nowrap' }}>Month:</label>
+            <label className="wh-form-label" style={{ whiteSpace: 'nowrap' }}>Місяць:</label>
             <input
                 type="month"
                 className="wh-ops-month-input"
@@ -53,9 +53,9 @@ const DocListScreen = ({ month, onMonthChange, docs, isLoading, onCreate, onView
 
         <div className="wh-ops-list">
             {isLoading ? (
-                <div className="wh-loading"><Loader2 size={18} className="spin" /> Loading...</div>
+                <div className="wh-loading"><Loader2 size={18} className="spin" /> Завантаження...</div>
             ) : docs.length === 0 ? (
-                <div className="wh-ops-empty">No documents for this month</div>
+                <div className="wh-ops-empty">Немає документів за цей місяць</div>
             ) : (
                 docs.map(doc => {
                     const statusKey = doc.Status || 'New';
@@ -89,7 +89,7 @@ const DocListScreen = ({ month, onMonthChange, docs, isLoading, onCreate, onView
 
         <button className="wh-ops-create-btn" onClick={onCreate}>
             <Plus size={18} />
-            New Document
+            Новий документ
         </button>
     </>
 );
@@ -104,50 +104,50 @@ const ViewDocScreen = ({ doc, profile, onBack, onEdit, onUpdateStatus }) => {
     return (
         <div className="wh-ops-form">
             <button className="wh-ops-back-btn" onClick={onBack}>
-                <ArrowLeft size={14} /> Back to list
+                <ArrowLeft size={14} /> Повернутися до списку
             </button>
 
             {/* Document info */}
             <div className="wh-doc-view-header">
                 <div className="wh-doc-view-row">
-                    <span className="wh-form-label">Document #</span>
+                    <span className="wh-form-label">Документ №</span>
                     <span className="wh-doc-view-val">{doc.Number}</span>
                 </div>
                 <div className="wh-doc-view-row">
-                    <span className="wh-form-label">Date</span>
+                    <span className="wh-form-label">Дата</span>
                     <span className="wh-doc-view-val">{doc.Date}</span>
                 </div>
                 <div className="wh-doc-view-row">
-                    <span className="wh-form-label">Operation</span>
+                    <span className="wh-form-label">Операція</span>
                     <span className="wh-doc-view-val">{OP_LABEL[doc.Operation] || doc.Operation}</span>
                 </div>
                 <div className="wh-doc-view-row">
-                    <span className="wh-form-label">Status</span>
+                    <span className="wh-form-label">Статус</span>
                     <span className={`wh-ops-doc-status ${statusKey.replace(' ', '_')}`} style={{ fontSize: 13 }}>
                         {STATUS_LABEL[statusKey] || statusKey}
                     </span>
                 </div>
                 {doc.Warehouse?.Name && (
                     <div className="wh-doc-view-row">
-                        <span className="wh-form-label">Warehouse (From)</span>
+                        <span className="wh-form-label">Склад (Звідки)</span>
                         <span className="wh-doc-view-val">{doc.Warehouse.Name}</span>
                     </div>
                 )}
                 {doc.Operation === 'Movement' && doc.TargetWarehouse?.Name && (
                     <div className="wh-doc-view-row">
-                        <span className="wh-form-label">Destination (To)</span>
+                        <span className="wh-form-label">Склад (Куди)</span>
                         <span className="wh-doc-view-val">{doc.TargetWarehouse.Name}</span>
                     </div>
                 )}
                 {doc.Individual?.Name && (
                     <div className="wh-doc-view-row">
-                        <span className="wh-form-label">Responsible</span>
+                        <span className="wh-form-label">Відповідальний</span>
                         <span className="wh-doc-view-val">{doc.Individual.Name}</span>
                     </div>
                 )}
                 {doc.Operation === 'Movement' && doc.TargetIndividual?.Name && (
                     <div className="wh-doc-view-row">
-                        <span className="wh-form-label">Responsible Receiver</span>
+                        <span className="wh-form-label">Відповідальний отримувач</span>
                         <span className="wh-doc-view-val">{doc.TargetIndividual.Name}</span>
                     </div>
                 )}
@@ -156,10 +156,10 @@ const ViewDocScreen = ({ doc, profile, onBack, onEdit, onUpdateStatus }) => {
             {/* Products */}
             <div className="wh-form-group">
                 <span className="wh-form-label">
-                    Products ({(doc.Products || []).length})
+                    Товари ({(doc.Products || []).length})
                 </span>
                 {(!doc.Products || doc.Products.length === 0) ? (
-                    <div className="wh-loading">No products in this document</div>
+                    <div className="wh-loading">Немає товарів у цьому документі</div>
                 ) : (
                     <div className="wh-view-products">
                         {doc.Products.map((p, idx) => (
@@ -174,15 +174,15 @@ const ViewDocScreen = ({ doc, profile, onBack, onEdit, onUpdateStatus }) => {
 
             {canChangeStatus && statusKey === 'New' && (
                 <div className="wh-form-group" style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                    <button className="wh-btn-save" style={{ flex: 1, backgroundColor: '#10b981', color: '#fff' }} onClick={() => onUpdateStatus('Confirmed')}>Confirm</button>
-                    <button className="wh-btn-cancel" style={{ flex: 1, backgroundColor: '#ef4444', color: '#fff', border: 'none' }} onClick={() => onUpdateStatus('Cancelled')}>Cancel</button>
+                    <button className="wh-btn-save" style={{ flex: 1, backgroundColor: '#10b981', color: '#fff' }} onClick={() => onUpdateStatus('Confirmed')}>Підтвердити</button>
+                    <button className="wh-btn-cancel" style={{ flex: 1, backgroundColor: '#ef4444', color: '#fff', border: 'none' }} onClick={() => onUpdateStatus('Cancelled')}>Скасувати</button>
                 </div>
             )}
 
             <div className="wh-form-footer" style={{ marginTop: 20 }}>
-                <button className="wh-btn-cancel" style={{ flex: 1 }} onClick={onBack}>Close</button>
+                <button className="wh-btn-cancel" style={{ flex: 1 }} onClick={onBack}>Закрити</button>
                 {statusKey !== 'Confirmed' && (
-                    <button className="wh-btn-save" style={{ flex: 1 }} onClick={() => onEdit(doc)}>Edit</button>
+                    <button className="wh-btn-save" style={{ flex: 1 }} onClick={() => onEdit(doc)}>Редагувати</button>
                 )}
             </div>
         </div>
@@ -369,17 +369,17 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
         }
     };
 
-    const pickerLabel = isProduction(opType) ? 'Select specifications' : 'Add items';
+    const pickerLabel = isProduction(opType) ? 'Оберіть специфікації' : 'Додати товари';
 
     return (
         <div className="wh-ops-form">
             <button className="wh-ops-back-btn" onClick={onBack}>
-                <ArrowLeft size={14} /> Back to list
+                <ArrowLeft size={14} /> Повернутися до списку
             </button>
 
             {/* Operation type */}
             <div className="wh-form-group">
-                <span className="wh-form-label">Operation Type</span>
+                <span className="wh-form-label">Тип операції</span>
                 <div className="wh-op-pills">
                     {OPERATION_TYPES.map(op => (
                         <button
@@ -396,16 +396,16 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
             {/* Warehouse */}
             {opType && (
                 <div className="wh-form-group">
-                    <span className="wh-form-label">Warehouse (From)</span>
+                    <span className="wh-form-label">Склад (Звідки)</span>
                     {loadingWH ? (
-                        <div className="wh-loading"><Loader2 size={14} /> Loading...</div>
+                        <div className="wh-loading"><Loader2 size={14} /> Завантаження...</div>
                     ) : (
                         <select
                             className="wh-form-select"
                             value={warehouseId}
                             onChange={e => handleWarehouseChange(e.target.value)}
                         >
-                            <option value="">-- Select warehouse --</option>
+                            <option value="">-- Оберіть склад --</option>
                             {warehouses.map(w => (
                                 <option key={w.Id || w.id} value={w.Id || w.id}>
                                     {w.Name || w.name}
@@ -419,16 +419,16 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
             {/* Target Warehouse (Only for Movement) */}
             {opType === 'Movement' && (
                 <div className="wh-form-group">
-                    <span className="wh-form-label">Destination Warehouse (To)</span>
+                    <span className="wh-form-label">Склад (Куди)</span>
                     {loadingWH ? (
-                        <div className="wh-loading"><Loader2 size={14} /> Loading...</div>
+                        <div className="wh-loading"><Loader2 size={14} /> Завантаження...</div>
                     ) : (
                         <select
                             className="wh-form-select"
                             value={targetWarehouseId}
                             onChange={e => setTargetWarehouseId(e.target.value)}
                         >
-                            <option value="">-- Select destination warehouse --</option>
+                            <option value="">-- Оберіть склад призначення --</option>
                             {warehouses.map(w => (
                                 <option key={w.Id || w.id} value={w.Id || w.id}>
                                     {w.Name || w.name}
@@ -443,18 +443,18 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
             {opType === 'Movement' && (
                 <div className="wh-form-group">
                     <span className="wh-form-label">
-                        Recipient (To)
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: 6 }}>(optional)</span>
+                        Отримувач
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: 6 }}>(опційно)</span>
                     </span>
                     {loadingColleagues ? (
-                        <div className="wh-loading"><Loader2 size={14} /> Loading...</div>
+                        <div className="wh-loading"><Loader2 size={14} /> Завантаження...</div>
                     ) : (
                         <select
                             className="wh-form-select"
                             value={recipientId}
                             onChange={e => setRecipientId(e.target.value)}
                         >
-                            <option value="">-- Not specified --</option>
+                            <option value="">-- Не вказано --</option>
                             {colleagues.map(c => (
                                 <option key={c.id || c.Id} value={c.id || c.Id}>
                                     {c.name || c.Name}
@@ -475,7 +475,7 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
                         onClick={() => setPickerOpen(true)}
                     >
                         <Package size={16} />
-                        {hasSelection ? 'Edit selection' : pickerLabel}
+                        {hasSelection ? 'Редагувати вибір' : pickerLabel}
                     </button>
                 </div>
             )}
@@ -483,7 +483,7 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
             {/* Selected Specifications (ProductionRequest) */}
             {isProduction(opType) && selectedSpecs.length > 0 && (
                 <div className="wh-form-group">
-                    <span className="wh-form-label">Selected Specifications ({selectedSpecs.length})</span>
+                    <span className="wh-form-label">Обрані специфікації ({selectedSpecs.length})</span>
                     <div className="wh-selected-items">
                         {selectedSpecs.map(spec => (
                             <div key={spec.IdParent} className="wh-selected-item">
@@ -515,7 +515,7 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
             {/* Components Preview (read-only, ProductionRequest only) */}
             {isProduction(opType) && aggregatedItems.length > 0 && (
                 <div className="wh-form-group">
-                    <span className="wh-form-label">Components Preview ({aggregatedItems.length})</span>
+                    <span className="wh-form-label">Попередній перегляд компонентів ({aggregatedItems.length})</span>
                     <div className="wh-view-products">
                         {aggregatedItems.map(item => (
                             <div key={item.id} className="wh-view-product-row">
@@ -530,7 +530,7 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
             {/* Document Lines (Writeoff / Movement) */}
             {!isProduction(opType) && selectedItems.length > 0 && (
                 <div className="wh-form-group">
-                    <span className="wh-form-label">Document Lines ({selectedItems.length})</span>
+                    <span className="wh-form-label">Рядки документа ({selectedItems.length})</span>
                     <div className="wh-selected-items">
                         {selectedItems.map(item => (
                             <div key={item.id} className="wh-selected-item">
@@ -560,13 +560,13 @@ const CreateScreen = ({ initialDoc, onBack, onSaved }) => {
             )}
 
             <div className="wh-form-footer">
-                <button className="wh-btn-cancel" onClick={onBack}>Cancel</button>
+                <button className="wh-btn-cancel" onClick={onBack}>Скасувати</button>
                 <button
                     className="wh-btn-save"
                     disabled={!canSave || isSaving}
                     onClick={handleSave}
                 >
-                    {isSaving ? 'Saving...' : 'Save'}
+                    {isSaving ? 'Збереження...' : 'Зберегти'}
                 </button>
             </div>
 
@@ -669,7 +669,7 @@ const WarehouseOperationsModal = ({ isOpen, onClose }) => {
                 <div className="wh-ops-header">
                     <h2 className="wh-ops-title">
                         <Warehouse size={20} />
-                        Warehouse Operations
+                        Складські операції
                     </h2>
                     <button className="wh-ops-close" onClick={onClose}>
                         <X size={22} />

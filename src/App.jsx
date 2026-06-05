@@ -20,6 +20,7 @@ import WarehouseOperationsModal from './components/WarehouseOperationsModal';
 import RemainingItemsModal from './components/RemainingItemsModal';
 import AuthPage from './components/AuthPage';
 import ComingSoonModal from './components/ComingSoonModal';
+import GamesModal from './components/GamesModal';
 
 import {
   fetchProfile, fetchInventory, updateProfile, sendAuditResult, transferHoney,
@@ -37,13 +38,11 @@ import {
 import './index.css';
 import { Coins, LogOut } from 'lucide-react';
 
-import { isTelegram } from './services/env';
 
 const App = () => {
-  // In Telegram Mini App — auto-authenticated via initData
-  // In standalone web — check for saved Basic Auth token
+  // Check for saved Basic Auth token
   const [isAuthenticated, setIsAuthenticated] = useState(
-    isTelegram() || !!localStorage.getItem('authToken')
+    !!localStorage.getItem('authToken')
   );
   const [authNotice, setAuthNotice] = useState('');
 
@@ -104,6 +103,9 @@ const App = () => {
   // Coming Soon State
   const [isComingSoonOpen, setIsComingSoonOpen] = useState(false);
   const [comingSoonFeature, setComingSoonFeature] = useState('');
+
+  // Games State
+  const [isGamesOpen, setIsGamesOpen] = useState(false);
 
   const handleComingSoon = (featureName) => {
     setComingSoonFeature(featureName);
@@ -303,11 +305,11 @@ const App = () => {
   }
 
   if (isLoading) {
-    return <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
+    return <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Завантаження...</div>;
   }
 
   if (!user) {
-    return <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Failed to load profile data.</div>;
+    return <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Не вдалося завантажити дані профілю.</div>;
   }
 
   const handleSaveProfile = async (updatedData) => {
@@ -325,11 +327,11 @@ const App = () => {
       // Send to API
       await updateProfile(apiData);
 
-      alert('Profile Saved Successfully! ✅');
+      alert('Профіль успішно збережено! ✅');
     } catch (error) {
       console.error("Failed to save profile:", error);
       const errorMessage = error.message || 'Unknown error';
-      alert(`Failed to save profile: ${errorMessage}`);
+      alert(`Не вдалося зберегти профіль: ${errorMessage}`);
     }
   };
 
@@ -366,7 +368,7 @@ const App = () => {
       timestamp: new Date().toISOString()
     });
 
-    const message = `Crafted ${craftQuantity}x ${recipe.outputItem.name}! Request sent.`;
+    const message = `Створено ${craftQuantity}x ${recipe.outputItem.name}! Запит надіслано.`;
     alert(message);
   };
 
@@ -380,7 +382,7 @@ const App = () => {
   const handleSendRequest = async (item, quantity, recipient) => {
     if (!recipient || !recipient.id) {
       console.error("Invalid recipient:", recipient);
-      alert("Please select a valid recipient.");
+      alert("Будь ласка, оберіть дійсного отримувача.");
       return;
     }
 
@@ -400,12 +402,12 @@ const App = () => {
     } catch (e) {
       console.error("Transfer failed", e);
       // Optional: Revert state
-      alert("Transfer failed, please try again.");
+      alert("Передача не вдалася, спробуйте ще раз.");
       return;
     }
 
     // 3. Feedback
-    const message = `Request sent to ${recipient.name}!`;
+    const message = `Запит надіслано до ${recipient.name}!`;
     alert(message);
   };
 
@@ -415,7 +417,7 @@ const App = () => {
       await respondToTransfer(transfer.id, 'accept');
     } catch (e) {
       console.error("Accept transfer failed", e);
-      alert("Failed to accept transfer.");
+      alert("Не вдалося прийняти передачу.");
       return;
     }
 
@@ -448,7 +450,7 @@ const App = () => {
     } catch (e) {
       console.error("Reject transfer failed", e);
       // Continue to remove locally even if API fails? Maybe safer to alert.
-      alert("Failed to reject transfer.");
+      alert("Не вдалося відхилити передачу.");
       return;
     }
 
@@ -480,12 +482,12 @@ const App = () => {
     }
 
     // 3. Feedback
-    const message = `Confirmed: ${item.name} successfully audited.`;
+    const message = `Підтверджено: ${item.name} успішно перевірено.`;
     alert(message);
   };
 
   const handleReportMissing = async (item) => {
-    if (confirm(`Are you sure ${item.name} is missing?`)) {
+    if (confirm(`Ви впевнені, що ${item.name} відсутній?`)) {
       processMissingItem(item);
     }
   };
@@ -508,7 +510,7 @@ const App = () => {
     }
 
     // 3. Feedback
-    const message = `Reported ${item.name} as MISSING. Admin notified.`;
+    const message = `Відмічено ${item.name} як ВІДСУТНІЙ. Адміністратора повідомлено.`;
     alert(message);
   };
 
@@ -516,7 +518,7 @@ const App = () => {
 
   const handleBuyItem = async (item) => {
     if (user.honey < item.price) {
-      alert("Not enough Honey!");
+      alert("Недостатньо Меду!");
       return;
     }
 
@@ -528,7 +530,7 @@ const App = () => {
       await buyItem(item.id);
     } catch (e) {
       console.error("Buy failed", e);
-      alert("Purchase failed.");
+      alert("Покупка не вдалася.");
       setUser(prev => ({ ...prev, honey: prev.honey + item.price })); // Revert
       return;
     }
@@ -550,7 +552,7 @@ const App = () => {
     }
 
     // 5. Feedback
-    alert(`Bought ${item.name}!`);
+    alert(`Куплено ${item.name}!`);
   };
 
   const handleCreateListing = async (listingData) => {
@@ -568,7 +570,7 @@ const App = () => {
       console.log("Listing created successfully.");
     } catch (e) {
       console.error("Listing failed", e);
-      alert("Failed to create listing.");
+      alert("Не вдалося створити оголошення.");
     }
   };
 
@@ -584,7 +586,7 @@ const App = () => {
     }
 
     // 3. Feedback
-    const message = `Sent ${amount} Honey to ${recipient.name}!`;
+    const message = `Надіслано ${amount} Меду для ${recipient.name}!`;
     alert(message);
   };
 
@@ -606,7 +608,7 @@ const App = () => {
       console.log("Trip saved successfully.");
     } catch (e) {
       console.error("Failed to save trip", e);
-      alert("Failed to save trip.");
+      alert("Не вдалося зберегти відрядження.");
     }
   };
 
@@ -626,10 +628,10 @@ const App = () => {
         await submitTrip(trip.id);
       }
 
-      alert("Trip submitted for approval!");
+      alert("Відрядження подано на затвердження!");
     } catch (e) {
       console.error("Failed to submit trip", e);
-      alert("Failed to submit trip.");
+      alert("Не вдалося подати відрядження.");
     }
   };
 
@@ -673,7 +675,7 @@ const App = () => {
       return savedReq; // Return for chaining
     } catch (e) {
       console.error("Failed to save request", e);
-      alert("Failed to save request.");
+      alert("Не вдалося зберегти запит.");
       throw e;
     }
   };
@@ -698,10 +700,10 @@ const App = () => {
 
       setRequests(prev => prev.map(r => r.id === reqId ? submittedReq : r));
 
-      alert("Request submitted!");
+      alert("Запит подано!");
     } catch (e) {
       console.error("Failed to submit request", e);
-      alert("Failed to submit request.");
+      alert("Не вдалося подати запит.");
     }
   };
 
@@ -738,10 +740,10 @@ const App = () => {
     try {
       await saveWarehouseInventory(data);
 
-      alert('Inventory Submitted! ✅');
+      alert('Інвентаризацію подано! ✅');
     } catch (e) {
       console.error("Inventory save failed", e);
-      alert("Failed to save inventory.");
+      alert("Не вдалося зберегти інвентаризацію.");
     }
   };
 
@@ -770,6 +772,7 @@ const App = () => {
           onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
           onWarehouseOpsClick={() => setIsWarehouseOpsOpen(true)}
           onStockReportClick={() => setIsStockReportOpen(true)}
+          onGamesClick={() => setIsGamesOpen(true)}
           onProfileClick={() => setIsProfileOpen(true)}
           onLogoutClick={handleLogout}
           incomingCount={incomingTransfers.length + pendingRequestsCount}
@@ -917,6 +920,11 @@ const App = () => {
         isOpen={isComingSoonOpen}
         onClose={() => setIsComingSoonOpen(false)}
         featureName={comingSoonFeature}
+      />
+
+      <GamesModal 
+        isOpen={isGamesOpen}
+        onClose={() => setIsGamesOpen(false)}
       />
 
       <div style={{ textAlign: 'center', marginTop: 32, opacity: 0.5, fontSize: 10 }}>

@@ -2,7 +2,7 @@ import React from 'react';
 import { X, Hammer } from 'lucide-react';
 import './ComingSoonModal.css';
 
-const ComingSoonModal = ({ isOpen, onClose, featureName = "This feature" }) => {
+const ComingSoonModal = ({ isOpen, onClose, featureName = "Ця функція" }) => {
     if (!isOpen) return null;
 
     return (
@@ -16,15 +16,15 @@ const ComingSoonModal = ({ isOpen, onClose, featureName = "This feature" }) => {
                     <Hammer size={48} color="var(--accent-gold)" />
                 </div>
                 
-                <h2>Coming Soon!</h2>
+                <h2>Незабаром!</h2>
                 <p>
-                    <strong>{featureName}</strong> is currently under development. 
+                    <strong>{featureName}</strong> наразі в розробці. 
                     <br/>
-                    Our bees are working hard to bring it to you soon! 🐝
+                    Наші бджілки старанно працюють, щоб якнайшвидше її додати! 🐝
                 </p>
                 
                 <button className="ok-btn" onClick={onClose}>
-                    Got it!
+                    Зрозуміло!
                 </button>
             </div>
         </div>

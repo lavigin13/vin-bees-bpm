@@ -117,17 +117,17 @@ const SpecPickerModal = ({
         <div className="picker-overlay" onClick={onClose}>
             <div className="picker-modal" onClick={e => e.stopPropagation()}>
                 <div className="picker-header">
-                    <h3>Select specifications</h3>
+                    <h3>Оберіть специфікації</h3>
                     <div className="picker-header-actions">
                         <button className="picker-btn-cancel" onClick={onClose}>
-                            Cancel
+                            Скасувати
                         </button>
                         <button
                             className="picker-btn-done"
                             onClick={handleConfirm}
                             disabled={loading}
                         >
-                            Done{draftIds.size > 0 ? ` (${draftIds.size})` : ''}
+                            Готово{draftIds.size > 0 ? ` (${draftIds.size})` : ''}
                         </button>
                     </div>
                 </div>
@@ -135,10 +135,10 @@ const SpecPickerModal = ({
                 <div className="picker-list">
                     {loading ? (
                         <div className="picker-loading">
-                            <Loader2 size={18} className="spin" /> Loading...
+                            <Loader2 size={18} className="spin" /> Завантаження...
                         </div>
                     ) : specs.length === 0 ? (
-                        <div className="picker-empty">No specifications for this warehouse</div>
+                        <div className="picker-empty">Немає специфікацій для цього складу</div>
                     ) : (
                         specs.map(spec => {
                             const isSelected = draftIds.has(spec.IdParent);
@@ -167,9 +167,9 @@ const SpecPickerModal = ({
                                             onClick={(e) => toggleExpand(e, spec.IdParent)}
                                         >
                                             {isExpanded ? (
-                                                <><ChevronDown size={12} style={{ verticalAlign: 'middle' }} /> Hide components</>
+                                                <><ChevronDown size={12} style={{ verticalAlign: 'middle' }} /> Приховати компоненти</>
                                             ) : (
-                                                <><ChevronRight size={12} style={{ verticalAlign: 'middle' }} /> Show components ({compCount})</>
+                                                <><ChevronRight size={12} style={{ verticalAlign: 'middle' }} /> Показати компоненти ({compCount})</>
                                             )}
                                         </button>
                                     )}

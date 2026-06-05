@@ -830,7 +830,7 @@
 /* --- MOBILE RESPONSIVE STYLES --- */
 @media (max-width: 768px) {
     /* Modal sits as a top-anchored sheet with breathing room around the
-       edges — works better with Telegram's bottom safe area / nav gestures
+       edges — works better with bottom safe area / nav gestures
        than a bottom-pinned sheet. */
     .modal-overlay {
         align-items: flex-start;

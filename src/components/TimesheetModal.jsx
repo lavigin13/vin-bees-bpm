@@ -13,7 +13,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
     const [selectedDate, setSelectedDate] = useState(null); // For day editing
 
     // Day Form State - simplified to just hours
-    const [dayType, setDayType] = useState('Work');
+    const [dayType, setDayType] = useState('Робочий');
     const [regularHours, setRegularHours] = useState(0);
     const [overtimeHours, setOvertimeHours] = useState(0);
 
@@ -174,11 +174,11 @@ const TimesheetModal = ({ isOpen, onClose }) => {
         // Load existing data if any
         const report = currentMonthData[dateStr];
         if (report) {
-            setDayType(report.type || 'Work');
+            setDayType(report.type || 'Робочий');
             setRegularHours(report.regularHours || 0);
             setOvertimeHours(report.overtimeHours || 0);
         } else {
-            setDayType('Work');
+            setDayType('Робочий');
             setRegularHours(8);
             setOvertimeHours(0);
         }
@@ -200,7 +200,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
         if (regularHours < 0 || overtimeHours < 0) {
             return { valid: false, message: 'Години не можуть бути від\'ємними' };
         }
-        if (dayType === 'Work' && total === 0) {
+        if (dayType === 'Робочий' && total === 0) {
             return { valid: false, message: 'Для робочого дня потрібно вказати години' };
         }
         return { valid: true };
@@ -219,8 +219,8 @@ const TimesheetModal = ({ isOpen, onClose }) => {
 
         const reportData = {
             type: dayType,
-            regularHours: dayType === 'Work' ? regularHours : 8,
-            overtimeHours: dayType === 'Work' ? overtimeHours : 0
+            regularHours: dayType === 'Робочий' ? regularHours : 8,
+            overtimeHours: dayType === 'Робочий' ? overtimeHours : 0
         };
 
             try {
@@ -417,7 +417,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                 <button className="close-btn" onClick={onClose}><X size={24} /></button>
 
                 <h2 className="modal-title">
-                    <CalendarIcon size={20} /> Timesheet
+                    <CalendarIcon size={20} /> Табель
                 </h2>
 
                 {view === 'calendar' ? (
@@ -439,7 +439,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                         ) : (
                             <>
                                 <div className="calendar-grid">
-                                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+                                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(d => (
                                         <div key={d} className="weekday-label">{d}</div>
                                     ))}
 
@@ -477,6 +477,10 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                         // Emoji mapping
                                         const getEmoji = (type) => {
                                             const emojiMap = {
+                                                'відпустка': '🏖️',
+                                                'лікарняний': '🏥',
+                                                'вихідний': '🎂',
+                                                'відрядження': '✈️',
                                                 'vacation': '🏖️',
                                                 'sick-leave': '🏥',
                                                 'day-off': '🎂',
@@ -499,7 +503,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                                 )}
                                                 <div>{day}</div>
                                                 {totalHours > 0 && (
-                                                    <div className="day-hours">{totalHours}h</div>
+                                                    <div className="day-hours">{totalHours}год</div>
                                                 )}
                                             </div>
                                         );
@@ -520,7 +524,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                         <span className="stat-label">Понаднормові:</span>
                                         <span className="stat-value overtime">
                                             {Object.values(currentMonthData)
-                                                .filter(r => r.type === 'Work')
+                                                .filter(r => r.type === 'Work' || r.type === 'Робочий')
                                                 .reduce((sum, r) => sum + (r.overtimeHours || 0), 0)
                                                 .toFixed(1)}
                                         </span>
@@ -574,7 +578,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                         ))}
                                     </div>
 
-                                    {dayType === 'Work' && (
+                                    {(dayType === 'Work' || dayType === 'Робочий') && (
                                         <div className="hours-form">
                                             <div className="stepper-field">
                                                 <label>Робочі години</label>
@@ -615,9 +619,9 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                             </div>
 
                                             <div className="total-summary-sheet">
-                                                <span>Всього: <strong>{totalHours}h</strong></span>
+                                                <span>Всього: <strong>{totalHours}год</strong></span>
                                                 {totalHours > 24 && (
-                                                    <span className="error-text">❌ &gt; 24h!</span>
+                                                    <span className="error-text">❌ &gt; 24год!</span>
                                                 )}
                                             </div>
                                         </div>
@@ -631,7 +635,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                                 style={{ backgroundColor: '#ef4444', color: 'white', flex: 1 }}
                                             >
                                                 <Trash2 size={18} style={{ marginRight: 8 }} />
-                                                Delete
+                                                Видалити
                                             </button>
                                         )}
                                         <button 
@@ -640,7 +644,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                             style={{ flex: 2 }}
                                         >
                                             <Save size={18} style={{ marginRight: 8 }} />
-                                            Save Report
+                                            Зберегти
                                         </button>
                                     </div>
                                 </div>
@@ -655,10 +659,10 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                 <div className="blocked-modal-overlay" onClick={() => setBlockedMessage(null)}>
                     <div className="blocked-modal" onClick={e => e.stopPropagation()}>
                         <div className="blocked-modal-icon">⚠️</div>
-                        <div className="blocked-modal-title">Operation Blocked</div>
+                        <div className="blocked-modal-title">Операцію заблоковано</div>
                         <div className="blocked-modal-message">{blockedMessage}</div>
                         <button className="blocked-modal-btn" onClick={() => setBlockedMessage(null)}>
-                            Got it
+                            Зрозуміло
                         </button>
                     </div>
                 </div>

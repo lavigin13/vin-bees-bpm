@@ -22,17 +22,17 @@ const AskQuestionModal = ({ isOpen, onClose, onSend, month, year }) => {
         <div className="question-modal-overlay" onClick={onClose}>
             <div className="question-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="question-header">
-                    <h3>Ask a Question</h3>
+                    <h3>Задати питання</h3>
                     <button className="close-btn" onClick={onClose}>
                         <X size={24} />
                     </button>
                 </div>
                 
                 <div className="question-body">
-                    <p className="context-info">Regarding report for: {month}/{year}</p>
+                    <p className="context-info">Щодо звіту за: {month}/{year}</p>
                     <textarea 
                         className="question-input"
-                        placeholder="Type your question here..."
+                        placeholder="Введіть ваше питання тут..."
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
                         autoFocus
@@ -46,7 +46,7 @@ const AskQuestionModal = ({ isOpen, onClose, onSend, month, year }) => {
                         disabled={!question.trim() || isSending}
                     >
                         <Send size={16} />
-                        {isSending ? 'Sending...' : 'Send'}
+                        {isSending ? 'Надсилання...' : 'Надіслати'}
                     </button>
                 </div>
             </div>
