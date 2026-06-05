@@ -3,7 +3,7 @@ import { audioEngine } from './AudioEngine';
 import { fetchBeeInvadersLeaderboard, saveBeeInvadersScore } from '../services/api';
 import './BeeInvadersGame.css';
 
-const GAME_WIDTH = 600;
+const GAME_WIDTH = 400;
 const GAME_HEIGHT = 700;
 
 // Game Object sizes

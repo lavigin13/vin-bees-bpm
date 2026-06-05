@@ -1,8 +1,8 @@
 .bee-invaders-container {
     position: relative;
     width: 100%;
-    max-width: min(600px, calc(80vh * 0.857));
-    aspect-ratio: 6 / 7;
+    max-width: min(600px, calc(90vh * 0.571));
+    aspect-ratio: 4 / 7;
     background-color: #000;
     margin: 0 auto;
     overflow: hidden;
