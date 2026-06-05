@@ -1,4 +1,3 @@
-import { MOCK_SUBORDINATE_DATA, MOCK_PERSONAL_SALARY, MOCK_TEAM_SALARY } from '../data/mockData';
 import { getApiBaseUrl } from './env';
 
 const API_BASE_URL = getApiBaseUrl();
@@ -61,6 +60,10 @@ export const loginUser = async (username, password) => {
     const token = btoa(unescape(encodeURIComponent(credentials)));
 
     localStorage.setItem('authToken', token);
+    
+    // Verify credentials immediately
+    await apiFetch(`${API_BASE_URL}/profile`, { method: 'GET', headers: getHeaders() });
+    
     return true;
 };
 
@@ -193,10 +196,7 @@ export const respondToTransfer = async (transferId, action) => {
 export const fetchColleagues = async () => {
     try {
         const response = await apiFetch(`${API_BASE_URL}/colleagues`, { method: 'GET', headers: getHeaders() });
-        if (!response.ok) {
-            console.warn('Colleagues API not ready, using mock');
-            return null;
-        }
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return await response.json();
     } catch (e) {
         console.error('Failed to fetch colleagues:', e);
@@ -213,11 +213,7 @@ export const getMarketplaceItems = async () => {
             method: 'GET',
             headers: headers
         });
-        if (!response.ok) {
-            // Fallback for now if endpoint doesn't exist
-            console.warn('Marketplace API not ready, using mock');
-            return null;
-        }
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return await response.json();
     } catch (error) {
         console.error('Failed to fetch marketplace:', error);
@@ -464,17 +460,11 @@ export const fetchSubordinateTimesheets = async (monthStr) => {
             method: 'GET',
             headers: headers
         });
-        if (!response.ok) {
-            console.warn('Subordinate timesheet API not ready, using mock');
-            // Mock delay
-            await new Promise(resolve => setTimeout(resolve, 800));
-            return MOCK_SUBORDINATE_DATA;
-        }
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return await response.json();
     } catch (error) {
-        console.warn('Failed to fetch subordinate timesheets (network error), using mock');
-        await new Promise(resolve => setTimeout(resolve, 800));
-        return MOCK_SUBORDINATE_DATA;
+        console.error('Failed to fetch subordinate timesheets:', error);
+        return null;
     }
 };
 
@@ -490,17 +480,8 @@ export const approveTimesheetReports = async (reports) => {
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return await response.json();
     } catch (error) {
-        console.warn('Approve timesheet failed (network error), using mock success');
-
-        // Update mock data
-        reports.forEach(({ employeeId, date }) => {
-            if (MOCK_SUBORDINATE_DATA[employeeId] && MOCK_SUBORDINATE_DATA[employeeId].reports[date]) {
-                MOCK_SUBORDINATE_DATA[employeeId].reports[date].status = 'approved';
-            }
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 600));
-        return { success: true, approved: reports.length };
+        console.error('Approve timesheet failed:', error);
+        throw error;
     }
 };
 
@@ -516,17 +497,8 @@ export const rejectTimesheetReports = async (reports, reason = null) => {
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return await response.json();
     } catch (error) {
-        console.warn('Reject timesheet failed (network error), using mock success');
-
-        // Update mock data
-        reports.forEach(({ employeeId, date }) => {
-            if (MOCK_SUBORDINATE_DATA[employeeId] && MOCK_SUBORDINATE_DATA[employeeId].reports[date]) {
-                MOCK_SUBORDINATE_DATA[employeeId].reports[date].status = 'rejected';
-            }
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 600));
-        return { success: true, rejected: reports.length };
+        console.error('Reject timesheet failed:', error);
+        throw error;
     }
 };
 
@@ -536,31 +508,21 @@ export const rejectTimesheetReports = async (reports, reason = null) => {
 export const fetchSalaryReport = async (month, year, view = 'personal') => {
     const headers = getHeaders();
 
-    const mockData = view === 'personal' ? MOCK_PERSONAL_SALARY : MOCK_TEAM_SALARY;
-
     try {
         const response = await apiFetch(`${API_BASE_URL}/reports/salary?month=${month}&year=${year}&view=${view}`, {
             method: 'GET',
             headers: headers
         });
-        if (!response.ok) {
-            console.warn('Salary report API not ready, using mock');
-
-            // Artificial delay to simulate network request
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            return mockData;
-        }
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        
         const data = await response.json();
         if (!data || !data.columns || !data.groups) {
-            console.warn('Salary report API returned incomplete data, using mock');
-            return mockData;
+            throw new Error('Salary report API returned incomplete data');
         }
         return data;
     } catch (error) {
-        console.warn('Failed to fetch salary report (network error or invalid JSON), using mock');
-        await new Promise(resolve => setTimeout(resolve, 800));
-        return mockData;
+        console.error('Failed to fetch salary report:', error);
+        return null;
     }
 };
 
@@ -576,9 +538,8 @@ export const sendSalaryQuestion = async (questionData) => {
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return await response.json();
     } catch (error) {
-        console.warn('Failed to send question (network error), using mock');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return { success: true, message: 'Question sent (mock)' };
+        console.error('Failed to send question:', error);
+        throw error;
     }
 };
 

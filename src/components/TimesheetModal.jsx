@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ArrowLeft, Save, Users, CheckCircle, XCircle, ChevronDown, Plus, Minus, Trash2 } from 'lucide-react';
 import './CraftingModal.css'; // Reusing modal base
 import './TimesheetModal.css';
-import { DAY_TYPES, INITIAL_USER } from '../data/mockData';
+import { DAY_TYPES } from '../data/constants';
 import { fetchTimesheet, saveDailyReport, fetchSubordinateTimesheets, approveTimesheetReports, rejectTimesheetReports, deleteTimesheetReport } from '../services/api';
 import { BlockedError } from '../services/api';
 

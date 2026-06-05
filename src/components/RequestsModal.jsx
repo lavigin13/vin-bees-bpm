@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Calendar, FileText, ArrowLeft, Users, User } from 'lucide-react';
 import './CraftingModal.css'; // Reusing base modal styles
 import './RequestsModal.css';
-import { REQUEST_CATEGORIES } from '../data/mockData';
+import { REQUEST_CATEGORIES } from '../data/constants';
 import { fetchRequestCategories } from '../services/api';
 
 const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApprove, onReject, currentUser, initialFilter = 'my', onViewChange }) => {

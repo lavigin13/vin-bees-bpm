@@ -29,11 +29,7 @@ import {
   saveWarehouseInventory, fetchRequests, createOrUpdateRequest, submitRequest
 } from './services/api';
 
-import {
-  INITIAL_USER, INVENTORY_ITEMS, RECIPES, MOCK_INCOMING_TRANSFERS,
-  MARKETPLACE_ITEMS, COLLEAGUES as MOCK_COLLEAGUES, MOCK_TRIPS, MOCK_DAILY_REPORTS,
-  MOCK_REQUESTS
-} from './data/mockData';
+import { RECIPES } from './data/constants';
 
 import './index.css';
 import { Coins, LogOut } from 'lucide-react';
@@ -48,7 +44,7 @@ const App = () => {
 
   const [user, setUser] = useState(null);
   const [inventory, setInventory] = useState(null);
-  const [colleagues, setColleagues] = useState(MOCK_COLLEAGUES);
+  const [colleagues, setColleagues] = useState([]);
   const [isCraftingOpen, setIsCraftingOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -56,12 +52,12 @@ const App = () => {
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [itemToTransfer, setItemToTransfer] = useState(null);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
-  const [incomingTransfers, setIncomingTransfers] = useState(MOCK_INCOMING_TRANSFERS);
+  const [incomingTransfers, setIncomingTransfers] = useState([]);
 
   // Marketplace State
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isSellModalOpen, setIsSellModalOpen] = useState(false);
-  const [marketplaceItems, setMarketplaceItems] = useState(MARKETPLACE_ITEMS);
+  const [marketplaceItems, setMarketplaceItems] = useState([]);
 
   // Honey Transfer State
   const [isSendHoneyOpen, setIsSendHoneyOpen] = useState(false);
@@ -74,15 +70,15 @@ const App = () => {
 
   // Business Trips State
   const [isTripsOpen, setIsTripsOpen] = useState(false);
-  const [trips, setTrips] = useState(MOCK_TRIPS);
+  const [trips, setTrips] = useState([]);
 
   // Timesheet State
   const [isTimesheetOpen, setIsTimesheetOpen] = useState(false);
-  const [dailyReports, setDailyReports] = useState(MOCK_DAILY_REPORTS);
+  const [dailyReports, setDailyReports] = useState({});
 
   // Requests State
   const [isRequestsOpen, setIsRequestsOpen] = useState(false);
-  const [requests, setRequests] = useState(MOCK_REQUESTS);
+  const [requests, setRequests] = useState([]);
   const [initialRequestsFilter, setInitialRequestsFilter] = useState('my');
 
   // Warehouse Inventory State
@@ -173,9 +169,12 @@ const App = () => {
           const marketData = await getMarketplaceItems();
           if (marketData) {
             setMarketplaceItems(marketData);
+          } else {
+            setMarketplaceItems([]);
           }
         } catch (e) {
           console.warn("Failed to load marketplace", e);
+          setMarketplaceItems([]);
         }
 
         if (profileData) {
@@ -198,9 +197,6 @@ const App = () => {
             birthday: normalizedBirthday,
             children: typeof profileData.children !== 'undefined' ? Number(profileData.children) : (prev?.children || 0)
           }));
-        } else {
-          console.log('Using Mock Profile Data (Local Dev)');
-          setUser(INITIAL_USER);
         }
 
 
@@ -209,12 +205,11 @@ const App = () => {
           if (inventoryData) {
             setInventory(inventoryData);
           } else {
-            console.log('Using Mock Inventory Data (Local Dev)');
-            setInventory(INVENTORY_ITEMS);
+            setInventory([]);
           }
         } catch (e) {
           console.warn("Failed to load inventory", e);
-          setInventory(INVENTORY_ITEMS);
+          setInventory([]);
         }
 
         try {
@@ -222,7 +217,7 @@ const App = () => {
           if (pendingTransfers) {
             setIncomingTransfers(pendingTransfers);
           } else {
-            setIncomingTransfers(MOCK_INCOMING_TRANSFERS);
+            setIncomingTransfers([]);
           }
         } catch (e) {
           console.warn("Failed to load pending transfers", e);
@@ -244,7 +239,7 @@ const App = () => {
           if (tripsData) {
             setTrips(tripsData);
           } else {
-            setTrips(MOCK_TRIPS);
+            setTrips([]);
           }
         } catch (e) {
           console.warn("Failed to load trips", e);
@@ -275,7 +270,7 @@ const App = () => {
         if (uniqueRequests.length > 0) {
           setRequests(uniqueRequests);
         } else {
-          setRequests(MOCK_REQUESTS);
+          setRequests([]);
         }
 
       } catch (e) {

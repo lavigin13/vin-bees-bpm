@@ -17,6 +17,12 @@ export default defineConfig({
           proxy.on('proxyReq', (proxyReq, req) => {
             console.log('[proxy]', req.method, req.url, '→', proxyReq.path);
           });
+          proxy.on('proxyRes', (proxyRes) => {
+            if (proxyRes.statusCode === 401 && proxyRes.headers['www-authenticate']) {
+              proxyRes.headers['x-www-authenticate'] = proxyRes.headers['www-authenticate'];
+              delete proxyRes.headers['www-authenticate'];
+            }
+          });
         }
       }
     }
