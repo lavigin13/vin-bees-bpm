@@ -142,7 +142,7 @@ const BeeInvadersGame = () => {
                 radius: 70
             },
             powerups: [],
-            activeBuffs: { bigBullets: 0, shield: 0, doubleShot: 0 },
+            activeBuffs: { bigBullets: 0, shield: 0, doubleShot: 0, spreadShot: 0 },
             telemetry: {
                 enemiesKilled: 0,
                 misses: 0,
@@ -286,27 +286,44 @@ const BeeInvadersGame = () => {
 
         // Auto Shoot
         if (timestamp - state.lastShootTime > SHOOT_INTERVAL) {
+            const hasSpread = state.activeBuffs.spreadShot > timestamp;
             const hasDouble = state.activeBuffs.doubleShot > timestamp;
             const hasBig = state.activeBuffs.bigBullets > timestamp;
             const bWidth = hasBig ? BULLET_WIDTH * 2 : BULLET_WIDTH;
             const bHeight = hasBig ? BULLET_HEIGHT * 2 : BULLET_HEIGHT;
             
-            if (hasDouble) {
+            if (hasSpread) {
+                state.bullets.push({
+                    x: state.player.x + state.player.width / 2 - bWidth / 2,
+                    y: state.player.y,
+                    width: bWidth, height: bHeight, vx: -BULLET_SPEED * 0.5
+                });
+                state.bullets.push({
+                    x: state.player.x + state.player.width / 2 - bWidth / 2,
+                    y: state.player.y,
+                    width: bWidth, height: bHeight, vx: 0
+                });
+                state.bullets.push({
+                    x: state.player.x + state.player.width / 2 - bWidth / 2,
+                    y: state.player.y,
+                    width: bWidth, height: bHeight, vx: BULLET_SPEED * 0.5
+                });
+            } else if (hasDouble) {
                 state.bullets.push({
                     x: state.player.x + state.player.width / 4 - bWidth / 2,
                     y: state.player.y,
-                    width: bWidth, height: bHeight
+                    width: bWidth, height: bHeight, vx: 0
                 });
                 state.bullets.push({
                     x: state.player.x + (state.player.width * 3) / 4 - bWidth / 2,
                     y: state.player.y,
-                    width: bWidth, height: bHeight
+                    width: bWidth, height: bHeight, vx: 0
                 });
             } else {
                 state.bullets.push({
                     x: state.player.x + state.player.width / 2 - bWidth / 2,
                     y: state.player.y,
-                    width: bWidth, height: bHeight
+                    width: bWidth, height: bHeight, vx: 0
                 });
             }
             state.lastShootTime = timestamp;
@@ -315,6 +332,7 @@ const BeeInvadersGame = () => {
         // Move Bullets
         state.bullets.forEach(b => {
             b.y -= BULLET_SPEED;
+            if (b.vx) b.x += b.vx;
         });
         // Remove off-screen bullets
         state.bullets = state.bullets.filter(b => b.y + b.height > 0);
@@ -337,6 +355,8 @@ const BeeInvadersGame = () => {
                     state.activeBuffs.shield = timestamp + 10000;
                 } else if (p.type === 3) { // Double Shot
                     state.activeBuffs.doubleShot = timestamp + 10000;
+                } else if (p.type === 5) { // Spread Shot
+                    state.activeBuffs.spreadShot = timestamp + 10000;
                 }
                 state.powerups.splice(i, 1);
             }
@@ -456,6 +476,7 @@ const BeeInvadersGame = () => {
         state.particles = state.particles.filter(p => p.life > 0);
 
         // Check Collisions
+        let orlanDied = false;
         for (let i = state.enemies.length - 1; i >= 0; i--) {
             let enemy = state.enemies[i];
             
@@ -489,13 +510,22 @@ const BeeInvadersGame = () => {
                 });
                 
                 state.telemetry.enemiesKilled += 1;
-                state.score += (enemy.type === 'lancet' ? 50 : 20);
-                setScore(state.score);
                 
-                if (Math.random() < 0.1) {
-                    const typeId = Math.floor(Math.random() * 4) + 1;
-                    state.powerups.push({ x: enemy.x, y: enemy.y, width: 30, height: 30, type: typeId });
+                if (enemy.type === 'orlan') {
+                    state.score += 200;
+                    orlanDied = true;
+                    const types = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
+                    for (let k = 0; k < 3; k++) {
+                        state.powerups.push({ x: enemy.x + enemy.width/2 - 45 + k * 30, y: enemy.y, width: 30, height: 30, type: types[k] });
+                    }
+                } else {
+                    state.score += (enemy.type === 'lancet' ? 50 : 20);
+                    if (Math.random() < 0.1) {
+                        const typeId = Math.floor(Math.random() * 5) + 1;
+                        state.powerups.push({ x: enemy.x, y: enemy.y, width: 30, height: 30, type: typeId });
+                    }
                 }
+                setScore(state.score);
                 
                 state.enemies.splice(i, 1);
                 
@@ -537,6 +567,7 @@ const BeeInvadersGame = () => {
                 }
                 }
                 
+                if (orlanDied) break;
                 continue;
             }
 
@@ -562,36 +593,23 @@ const BeeInvadersGame = () => {
                         }
                         audioEngine.playExplosion();
                         state.enemies.splice(i, 1);
-                        state.score += enemy.type === 'orlan' ? 200 : (enemy.type === 'lancet' ? 15 : 10);
+                        if (enemy.type === 'orlan') {
+                            state.score += 200;
+                            orlanDied = true;
+                            const types = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
+                            for (let k = 0; k < 3; k++) {
+                                state.powerups.push({ x: enemy.x + enemy.width/2 - 45 + k * 30, y: enemy.y, width: 30, height: 30, type: types[k] });
+                            }
+                            break; // Break the bullets loop
+                        } else {
+                            state.score += (enemy.type === 'lancet' ? 15 : 10);
+                            if (Math.random() < 0.1) {
+                                const typeId = Math.floor(Math.random() * 5) + 1;
+                                state.powerups.push({ x: enemy.x, y: enemy.y, width: 30, height: 30, type: typeId });
+                            }
+                        }
                         state.telemetry.enemiesKilled += 1;
                         setScore(state.score);
-                        
-                        if (Math.random() < 0.1) {
-                            const typeId = Math.floor(Math.random() * 4) + 1;
-                            state.powerups.push({ x: enemy.x, y: enemy.y, width: 30, height: 30, type: typeId });
-                        }
-
-                        if (enemy.type === 'orlan') {
-                            const remainingEnemies = [...state.enemies];
-                            state.enemies = []; // Kill all other enemies
-                            remainingEnemies.forEach(otherE => {
-                                for (let p = 0; p < 15; p++) {
-                                    state.particles.push({
-                                        x: otherE.x + otherE.width / 2,
-                                        y: otherE.y + otherE.height / 2,
-                                        vx: (Math.random() - 0.5) * 6,
-                                        vy: (Math.random() - 0.5) * 6,
-                                        life: Math.random() * 20 + 10,
-                                        maxLife: 30,
-                                        color: Math.random() > 0.5 ? '#ef4444' : '#f59e0b'
-                                    });
-                                }
-                                state.score += otherE.type === 'lancet' ? 15 : 10;
-                                state.telemetry.enemiesKilled += 1;
-                            });
-                            audioEngine.playExplosion(); // Extra boom sound
-                            setScore(state.score);
-                        }
                     } else {
                         // Armor hit (sparks)
                         for (let p = 0; p < 5; p++) {
@@ -609,6 +627,28 @@ const BeeInvadersGame = () => {
                     break; // Move to next enemy
                 }
             }
+            if (orlanDied) break;
+        }
+
+        if (orlanDied) {
+            state.enemies.forEach(otherE => {
+                for (let p = 0; p < 15; p++) {
+                    state.particles.push({
+                        x: otherE.x + otherE.width / 2,
+                        y: otherE.y + otherE.height / 2,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        life: Math.random() * 20 + 10,
+                        maxLife: 30,
+                        color: Math.random() > 0.5 ? '#ef4444' : '#f59e0b'
+                    });
+                }
+                state.score += otherE.type === 'lancet' ? 15 : 10;
+                state.telemetry.enemiesKilled += 1;
+            });
+            state.enemies = []; // Kill all other enemies
+            audioEngine.playExplosion(); // Extra boom sound
+            setScore(state.score);
         }
     };
 
@@ -665,6 +705,7 @@ const BeeInvadersGame = () => {
             if (p.type === 2) icon = '🛡️';
             if (p.type === 3) icon = '♊';
             if (p.type === 4) icon = '❤️';
+            if (p.type === 5) icon = '✨';
             ctx.fillText(icon, p.x + p.width/2, p.y + p.height/2);
         });
 
