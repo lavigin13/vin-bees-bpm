@@ -1,21 +1,128 @@
+.bee-game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    flex: 1; /* Take up all available space in modal */
+    min-height: 0; /* Allow shrinking */
+    max-width: min(100%, 65vh); /* Force vertical orientation on PC */
+    margin: 0 auto;
+    background-color: #111;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    border: 1px solid #333;
+}
+
 .bee-invaders-container {
     position: relative;
     width: 100%;
-    max-width: min(600px, calc(90vh * 0.571));
-    aspect-ratio: 4 / 7;
+    flex: 1 1 auto; /* Take up remaining space after control panel */
+    min-height: 0;
     background-color: #000;
-    margin: 0 auto;
     overflow: hidden;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    touch-action: none; /* Prevent scroll on touch */
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
+
+.game-control-panel {
+    width: 100%;
+    flex: 0 0 120px; /* Fixed height for the controls so joystick always fits */
+    flex-shrink: 0; /* Never collapse the panel */
+    height: 120px;
+    background: #222;
+    border-top: 2px solid #444;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 5; /* Always above the playfield */
+}
+
+.touch-joystick-zone {
+    flex: 1;
+    height: 100%;
+    position: relative;
+    touch-action: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.joystick-hint {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 1rem;
+    font-family: monospace;
+    pointer-events: none;
+    user-select: none;
+}
+
+.joystick-base-dom {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    display: none;
+}
+
+.joystick-thumb-dom {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    top: 25px;
+    left: 25px;
+    pointer-events: none;
+}
+
+.bomb-btn-panel {
+    margin-right: 20px; /* Button sits on the LEFT, joystick on the right */
+    padding: 15px 25px;
+    font-size: 1.2rem;
+    background: linear-gradient(to bottom, #f59e0b, #d97706);
+    border: 2px solid #fff;
+    border-radius: 30px;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.bomb-btn-panel:active:not(:disabled) {
+    transform: scale(0.95);
+    background: linear-gradient(to bottom, #d97706, #b45309);
+}
+
+.bomb-btn-panel:disabled {
+    background: rgba(100, 100, 100, 0.3);
+    color: rgba(255, 255, 255, 0.5);
+    border-color: rgba(100, 100, 100, 0.3);
+    cursor: default;
+}
+
 
 .game-canvas {
     display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    /* Lock the canvas element to the playfield ratio (400:700) so it is shown
+       fully, never distorted, and always fits inside its area above the panel. */
+    aspect-ratio: 400 / 700;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
     touch-action: none; /* Prevents scrolling when dragging on mobile */
     /* Keep pixel art crisp */
     image-rendering: pixelated; 

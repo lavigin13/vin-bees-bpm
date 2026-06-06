@@ -35,6 +35,8 @@ const getComboColor = (multiplier) => {
 
 const BeeInvadersGame = () => {
     const canvasRef = useRef(null);
+    const joystickBaseRef = useRef(null);
+    const joystickThumbRef = useRef(null);
     const [score, setScore] = useState(0);
     const [level, setLevel] = useState(1);
     const [lives, setLives] = useState(3);
@@ -367,7 +369,7 @@ const BeeInvadersGame = () => {
         }
         if (keys.current.down) {
             state.player.y += PLAYER_SPEED;
-            if (state.player.y + state.player.height > GAME_HEIGHT) state.player.y = GAME_HEIGHT - state.player.height;
+            if (state.player.y + state.player.height > GAME_HEIGHT - 40) state.player.y = GAME_HEIGHT - state.player.height - 40;
         }
         
         // Joystick Movement
@@ -383,7 +385,7 @@ const BeeInvadersGame = () => {
                 state.player.y += (dy / dist) * PLAYER_SPEED * speedScale;
                 
                 state.player.x = Math.max(0, Math.min(GAME_WIDTH - state.player.width, state.player.x));
-                state.player.y = Math.max(0, Math.min(GAME_HEIGHT - state.player.height, state.player.y));
+                state.player.y = Math.max(0, Math.min(GAME_HEIGHT - state.player.height - 40, state.player.y));
             }
         }
 
@@ -1314,25 +1316,7 @@ const BeeInvadersGame = () => {
             ctx.restore();
         });
 
-        // Draw Virtual Joystick
-        if (state.joystick.active) {
-            ctx.save();
-            // Base
-            ctx.beginPath();
-            ctx.arc(state.joystick.originX, state.joystick.originY, state.joystick.radius, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            // Thumb
-            ctx.beginPath();
-            ctx.arc(state.joystick.x, state.joystick.y, 25, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            ctx.fill();
-            ctx.restore();
-        }
+        // Virtual Joystick is now rendered via DOM elements outside canvas
 
         // Slowmo vignette overlay
         if (state.timeScale < 1) {
@@ -1382,34 +1366,33 @@ const BeeInvadersGame = () => {
     // Virtual Joystick Controls
     const handlePointerDown = (e) => {
         if (!gameStarted || gameOver) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+        const rect = e.currentTarget.getBoundingClientRect();
         
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = GAME_WIDTH / rect.width;
-        const scaleY = GAME_HEIGHT / rect.height;
-        
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
         
         gameState.current.joystick.active = true;
         gameState.current.joystick.originX = x;
         gameState.current.joystick.originY = y;
         gameState.current.joystick.x = x;
         gameState.current.joystick.y = y;
+        
+        if (joystickBaseRef.current) {
+            joystickBaseRef.current.style.display = 'block';
+            joystickBaseRef.current.style.left = `${x}px`;
+            joystickBaseRef.current.style.top = `${y}px`;
+        }
+        if (joystickThumbRef.current) {
+            joystickThumbRef.current.style.transform = `translate(0px, 0px)`;
+        }
     };
 
     const handlePointerMove = (e) => {
         if (!gameState.current.joystick.active) return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
         
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = GAME_WIDTH / rect.width;
-        const scaleY = GAME_HEIGHT / rect.height;
-        
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
         
         const dx = x - gameState.current.joystick.originX;
         const dy = y - gameState.current.joystick.originY;
@@ -1423,24 +1406,28 @@ const BeeInvadersGame = () => {
             gameState.current.joystick.x = x;
             gameState.current.joystick.y = y;
         }
+
+        if (joystickThumbRef.current) {
+            const currentDx = gameState.current.joystick.x - gameState.current.joystick.originX;
+            const currentDy = gameState.current.joystick.y - gameState.current.joystick.originY;
+            joystickThumbRef.current.style.transform = `translate(${currentDx}px, ${currentDy}px)`;
+        }
     };
 
     const handlePointerUp = () => {
         gameState.current.joystick.active = false;
+        if (joystickBaseRef.current) joystickBaseRef.current.style.display = 'none';
     };
 
     return (
-        <div className="bee-invaders-container">
-            <canvas
-                ref={canvasRef}
-                width={GAME_WIDTH}
-                height={GAME_HEIGHT}
-                className="game-canvas"
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-            />
+        <div className="bee-game-wrapper">
+            <div className="bee-invaders-container">
+                <canvas
+                    ref={canvasRef}
+                    width={GAME_WIDTH}
+                    height={GAME_HEIGHT}
+                    className="game-canvas"
+                />
 
             <div className="game-overlay">
                 <div className="game-score">ОЧКИ: {score.toString().padStart(5, '0')}</div>
@@ -1464,17 +1451,7 @@ const BeeInvadersGame = () => {
                 </div>
             )}
 
-            {gameStarted && !gameOver && (
-                <button
-                    className={`bomb-btn ${bombs <= 0 ? 'bomb-btn-empty' : ''}`}
-                    onClick={activateBomb}
-                    disabled={bombs <= 0}
-                >
-                    🐝 Джміль {bombs}
-                </button>
-            )}
-
-
+            {/* Control Panel (Moved to bottom) */}
 
             {/* Intro Cutscene */}
             {!gameStarted && introStep > 0 && (
@@ -1524,6 +1501,33 @@ const BeeInvadersGame = () => {
                     <h2>GAME OVER</h2>
                     <p>Рахунок: {score}</p>
                     <button className="restart-btn" onClick={startIntro}>Грати знову</button>
+                </div>
+            )}
+            </div>
+
+            {/* New Control Panel Area */}
+            {gameStarted && !gameOver && (
+                <div className="game-control-panel">
+                    <button
+                        className={`bomb-btn-panel ${bombs <= 0 ? 'bomb-btn-empty' : ''}`}
+                        onClick={activateBomb}
+                        disabled={bombs <= 0}
+                    >
+                        🐝 Джміль {bombs}
+                    </button>
+
+                    <div 
+                        className="touch-joystick-zone"
+                        onPointerDown={handlePointerDown}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        onPointerCancel={handlePointerUp}
+                    >
+                        <div className="joystick-hint">Сенсорний джойстик</div>
+                        <div className="joystick-base-dom" ref={joystickBaseRef}>
+                            <div className="joystick-thumb-dom" ref={joystickThumbRef} />
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
