@@ -19,15 +19,7 @@ export const RECIPES = [
     }
 ];
 
-export const WORK_TYPES = [
-    "Development",
-    "Meeting",
-    "Bugfix",
-    "Testing",
-    "Design",
-    "Management",
-    "Other"
-];
+
 
 export const DAY_TYPES = [
     "Work",
@@ -36,6 +28,14 @@ export const DAY_TYPES = [
     "Day Off",
     "Business Trip"
 ];
+
+export const DAY_TYPE_LABELS = {
+    "Work": "Робочий",
+    "Vacation": "Відпустка",
+    "Sick Leave": "Лікарняний",
+    "Day Off": "Вихідний",
+    "Business Trip": "Відрядження"
+};
 
 export const REQUEST_CATEGORIES = [
     { id: 'cat_1', name: "Обладнання" },

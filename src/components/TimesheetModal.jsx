@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ArrowLeft, Save, Users, CheckCircle, XCircle, ChevronDown, Plus, Minus, Trash2 } from 'lucide-react';
+import { X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Save, Plus, Minus, Trash2 } from 'lucide-react';
 import './CraftingModal.css'; // Reusing modal base
 import './TimesheetModal.css';
-import { DAY_TYPES } from '../data/constants';
-import { fetchTimesheet, saveDailyReport, fetchSubordinateTimesheets, approveTimesheetReports, rejectTimesheetReports, deleteTimesheetReport } from '../services/api';
+import { DAY_TYPES, DAY_TYPE_LABELS } from '../data/constants';
+import { fetchTimesheet, saveDailyReport, deleteTimesheetReport } from '../services/api';
 import { BlockedError } from '../services/api';
 
 const TimesheetModal = ({ isOpen, onClose }) => {
-    const [viewMode, setViewMode] = useState('my-hours'); // 'my-hours' or 'approve-hours'
-    const [view, setView] = useState('calendar'); // 'calendar' or 'day'
     const [currentDate, setCurrentDate] = useState(new Date()); // For calendar navigation
     const [selectedDate, setSelectedDate] = useState(null); // For day editing
 
     // Day Form State - simplified to just hours
-    const [dayType, setDayType] = useState('Робочий');
+    const [dayType, setDayType] = useState('Work');
     const [regularHours, setRegularHours] = useState(0);
     const [overtimeHours, setOvertimeHours] = useState(0);
 
@@ -24,69 +22,20 @@ const TimesheetModal = ({ isOpen, onClose }) => {
     const [error, setError] = useState(null);
     const [blockedMessage, setBlockedMessage] = useState(null); // Modal message when API returns blocked=true
 
-    // Approval mode state
-    const [subordinateData, setSubordinateData] = useState({});
-    const [selectedReports, setSelectedReports] = useState([]); // [{employeeId, date}, ...]
-    const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'approved' | 'pending'
-    const [groupByTopLevel, setGroupByTopLevel] = useState('employee'); // 'employee' | 'week'
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [expandedGroups, setExpandedGroups] = useState({}); // { employeeId: boolean }
-    const [expandedWeeks, setExpandedWeeks] = useState({}); // { `${employeeId}_week_${n}`: boolean }
-    const [expandedTopWeeks, setExpandedTopWeeks] = useState({}); // { `week_${n}`: boolean }
-
-    const cloneSubordinateData = (data) => {
-        if (!data || typeof data !== 'object') return {};
-
-        const cloned = {};
-        Object.entries(data).forEach(([employeeId, employee]) => {
-            cloned[employeeId] = {
-                ...employee,
-                reports: { ...(employee?.reports || {}) }
-            };
-        });
-        return cloned;
-    };
-
-    const applyStatusToSelectedReports = (nextStatus) => {
-        setSubordinateData(prev => {
-            const updated = cloneSubordinateData(prev);
-
-            selectedReports.forEach(({ employeeId, date }) => {
-                if (updated[employeeId]?.reports?.[date]) {
-                    updated[employeeId].reports[date] = {
-                        ...updated[employeeId].reports[date],
-                        status: nextStatus
-                    };
-                }
-            });
-
-            return updated;
-        });
-    };
 
     // Reset on open
     useEffect(() => {
         if (!isOpen) {
-            setView('calendar');
             setSelectedDate(null);
-            setViewMode('my-hours');
-            setSelectedReports([]);
-            setGroupByTopLevel('employee');
-            setExpandedWeeks({});
-            setExpandedTopWeeks({});
         }
     }, [isOpen]);
 
     // Load month data when date changes or modal opens
     useEffect(() => {
         if (isOpen) {
-            if (viewMode === 'my-hours') {
-                loadMonthData();
-            } else {
-                loadSubordinateData();
-            }
+            loadMonthData();
         }
-    }, [currentDate, isOpen, viewMode]);
+    }, [currentDate, isOpen]);
 
     const loadMonthData = async () => {
         setIsLoadingMonth(true);
@@ -125,27 +74,6 @@ const TimesheetModal = ({ isOpen, onClose }) => {
         }
     };
 
-    const loadSubordinateData = async () => {
-        setIsLoadingMonth(true);
-        setError(null);
-        const monthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-
-        try {
-            const data = await fetchSubordinateTimesheets(monthStr);
-            if (data) {
-                // Always set a fresh reference so UI updates even if API returns cached object.
-                setSubordinateData(cloneSubordinateData(data));
-            } else {
-                setSubordinateData({});
-            }
-        } catch (e) {
-            console.warn('Failed to load subordinate data', e);
-            setError('Не вдалося завантажити дані підлеглих');
-            setSubordinateData({});
-        } finally {
-            setIsLoadingMonth(false);
-        }
-    };
 
     if (!isOpen) return null;
 
@@ -174,11 +102,11 @@ const TimesheetModal = ({ isOpen, onClose }) => {
         // Load existing data if any
         const report = currentMonthData[dateStr];
         if (report) {
-            setDayType(report.type || 'Робочий');
+            setDayType(report.type || 'Work');
             setRegularHours(report.regularHours || 0);
             setOvertimeHours(report.overtimeHours || 0);
         } else {
-            setDayType('Робочий');
+            setDayType('Work');
             setRegularHours(8);
             setOvertimeHours(0);
         }
@@ -200,7 +128,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
         if (regularHours < 0 || overtimeHours < 0) {
             return { valid: false, message: 'Години не можуть бути від\'ємними' };
         }
-        if (dayType === 'Робочий' && total === 0) {
+        if (dayType === 'Work' && total === 0) {
             return { valid: false, message: 'Для робочого дня потрібно вказати години' };
         }
         return { valid: true };
@@ -219,8 +147,8 @@ const TimesheetModal = ({ isOpen, onClose }) => {
 
         const reportData = {
             type: dayType,
-            regularHours: dayType === 'Робочий' ? regularHours : 8,
-            overtimeHours: dayType === 'Робочий' ? overtimeHours : 0
+            regularHours: dayType === 'Work' ? regularHours : 8,
+            overtimeHours: dayType === 'Work' ? overtimeHours : 0
         };
 
             try {
@@ -276,138 +204,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
         }
     };
 
-    // --- Approval Mode Handlers ---
 
-    const toggleReportSelection = (employeeId, date) => {
-        const exists = selectedReports.find(r => r.employeeId === employeeId && r.date === date);
-
-        if (exists) {
-            setSelectedReports(selectedReports.filter(r => !(r.employeeId === employeeId && r.date === date)));
-        } else {
-            setSelectedReports([...selectedReports, { employeeId, date }]);
-        }
-    };
-
-    const toggleSelectAllForEmployee = (employeeId) => {
-        const employee = subordinateData[employeeId];
-        if (!employee) return;
-
-        const employeeReports = Object.entries(employee.reports)
-            .filter(([_, r]) => r.status === 'pending') // Only select pending
-            .map(([date]) => ({ employeeId, date }));
-
-        const allSelected = employeeReports.every(r =>
-            selectedReports.find(sr => sr.employeeId === r.employeeId && sr.date === r.date)
-        );
-
-        if (allSelected) {
-            setSelectedReports(selectedReports.filter(r => r.employeeId !== employeeId));
-        } else {
-            const newSelections = employeeReports.filter(r =>
-                !selectedReports.find(sr => sr.employeeId === r.employeeId && sr.date === r.date)
-            );
-            setSelectedReports([...selectedReports, ...newSelections]);
-        }
-    };
-
-    const handleApproveSelected = async () => {
-        if (selectedReports.length === 0) return;
-
-        setIsProcessing(true);
-        try {
-            const result = await approveTimesheetReports(selectedReports);
-            if (result.success) {
-                applyStatusToSelectedReports('approved');
-                setSelectedReports([]);
-                alert(`✅ Погоджено ${result.approved} записів`);
-                // Reload data from backend to get fresh state
-                await loadSubordinateData();
-            }
-        } catch (e) {
-            console.error('Failed to approve', e);
-            alert('❌ Помилка при погодженні');
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    const handleRejectSelected = async () => {
-        if (selectedReports.length === 0) return;
-
-        const reason = prompt('Причина відхилення (опційно):');
-
-        setIsProcessing(true);
-        try {
-            const result = await rejectTimesheetReports(selectedReports, reason);
-            if (result.success) {
-                applyStatusToSelectedReports('rejected');
-                setSelectedReports([]);
-                alert(`❌ Відхилено ${result.rejected} записів`);
-                // Reload data from backend to get fresh state
-                await loadSubordinateData();
-            }
-        } catch (e) {
-            console.error('Failed to reject', e);
-            alert('❌ Помилка при відхиленні');
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    const toggleGroupExpansion = (employeeId) => {
-        setExpandedGroups(prev => ({
-            ...prev,
-            [employeeId]: !prev[employeeId]
-        }));
-    };
-
-    const toggleWeekExpansion = (employeeId, weekNumber) => {
-        const key = `${employeeId}_week_${weekNumber}`;
-        setExpandedWeeks(prev => ({
-            ...prev,
-            [key]: !(prev[key] ?? true)
-        }));
-    };
-
-    const toggleTopWeekExpansion = (weekNumber) => {
-        const key = `week_${weekNumber}`;
-        setExpandedTopWeeks(prev => ({
-            ...prev,
-            [key]: !(prev[key] ?? true)
-        }));
-    };
-
-    const toggleSelectReportBatch = (employeeId, dates) => {
-        const pendingDates = dates.filter((date) => {
-            const report = subordinateData?.[employeeId]?.reports?.[date];
-            return report?.status === 'pending';
-        });
-        if (pendingDates.length === 0) return;
-
-        setSelectedReports(prev => {
-            const allAlreadySelected = pendingDates.every(date =>
-                prev.some(item => item.employeeId === employeeId && item.date === date)
-            );
-
-            if (allAlreadySelected) {
-                return prev.filter(item => !(item.employeeId === employeeId && pendingDates.includes(item.date)));
-            }
-
-            const additions = pendingDates
-                .filter(date => !prev.some(item => item.employeeId === employeeId && item.date === date))
-                .map(date => ({ employeeId, date }));
-
-            return [...prev, ...additions];
-        });
-    };
-
-    const getWeekOfMonth = (dateStr) => {
-        const dateObj = new Date(dateStr);
-        const firstDayOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1);
-        // Monday-based week index (Mon=0 ... Sun=6)
-        const firstDayOffset = (firstDayOfMonth.getDay() + 6) % 7;
-        return Math.floor((dateObj.getDate() + firstDayOffset - 1) / 7) + 1;
-    };
 
     const totalHours = regularHours + overtimeHours;
 
@@ -420,8 +217,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                     <CalendarIcon size={20} /> Табель
                 </h2>
 
-                {view === 'calendar' ? (
-                    <div className="timesheet-container">
+                <div className="timesheet-container">
                         {error && (
                             <div className="timesheet-error">
                                 ⚠️ {error}
@@ -477,10 +273,6 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                         // Emoji mapping
                                         const getEmoji = (type) => {
                                             const emojiMap = {
-                                                'відпустка': '🏖️',
-                                                'лікарняний': '🏥',
-                                                'вихідний': '🎂',
-                                                'відрядження': '✈️',
                                                 'vacation': '🏖️',
                                                 'sick-leave': '🏥',
                                                 'day-off': '🎂',
@@ -496,7 +288,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                                 key={day}
                                                 className={cellClass}
                                                 onClick={() => handleDayClick(day)}
-                                                title={isHoliday ? calendarDay.name : report?.type}
+                                                title={isHoliday ? calendarDay.name : (DAY_TYPE_LABELS[report?.type] || report?.type)}
                                             >
                                                 {report && getEmoji(report.type) && (
                                                     <div className="day-emoji">{getEmoji(report.type)}</div>
@@ -524,7 +316,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                         <span className="stat-label">Понаднормові:</span>
                                         <span className="stat-value overtime">
                                             {Object.values(currentMonthData)
-                                                .filter(r => r.type === 'Work' || r.type === 'Робочий')
+                                                .filter(r => r.type === 'Work')
                                                 .reduce((sum, r) => sum + (r.overtimeHours || 0), 0)
                                                 .toFixed(1)}
                                         </span>
@@ -548,8 +340,6 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                             </>
                         )}
                     </div>
-                ) : null
-                }
 
                 {/* Day Edit Bottom Sheet / Overlay */}
                 {
@@ -573,12 +363,12 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                                 className={`type-btn ${dayType === type ? 'active' : ''}`}
                                                 onClick={() => setDayType(type)}
                                             >
-                                                {type}
+                                                {DAY_TYPE_LABELS[type] || type}
                                             </button>
                                         ))}
                                     </div>
 
-                                    {(dayType === 'Work' || dayType === 'Робочий') && (
+                                    {(dayType === 'Work') && (
                                         <div className="hours-form">
                                             <div className="stepper-field">
                                                 <label>Робочі години</label>
