@@ -123,6 +123,48 @@
 }
 .wh-ops-close:hover { color: var(--text-primary); }
 
+/* Tabs */
+.wh-ops-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.wh-ops-tab {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.wh-ops-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.wh-ops-tab.active {
+    background: rgba(255, 215, 0, 0.1);
+    color: var(--accent-gold);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.wh-ops-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
 /* Month picker */
 .wh-ops-month-row {
     display: flex;

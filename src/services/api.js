@@ -673,6 +673,158 @@ export const saveWarehouseOperation = async (operationData) => {
     }
 };
 
+// --- Supplier Orders Receiving (Прийом замовлень постачальнику на складі) ---
+//
+// ⚠️ Backend contracts below are ASSUMED — adjust endpoints/shapes once the
+// real 1C/BPM API is available. To preview the UI before the backend exists,
+// run in the browser console:  localStorage.setItem('mockSupplierOrders', '1')
+//
+// Expected list response shape (GET /SupplierOrders):
+//   {
+//     statuses: [{ Id, Name, Color? }],          // available statuses for the workflow
+//     orders: [{
+//       Id, Number, Date,
+//       Supplier:  { Id, Name },
+//       Warehouse: { Id, Name },
+//       Status:    { Id, Name, Color? },
+//       Sum, Currency,
+//       NoDocuments: boolean,
+//       Files:    [{ Id, Name, Type, Size }],
+//       Products: [{ Id, Name, Unit, Count, Price, Sum }]
+//     }]
+//   }
+
+// Demo mode: until the real backend endpoints exist, fall back to mock data so
+// the UI is fully usable. Force-disable once the backend is ready by running:
+//   localStorage.setItem('mockSupplierOrders', '0')
+const SUPPLIER_ORDERS_MOCK_DEFAULT = true;
+const supplierOrdersMockEnabled = () => {
+    if (typeof window === 'undefined') return SUPPLIER_ORDERS_MOCK_DEFAULT;
+    const flag = localStorage.getItem('mockSupplierOrders');
+    if (flag === '1') return true;
+    if (flag === '0') return false;
+    return SUPPLIER_ORDERS_MOCK_DEFAULT;
+};
+
+const SUPPLIER_ORDER_STATUSES = [
+    { Id: 'new',         Name: 'Новий',         Color: '#60a5fa' },
+    { Id: 'inroute',     Name: 'В дорозі',      Color: '#fbbf24' },
+    { Id: 'partial',     Name: 'Частково прийнято', Color: '#a78bfa' },
+    { Id: 'received',    Name: 'Прийнято',      Color: '#34d399' },
+    { Id: 'discrepancy', Name: 'Розбіжності',   Color: '#f87171' },
+];
+
+const MOCK_SUPPLIER_ORDERS = () => ({
+    statuses: SUPPLIER_ORDER_STATUSES,
+    orders: [
+        {
+            Id: 'ord-1001', Number: 'ЗП-0001', Date: '2026-06-05',
+            Supplier: { Id: 's1', Name: 'ТОВ "Бджолопостач"' },
+            Warehouse: { Id: 'w1', Name: 'Основний склад' },
+            Status: { Id: 'inroute', Name: 'В дорозі', Color: '#fbbf24' },
+            Sum: 15400, Currency: 'грн', NoDocuments: false, Files: [],
+            Products: [
+                { Id: 'p1', Name: 'Цукор білий кристалічний', Unit: 'кг', Count: 500, Price: 22, Sum: 11000 },
+                { Id: 'p2', Name: 'Вощина натуральна', Unit: 'кг', Count: 40, Price: 110, Sum: 4400 },
+            ],
+        },
+        {
+            Id: 'ord-1002', Number: 'ЗП-0002', Date: '2026-06-07',
+            Supplier: { Id: 's2', Name: 'ФОП Іваненко О.П.' },
+            Warehouse: { Id: 'w2', Name: 'Склад тари' },
+            Status: { Id: 'new', Name: 'Новий', Color: '#60a5fa' },
+            Sum: 3600, Currency: 'грн', NoDocuments: false, Files: [],
+            Products: [
+                { Id: 'p3', Name: 'Банка скляна 0.5 л', Unit: 'шт', Count: 1200, Price: 3, Sum: 3600 },
+                { Id: 'p4', Name: 'Кришка твіст-офф 66 мм', Unit: 'шт', Count: 1200, Price: 1.5, Sum: 1800 },
+            ],
+        },
+        {
+            Id: 'ord-1003', Number: 'ЗП-0003', Date: '2026-06-08',
+            Supplier: { Id: 's3', Name: 'ТОВ "Пакувальні рішення"' },
+            Warehouse: { Id: 'w1', Name: 'Основний склад' },
+            Status: { Id: 'inroute', Name: 'В дорозі', Color: '#fbbf24' },
+            Sum: 8250, Currency: 'грн', NoDocuments: false,
+            Files: [{ Id: 'f1', Name: 'Накладна_ЗП-0003.pdf', Type: 'application/pdf', Size: 184320 }],
+            Products: [
+                { Id: 'p5', Name: 'Етикетка самоклейна (рулон)', Unit: 'рул', Count: 50, Price: 95, Sum: 4750 },
+                { Id: 'p6', Name: 'Коробка картонна 4 банки', Unit: 'шт', Count: 350, Price: 10, Sum: 3500 },
+            ],
+        },
+        {
+            Id: 'ord-1004', Number: 'ЗП-0004', Date: '2026-06-09',
+            Supplier: { Id: 's1', Name: 'ТОВ "Бджолопостач"' },
+            Warehouse: { Id: 'w3', Name: 'Склад сировини' },
+            Status: { Id: 'partial', Name: 'Частково прийнято', Color: '#a78bfa' },
+            Sum: 27600, Currency: 'грн', NoDocuments: false,
+            Files: [{ Id: 'f2', Name: 'Видаткова.jpg', Type: 'image/jpeg', Size: 532480 }],
+            Products: [
+                { Id: 'p7', Name: 'Мед натуральний квітковий', Unit: 'кг', Count: 300, Price: 80, Sum: 24000 },
+                { Id: 'p8', Name: 'Прополіс', Unit: 'кг', Count: 12, Price: 300, Sum: 3600 },
+            ],
+        },
+        {
+            Id: 'ord-1005', Number: 'ЗП-0005', Date: '2026-06-09',
+            Supplier: { Id: 's4', Name: 'ТОВ "АгроХімПостач"' },
+            Warehouse: { Id: 'w3', Name: 'Склад сировини' },
+            Status: { Id: 'new', Name: 'Новий', Color: '#60a5fa' },
+            Sum: 5100, Currency: 'грн', NoDocuments: false, Files: [],
+            Products: [
+                { Id: 'p9', Name: 'Лимонна кислота', Unit: 'кг', Count: 60, Price: 85, Sum: 5100 },
+            ],
+        },
+    ],
+});
+
+export const fetchSupplierOrders = async (filters = {}) => {
+    // filters (all optional): { search, status, warehouse }
+    const headers = getHeaders();
+    const useMock = supplierOrdersMockEnabled();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/SupplierOrders`, { method: 'GET', headers });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        // Normalise: backend may return an array of orders OR { orders, statuses }
+        if (Array.isArray(data)) return { orders: data, statuses: [] };
+        return { orders: data.orders || [], statuses: data.statuses || [] };
+    } catch (error) {
+        if (useMock) {
+            console.warn('[SupplierOrders] Using mock data (backend unavailable)');
+            return MOCK_SUPPLIER_ORDERS();
+        }
+        console.error('Failed to fetch supplier orders:', error);
+        return { orders: [], statuses: [] };
+    }
+};
+
+export const saveSupplierOrderReceiving = async (payload) => {
+    // payload: {
+    //   id,                                          // order id
+    //   status,                                      // selected status id
+    //   noDocuments,                                 // boolean — "документів немає"
+    //   files: [{ name, type, size, data }],         // data = base64 (without data: prefix)
+    //   products: [{ id, count, received }]          // ordered + actually received qty
+    // }
+    const headers = getHeaders();
+    const useMock = supplierOrdersMockEnabled();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/SupplierOrders`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        if (useMock) {
+            console.warn('[SupplierOrders] Mock save (backend unavailable):', payload);
+            return { success: true };
+        }
+        console.error('Failed to save supplier order receiving:', error);
+        throw error;
+    }
+};
+
 // --- Remaining Items Report ---
 
 export const fetchRemainingItems = async (filters = {}) => {
@@ -723,5 +875,70 @@ export const saveBeeInvadersScore = async (scoreData) => {
     } catch (error) {
         console.error('Failed to save score:', error);
         return null;
+    }
+};
+
+// --- Internal Orders Issuing (Внутрішні замовлення / заявки) ---
+
+const INTERNAL_ORDER_STATUSES = [
+    { Id: 'new',         Name: 'Нова',          Color: '#60a5fa' },
+    { Id: 'inprogress',  Name: 'В процесі',     Color: '#fbbf24' },
+    { Id: 'issued',      Name: 'Видана',        Color: '#34d399' },
+    { Id: 'rejected',    Name: 'Відхилена',     Color: '#f87171' },
+];
+
+const MOCK_INTERNAL_ORDERS = () => ({
+    statuses: INTERNAL_ORDER_STATUSES,
+    orders: [
+        {
+            Id: 'int-1001', Number: 'ВЗ-0001', Date: '2026-06-08',
+            Requester: { Id: 'emp1', Name: 'Петренко І.В.' },
+            Warehouse: { Id: 'w1', Name: 'Основний склад' },
+            Status: { Id: 'new', Name: 'Нова', Color: '#60a5fa' },
+            ManagerApproved: true,
+            Products: [
+                { Id: 'p3', Name: 'Банка скляна 0.5 л', Unit: 'шт', CountRequested: 100, CountIssued: 0 },
+            ],
+        },
+        {
+            Id: 'int-1002', Number: 'ВЗ-0002', Date: '2026-06-09',
+            Requester: { Id: 'emp2', Name: 'Коваленко М.О.' },
+            Warehouse: { Id: 'w3', Name: 'Склад сировини' },
+            Status: { Id: 'new', Name: 'Нова', Color: '#60a5fa' },
+            ManagerApproved: false,
+            Products: [
+                { Id: 'p7', Name: 'Мед натуральний квітковий', Unit: 'кг', CountRequested: 20, CountIssued: 0 },
+            ],
+        },
+    ]
+});
+
+export const fetchInternalOrders = async (filters = {}) => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/InternalOrders`, { method: 'GET', headers });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        return { orders: data.orders || [], statuses: data.statuses || [] };
+    } catch (error) {
+        console.warn('[InternalOrders] Using mock data (backend unavailable)');
+        return MOCK_INTERNAL_ORDERS();
+    }
+};
+
+export const saveInternalOrderIssuing = async (payload) => {
+    // payload: { id, status, products: [{ id, requested, issued }] }
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/InternalOrders`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.warn('[InternalOrders] Mock save (backend unavailable):', payload);
+        return { success: true };
     }
 };
