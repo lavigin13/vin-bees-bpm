@@ -151,7 +151,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
             overtimeHours: dayType === 'Work' ? overtimeHours : 0
         };
 
-            try {
+        try {
             await saveDailyReport(selectedDate, reportData);
             // Update local state
             setCurrentMonthData(prev => ({
@@ -174,13 +174,13 @@ const TimesheetModal = ({ isOpen, onClose }) => {
 
     const handleDeleteDay = async () => {
         if (!selectedDate) return;
-        
+
         const confirmDelete = window.confirm('Ви дійсно хочете видалити цей запис?');
         if (!confirmDelete) return;
-        
+
         try {
             const result = await deleteTimesheetReport(selectedDate);
-            
+
             if (result && result.success === false) {
                 alert(result.message || 'Не вдалося видалити звіт.');
                 return;
@@ -218,128 +218,128 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                 </h2>
 
                 <div className="timesheet-container">
-                        {error && (
-                            <div className="timesheet-error">
-                                ⚠️ {error}
-                            </div>
-                        )}
-
-                        <div className="calendar-header">
-                            <button className="nav-btn" onClick={handlePrevMonth}><ChevronLeft size={20} /></button>
-                            <div className="month-label">{monthLabel}</div>
-                            <button className="nav-btn" onClick={handleNextMonth}><ChevronRight size={20} /></button>
+                    {error && (
+                        <div className="timesheet-error">
+                            ⚠️ {error}
                         </div>
+                    )}
 
-                        {isLoadingMonth ? (
-                            <div className="timesheet-loading">Завантаження...</div>
-                        ) : (
-                            <>
-                                <div className="calendar-grid">
-                                    {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(d => (
-                                        <div key={d} className="weekday-label">{d}</div>
-                                    ))}
-
-                                    {/* Empty cells for offset */}
-                                    {Array.from({ length: startDay }).map((_, i) => (
-                                        <div key={`empty-${i}`} className="day-cell empty" />
-                                    ))}
-
-                                    {/* Days */}
-                                    {Array.from({ length: daysInMonth }).map((_, i) => {
-                                        const day = i + 1;
-                                        const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                        const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-                                        const isToday = new Date().toDateString() === date.toDateString();
-                                        const report = currentMonthData[dateStr];
-                                        const calendarDay = calendar[dateStr];
-
-                                        // Determine day type from calendar metadata
-                                        const dayOfWeek = date.getDay();
-                                        const isWeekend = calendarDay ? calendarDay.dayType === 'weekend' : (dayOfWeek === 0 || dayOfWeek === 6);
-                                        const isHoliday = calendarDay?.dayType === 'holiday';
-
-                                        let cellClass = 'day-cell';
-
-                                        if (isWeekend) cellClass += ' weekend';
-                                        if (isToday) cellClass += ' today';
-
-                                        // Add report type classes for colored borders
-                                        if (report) {
-                                            cellClass += ' has-report';
-                                            const reportType = report.type?.toLowerCase().replace(' ', '-');
-                                            cellClass += ` report-${reportType}`;
-                                        }
-
-                                        // Emoji mapping
-                                        const getEmoji = (type) => {
-                                            const emojiMap = {
-                                                'vacation': '🏖️',
-                                                'sick-leave': '🏥',
-                                                'day-off': '🎂',
-                                                'business-trip': '✈️'
-                                            };
-                                            return emojiMap[type?.toLowerCase().replace(' ', '-')] || '';
-                                        };
-
-                                        const totalHours = report ? (report.regularHours || 0) + (report.overtimeHours || 0) : 0;
-
-                                        return (
-                                            <div
-                                                key={day}
-                                                className={cellClass}
-                                                onClick={() => handleDayClick(day)}
-                                                title={isHoliday ? calendarDay.name : (DAY_TYPE_LABELS[report?.type] || report?.type)}
-                                            >
-                                                {report && getEmoji(report.type) && (
-                                                    <div className="day-emoji">{getEmoji(report.type)}</div>
-                                                )}
-                                                <div>{day}</div>
-                                                {totalHours > 0 && (
-                                                    <div className="day-hours">{totalHours}год</div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Monthly Dashboard */}
-                                <div className="monthly-dashboard">
-                                    <div className="dashboard-stat">
-                                        <span className="stat-label">Всього годин:</span>
-                                        <span className="stat-value">
-                                            {Object.values(currentMonthData)
-                                                .reduce((sum, r) => sum + (r.regularHours || 0), 0)
-                                                .toFixed(1)}
-                                        </span>
-                                    </div>
-                                    <div className="dashboard-stat">
-                                        <span className="stat-label">Понаднормові:</span>
-                                        <span className="stat-value overtime">
-                                            {Object.values(currentMonthData)
-                                                .filter(r => r.type === 'Work')
-                                                .reduce((sum, r) => sum + (r.overtimeHours || 0), 0)
-                                                .toFixed(1)}
-                                        </span>
-                                    </div>
-                                    <div className="dashboard-stat highlight">
-                                        <span className="stat-label">Норма місяця:</span>
-                                        <span className="stat-value">
-                                            {monthlyNorm !== null ? monthlyNorm : (() => {
-                                                // Fallback: Calculate working days (Mon-Fri) in the month
-                                                let workingDays = 0;
-                                                for (let d = 1; d <= daysInMonth; d++) {
-                                                    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), d);
-                                                    const dow = date.getDay();
-                                                    if (dow !== 0 && dow !== 6) workingDays++;
-                                                }
-                                                return workingDays * 8;
-                                            })()}
-                                        </span>
-                                    </div>
-                                </div>
-                            </>
-                        )}
+                    <div className="calendar-header">
+                        <button className="nav-btn" onClick={handlePrevMonth}><ChevronLeft size={20} /></button>
+                        <div className="month-label">{monthLabel}</div>
+                        <button className="nav-btn" onClick={handleNextMonth}><ChevronRight size={20} /></button>
                     </div>
+
+                    {isLoadingMonth ? (
+                        <div className="timesheet-loading">Завантаження...</div>
+                    ) : (
+                        <>
+                            <div className="calendar-grid">
+                                {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(d => (
+                                    <div key={d} className="weekday-label">{d}</div>
+                                ))}
+
+                                {/* Empty cells for offset */}
+                                {Array.from({ length: startDay }).map((_, i) => (
+                                    <div key={`empty-${i}`} className="day-cell empty" />
+                                ))}
+
+                                {/* Days */}
+                                {Array.from({ length: daysInMonth }).map((_, i) => {
+                                    const day = i + 1;
+                                    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                                    const isToday = new Date().toDateString() === date.toDateString();
+                                    const report = currentMonthData[dateStr];
+                                    const calendarDay = calendar[dateStr];
+
+                                    // Determine day type from calendar metadata
+                                    const dayOfWeek = date.getDay();
+                                    const isWeekend = calendarDay ? calendarDay.dayType === 'weekend' : (dayOfWeek === 0 || dayOfWeek === 6);
+                                    const isHoliday = calendarDay?.dayType === 'holiday';
+
+                                    let cellClass = 'day-cell';
+
+                                    if (isWeekend) cellClass += ' weekend';
+                                    if (isToday) cellClass += ' today';
+
+                                    // Add report type classes for colored borders
+                                    if (report) {
+                                        cellClass += ' has-report';
+                                        const reportType = report.type?.toLowerCase().replace(' ', '-');
+                                        cellClass += ` report-${reportType}`;
+                                    }
+
+                                    // Emoji mapping
+                                    const getEmoji = (type) => {
+                                        const emojiMap = {
+                                            'vacation': '🏖️',
+                                            'sick-leave': '🏥',
+                                            'day-off': '🎂',
+                                            'business-trip': '✈️'
+                                        };
+                                        return emojiMap[type?.toLowerCase().replace(' ', '-')] || '';
+                                    };
+
+                                    const totalHours = report ? (report.regularHours || 0) + (report.overtimeHours || 0) : 0;
+
+                                    return (
+                                        <div
+                                            key={day}
+                                            className={cellClass}
+                                            onClick={() => handleDayClick(day)}
+                                            title={isHoliday ? calendarDay.name : (DAY_TYPE_LABELS[report?.type] || report?.type)}
+                                        >
+                                            {report && getEmoji(report.type) && (
+                                                <div className="day-emoji">{getEmoji(report.type)}</div>
+                                            )}
+                                            <div>{day}</div>
+                                            {totalHours > 0 && (
+                                                <div className="day-hours">{totalHours}год</div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Monthly Dashboard */}
+                            <div className="monthly-dashboard">
+                                <div className="dashboard-stat">
+                                    <span className="stat-label">Всього годин:</span>
+                                    <span className="stat-value">
+                                        {Object.values(currentMonthData)
+                                            .reduce((sum, r) => sum + (r.regularHours || 0), 0)
+                                            .toFixed(1)}
+                                    </span>
+                                </div>
+                                <div className="dashboard-stat">
+                                    <span className="stat-label">Понаднормові:</span>
+                                    <span className="stat-value overtime">
+                                        {Object.values(currentMonthData)
+                                            .filter(r => r.type === 'Work')
+                                            .reduce((sum, r) => sum + (r.overtimeHours || 0), 0)
+                                            .toFixed(1)}
+                                    </span>
+                                </div>
+                                <div className="dashboard-stat highlight">
+                                    <span className="stat-label">Норма місяця:</span>
+                                    <span className="stat-value">
+                                        {monthlyNorm !== null ? monthlyNorm : (() => {
+                                            // Fallback: Calculate working days (Mon-Fri) in the month
+                                            let workingDays = 0;
+                                            for (let d = 1; d <= daysInMonth; d++) {
+                                                const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), d);
+                                                const dow = date.getDay();
+                                                if (dow !== 0 && dow !== 6) workingDays++;
+                                            }
+                                            return workingDays * 8;
+                                        })()}
+                                    </span>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
 
                 {/* Day Edit Bottom Sheet / Overlay */}
                 {
@@ -350,9 +350,6 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                     <div className="sheet-title">
                                         {new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
                                     </div>
-                                    <button className="sheet-close-btn" onClick={handleCloseSheet}>
-                                        <X size={20} />
-                                    </button>
                                 </div>
 
                                 <div className="sheet-body">
@@ -419,8 +416,8 @@ const TimesheetModal = ({ isOpen, onClose }) => {
 
                                     <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
                                         {currentMonthData[selectedDate] && (
-                                            <button 
-                                                className="craft-submit-btn" 
+                                            <button
+                                                className="craft-submit-btn"
                                                 onClick={handleDeleteDay}
                                                 style={{ backgroundColor: '#ef4444', color: 'white', flex: 1 }}
                                             >
@@ -428,13 +425,21 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                                 Видалити
                                             </button>
                                         )}
-                                        <button 
-                                            className="craft-submit-btn" 
+                                        <button
+                                            className="craft-submit-btn"
                                             onClick={handleSaveDay}
-                                            style={{ flex: 2 }}
+                                            style={{ flex: currentMonthData[selectedDate] ? 2 : 3 }}
                                         >
                                             <Save size={18} style={{ marginRight: 8 }} />
                                             Зберегти
+                                        </button>
+                                        <button
+                                            className="craft-submit-btn craft-submit-btn-icon"
+                                            onClick={handleCloseSheet}
+                                            title="Закрити"
+                                            style={{ flex: 1, justifyContent: 'center' }}
+                                        >
+                                            <X size={18} />
                                         </button>
                                     </div>
                                 </div>
