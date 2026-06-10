@@ -886,30 +886,18 @@
        edges — works better with bottom safe area / nav gestures
        than a bottom-pinned sheet. */
     .modal-overlay {
-        align-items: flex-start;
-        padding: 8px;
-        padding-top: max(8px, env(safe-area-inset-top));
+        align-items: center;
+        padding: 16px;
     }
 
     .modal-container {
         width: 100%;
         max-width: 100%;
         height: auto;
-        max-height: calc(100vh - 16px);
+        max-height: calc(100vh - 32px);
         border-radius: 16px;
         border: 1px solid #d4af37;
-        padding: 12px 12px 14px;
-        animation: modalSlideFromTop 0.3s ease-out;
-    }
-
-    @keyframes modalSlideFromTop {
-        from {
-            transform: translateY(-100%);
-        }
-
-        to {
-            transform: translateY(0);
-        }
+        padding: 16px;
     }
 
     /* Restore the subtle slide-down that the approval-actions-top banner
@@ -976,26 +964,26 @@
     }
 
     .month-label {
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .nav-btn {
-        padding: 6px;
+        padding: 8px;
     }
 
     /* Calendar grid */
     .calendar-grid {
-        gap: 3px;
+        gap: 5px;
     }
 
     .weekday-label {
-        font-size: 10px;
-        margin-bottom: 2px;
+        font-size: 11px;
+        margin-bottom: 4px;
     }
 
     .day-cell {
-        font-size: 12px;
-        border-radius: 6px;
+        font-size: 14px;
+        border-radius: 8px;
     }
 
     .day-hours {
