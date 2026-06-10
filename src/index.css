@@ -47,35 +47,25 @@ body {
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: 600px; 
+  max-width: 600px;
   margin: 0 auto;
 }
 
+/* Tablet portrait: use the available width */
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 720px;
+  }
+}
+
+/* Desktop: the dashboard card is the whole app — keep it centered and roomy */
 @media (min-width: 1024px) {
   #root {
     padding: 32px;
   }
 
   .app-container {
-    flex-direction: row;
-    align-items: flex-start;
-    max-width: 1100px;
-    gap: 32px;
-  }
-  
-  .hero-section {
-    width: 380px;
-    flex-shrink: 0;
-    position: sticky;
-    top: 32px;
-  }
-  
-  .main-content-section {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    min-width: 0;
+    max-width: 860px;
   }
 }
 

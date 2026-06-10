@@ -3,7 +3,7 @@ import { LogOut } from 'lucide-react';
 import ActionPanel from './ActionPanel';
 import './HeroProfile.css';
 
-const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgChartClick, onRewardReportClick, onRequestsClick, onTimesheetClick, onApprovalClick, onInventoryClick, onWarehouseOpsClick, onStockReportClick, onGamesClick, onProfileClick, onLogoutClick, incomingCount = 0 }) => {
+const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgChartClick, onRewardReportClick, onRequestsClick, onTimesheetClick, onApprovalClick, onInventoryClick, onWarehouseOpsClick, onStockReportClick, onGamesClick, onProfileClick, onEquipmentClick, onLogoutClick, incomingCount = 0, auditCount = 0 }) => {
     return (
         <div className="hero-container">
             {/* Top buttons removed as they are moved to ActionPanel */}
@@ -56,7 +56,9 @@ const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgC
                 onWarehouseOpsClick={onWarehouseOpsClick}
                 onStockReportClick={onStockReportClick}
                 onGamesClick={onGamesClick}
+                onEquipmentClick={onEquipmentClick}
                 incomingCount={incomingCount}
+                auditCount={auditCount}
                 userHoney={user.honey}
             />
         </div>

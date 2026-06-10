@@ -1,0 +1,15 @@
+.equipment-modal {
+    max-width: 720px;
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+}
+
+/* The Inventory component brings page margins — strip them inside the modal */
+.equipment-modal .inventory-container {
+    margin: 0;
+}
+
+.equipment-modal .inventory-header {
+    /* Leave room for the modal close button */
+    padding-right: 36px;
+}

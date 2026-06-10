@@ -5,6 +5,17 @@
     margin-top: 24px; /* Added margin to push it down from HeroProfile */
 }
 
+/* Desktop: align with the top of the hero card */
+@media (min-width: 1024px) {
+    .inventory-container {
+        margin-top: 8px;
+    }
+
+    .inventory-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+}
+
 .inventory-header {
     display: flex;
     justify-content: space-between;

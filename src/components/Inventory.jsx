@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Laptop, Smartphone, Car, CreditCard, Armchair, Package, Battery, Cpu, Box, Hammer, Send, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import './Inventory.css';
 
@@ -15,22 +15,12 @@ const iconMap = {
 };
 
 const Inventory = ({ items = [], onTransferClick, onValidateClick, onReportMissing }) => {
-    const [activeTab, setActiveTab] = useState('equipment');
-
-    const filteredItems = (items || []).filter(item => item.type === activeTab);
+    const filteredItems = (items || []).filter(item => item.type === 'equipment');
 
     return (
         <div className="inventory-container">
             <div className="inventory-header">
-                <h2 className="section-title">Інвентар</h2>
-                <div className="inventory-tabs">
-                    <button
-                        className={`tab-btn ${activeTab === 'equipment' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('equipment')}
-                    >
-                        Спорядження
-                    </button>
-                </div>
+                <h2 className="section-title">Спорядження</h2>
             </div>
 
             <div className="inventory-grid">

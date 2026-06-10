@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import HeroProfile from './components/HeroProfile';
-import Inventory from './components/Inventory';
+import EquipmentModal from './components/EquipmentModal';
 import EditProfileModal from './components/EditProfileModal';
 import TransferModal from './components/TransferModal';
 import InboxModal from './components/InboxModal';
@@ -98,6 +98,9 @@ const App = () => {
 
   // Games State
   const [isGamesOpen, setIsGamesOpen] = useState(false);
+
+  // Equipment (personal inventory) State
+  const [isEquipmentOpen, setIsEquipmentOpen] = useState(false);
 
   // Helper to count pending requests (simulated for team members)
   const pendingRequestsCount = (requests || []).filter(r => {
@@ -574,18 +577,21 @@ const App = () => {
           onStockReportClick={() => setIsStockReportOpen(true)}
           onGamesClick={() => setIsGamesOpen(true)}
           onProfileClick={() => setIsProfileOpen(true)}
+          onEquipmentClick={() => setIsEquipmentOpen(true)}
           onLogoutClick={handleLogout}
           incomingCount={incomingTransfers.length + pendingRequestsCount}
+          auditCount={(inventory || []).filter(i => i.auditRequired).length}
         />
       </div>
-      <div className="main-content-section">
-        <Inventory
-          items={inventory}
-          onTransferClick={handleOpenTransfer}
-          onValidateClick={handleValidateItem}
-          onReportMissing={handleReportMissing}
-        />
-      </div>
+
+      <EquipmentModal
+        isOpen={isEquipmentOpen}
+        onClose={() => setIsEquipmentOpen(false)}
+        items={inventory}
+        onTransferClick={handleOpenTransfer}
+        onValidateClick={handleValidateItem}
+        onReportMissing={handleReportMissing}
+      />
 
       <EditProfileModal
         isOpen={isProfileOpen}

@@ -1,11 +1,11 @@
 import React from 'react';
-import { Network, FileText, PackageCheck, Bell, Hexagon, ShoppingBag, Calendar, HandCoins, User, Forklift, ClipboardCheck, BarChart3, Gamepad2 } from 'lucide-react';
+import { Network, FileText, PackageCheck, Bell, Hexagon, ShoppingBag, Calendar, HandCoins, User, Forklift, ClipboardCheck, BarChart3, Gamepad2, Backpack } from 'lucide-react';
 import './ActionPanel.css';
 
-const ActionPanel = ({ 
-    onOrgChartClick, 
-    onRewardReportClick, 
-    onRequestsClick, 
+const ActionPanel = ({
+    onOrgChartClick,
+    onRewardReportClick,
+    onRequestsClick,
     onInventoryClick,
     onInboxClick,
     onShopClick,
@@ -16,106 +16,72 @@ const ActionPanel = ({
     onWarehouseOpsClick,
     onStockReportClick,
     onGamesClick,
+    onEquipmentClick,
     incomingCount = 0,
+    auditCount = 0,
     userHoney = 0
 }) => {
+    const groups = [
+        {
+            title: 'Робота',
+            actions: [
+                { label: 'Табель', icon: <Calendar size={14} />, color: '#60a5fa', onClick: onTimesheetClick },
+                { label: 'Погодження', icon: <ClipboardCheck size={14} />, color: '#22d3ee', onClick: onApprovalClick },
+                { label: 'Запити', icon: <FileText size={14} />, onClick: onRequestsClick },
+                { label: 'Винагороди', icon: <HandCoins size={14} />, onClick: onRewardReportClick },
+                { label: 'Структура', icon: <Network size={14} />, onClick: onOrgChartClick }
+            ]
+        },
+        {
+            title: 'Склад',
+            actions: [
+                { label: 'Операції', icon: <Forklift size={14} />, color: '#f97316', onClick: onWarehouseOpsClick },
+                { label: 'Залишки', icon: <BarChart3 size={14} />, color: '#a78bfa', onClick: onStockReportClick },
+                { label: 'Інвентаризація', icon: <PackageCheck size={14} />, onClick: onInventoryClick }
+            ]
+        },
+        {
+            title: 'Вулик',
+            actions: [
+                {
+                    label: userHoney.toLocaleString(),
+                    icon: <Hexagon size={14} color="var(--accent-gold)" fill="var(--accent-gold)" fillOpacity={0.3} />,
+                    color: 'var(--accent-gold)',
+                    bold: true,
+                    onClick: onSendHoneyClick
+                },
+                { label: 'Магазин', icon: <ShoppingBag size={14} />, color: '#10b981', onClick: onShopClick },
+                { label: 'Спорядження', icon: <Backpack size={14} />, badge: auditCount, onClick: onEquipmentClick },
+                { label: 'Вхідні', icon: <Bell size={14} />, badge: incomingCount, onClick: onInboxClick },
+                { label: 'Профіль', icon: <User size={14} />, color: '#8b5cf6', onClick: onProfileClick },
+                { label: 'Ігри', icon: <Gamepad2 size={14} />, color: '#ec4899', onClick: onGamesClick }
+            ]
+        }
+    ];
+
     return (
-        <div className="action-grid">
-            {/* Row 1 */}
-            <button className="action-btn" onClick={onSendHoneyClick}>
-                <div className="action-icon">
-                    <Hexagon size={12} color="var(--accent-gold)" fill="var(--accent-gold)" fillOpacity={0.3} />
+        <div className="action-panel">
+            {groups.map(group => (
+                <div className="action-section" key={group.title}>
+                    <div className="action-section-label">{group.title}</div>
+                    <div className="action-grid">
+                        {group.actions.map(action => (
+                            <button className="action-btn" key={action.label} onClick={action.onClick}>
+                                <div className="action-icon" style={action.color ? { color: action.color } : undefined}>
+                                    {action.icon}
+                                </div>
+                                <span
+                                    className="action-label"
+                                    style={action.color ? { color: action.color, fontWeight: action.bold ? 600 : undefined } : undefined}
+                                >
+                                    {action.label}
+                                </span>
+                                {action.badge > 0 && <span className="action-badge">{action.badge}</span>}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <span className="action-label" style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>
-                    {userHoney.toLocaleString()}
-                </span>
-            </button>
-
-            <button className="action-btn" onClick={onProfileClick}>
-                <div className="action-icon">
-                    <User size={12} color="#8b5cf6" />
-                </div>
-                <span className="action-label" style={{ color: '#8b5cf6' }}>Профіль</span>
-            </button>
-
-            <button className="action-btn" onClick={onShopClick}>
-                <div className="action-icon">
-                    <ShoppingBag size={12} color="#10b981" />
-                </div>
-                <span className="action-label" style={{ color: '#10b981' }}>Магазин</span>
-            </button>
-
-            <button className="action-btn" onClick={onInventoryClick}>
-                <div className="action-icon">
-                    <PackageCheck size={12} />
-                </div>
-                <span className="action-label">Інвентар</span>
-            </button>
-
-            <button className="action-btn" onClick={onInboxClick}>
-                <div className="action-icon">
-                    <Bell size={12} />
-                </div>
-                <span className="action-label">Вхідні</span>
-                {incomingCount > 0 && <span className="action-badge">{incomingCount}</span>}
-            </button>
-
-            {/* Row 2 */}
-            <button className="action-btn" onClick={onTimesheetClick}>
-                <div className="action-icon">
-                    <Calendar size={12} color="#60a5fa" />
-                </div>
-                <span className="action-label" style={{ color: '#60a5fa' }}>Табель</span>
-            </button>
-
-            <button className="action-btn" onClick={onApprovalClick}>
-                <div className="action-icon">
-                    <ClipboardCheck size={12} color="#22d3ee" />
-                </div>
-                <span className="action-label" style={{ color: '#22d3ee' }}>Погодження</span>
-            </button>
-
-            <button className="action-btn" onClick={onRewardReportClick}>
-                <div className="action-icon">
-                    <HandCoins size={12} />
-                </div>
-                <span className="action-label">Винагороди</span>
-            </button>
-
-            <button className="action-btn" onClick={onRequestsClick}>
-                <div className="action-icon">
-                    <FileText size={12} />
-                </div>
-                <span className="action-label">Запити</span>
-            </button>
-
-            <button className="action-btn" onClick={onOrgChartClick}>
-                <div className="action-icon">
-                    <Network size={12} />
-                </div>
-                <span className="action-label">Структура</span>
-            </button>
-
-            <button className="action-btn" onClick={onWarehouseOpsClick}>
-                <div className="action-icon">
-                    <Forklift size={12} color="#f97316" />
-                </div>
-                <span className="action-label" style={{ color: '#f97316' }}>Склад</span>
-            </button>
-
-            <button className="action-btn" onClick={onStockReportClick}>
-                <div className="action-icon">
-                    <BarChart3 size={12} color="#a78bfa" />
-                </div>
-                <span className="action-label" style={{ color: '#a78bfa' }}>Залишки</span>
-            </button>
-
-            <button className="action-btn" onClick={onGamesClick}>
-                <div className="action-icon">
-                    <Gamepad2 size={12} color="#ec4899" />
-                </div>
-                <span className="action-label" style={{ color: '#ec4899' }}>Ігри</span>
-            </button>
+            ))}
         </div>
     );
 };
