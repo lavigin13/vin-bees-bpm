@@ -1,16 +1,37 @@
-# React + Vite
+# VinBees BPM — портал працівника
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Гейміфікований застосунок працівника компанії: профіль у стилі RPG, внутрішня валюта («мед»), інвентар закріплених активів та корпоративні функції. Працює на телефоні, планшеті й десктопі (адаптивна верстка). Бекенд — 1C ERP, доступ через REST API з Basic Auth.
 
-Currently, two official plugins are available:
+## Функції
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Профіль** — аватар, рівень/XP, редагування особистих даних
+- **Табель** — облік робочого часу по днях, погодження табелів підлеглих
+- **Запити** — заявки (обладнання, ліцензії тощо) з погодженням керівником
+- **Винагороди** — звіт по зарплаті/винагородах, питання до звіту
+- **Склад** — інвентаризація зі сканером штрихкодів, прийом замовлень постачальників, видача внутрішніх замовлень, звіт по залишках з експортом в Excel
+- **Структура** — оргструктура компанії з пошуком
+- **Мед і маркетплейс** — переказ валюти колегам, купівля/продаж предметів, передача активів
+- **Ігри** — міні-гра Bee Invaders з таблицею лідерів
 
-## React Compiler
+## Запуск
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev      # дев-сервер з проксі на https://bpm.bees.vin
+npm run build    # продакшн-збірка в dist/
+npm run lint     # ESLint
+```
 
-## Expanding the ESLint configuration
+## Архітектура
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `src/App.jsx` — кореневий компонент: автентифікація, глобальний стан, відкриття модалок
+- `src/components/` — екрани-модалки (кожна функція = окрема модалка + CSS)
+- `src/services/api.js` — усі виклики API (Basic Auth, обробка 401 через подію `auth:unauthorized`)
+- `src/services/env.js` — базовий URL API (`/VinBeesERP/hs/API`, проксюється у [vite.config.js](vite.config.js))
+- `API_SPEC.md` — специфікація REST API бекенда
+
+Важкі залежності (`xlsx`, `html5-qrcode`, гра) підвантажуються динамічно і не входять у початковий бандл.
+
+## Стек
+
+React 19, Vite 5, lucide-react (іконки), SheetJS (експорт Excel), html5-qrcode (сканер).

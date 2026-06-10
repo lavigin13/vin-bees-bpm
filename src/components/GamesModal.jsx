@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { X, Gamepad2, ArrowLeft } from 'lucide-react';
-import BeeInvadersGame from './BeeInvadersGame';
 import './GamesModal.css';
+
+// The game (canvas loop, audio engine, sprites) is heavy — load it only when opened.
+const BeeInvadersGame = lazy(() => import('./BeeInvadersGame'));
 
 const GamesModal = ({ isOpen, onClose }) => {
     const [selectedGame, setSelectedGame] = useState(null);
 
-    // Reset view when modal closes or opens
-    useEffect(() => {
-        if (!isOpen) {
-            setSelectedGame(null);
-        }
-    }, [isOpen]);
+    const handleClose = () => {
+        setSelectedGame(null);
+        onClose();
+    };
 
     if (!isOpen) return null;
 
     return (
-        <div className="games-modal-overlay" onClick={onClose}>
+        <div className="games-modal-overlay" onClick={handleClose}>
             <div className="games-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="games-header">
                     <h2><Gamepad2 size={20} color="var(--accent-gold)" /> Ігри</h2>
-                    <button className="close-btn" onClick={onClose}>
+                    <button className="close-btn" onClick={handleClose}>
                         <X size={24} />
                     </button>
                 </div>
@@ -31,7 +31,9 @@ const GamesModal = ({ isOpen, onClose }) => {
                             <button className="back-to-games-btn" onClick={() => setSelectedGame(null)}>
                                 <ArrowLeft size={16} /> Назад до списку
                             </button>
-                            <BeeInvadersGame />
+                            <Suspense fallback={<div className="games-list">Завантаження гри…</div>}>
+                                <BeeInvadersGame />
+                            </Suspense>
                         </>
                     ) : (
                         <div className="games-list">

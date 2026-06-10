@@ -41,7 +41,10 @@ const getHeaders = () => {
  */
 const apiFetch = async (url, options = {}) => {
     const response = await fetch(url, { redirect: 'follow', ...options });
-    if (response.url && response.url !== url) {
+    // response.url is always absolute — resolve the requested URL the same way,
+    // otherwise relative paths would be flagged as "redirects" on every call.
+    const requestedUrl = new URL(url, window.location.href).href;
+    if (response.url && response.url !== requestedUrl) {
         console.warn(`[API] Redirected: ${url} → ${response.url}. Authorization header may have been dropped by the browser.`);
     }
     if (response.status === 401) {
@@ -67,14 +70,12 @@ export const loginUser = async (username, password) => {
     return true;
 };
 
-// ... existing functions ...
-
 export const fetchProfile = async () => {
     try {
         const response = await apiFetch(`${API_BASE_URL}/profile`, { method: 'GET', headers: getHeaders() });
         if (!response.ok) throw new Error('API Error');
         return await response.json();
-    } catch (e) { return null; }
+    } catch { return null; }
 };
 
 export const fetchInventory = async () => {
@@ -82,7 +83,7 @@ export const fetchInventory = async () => {
         const response = await apiFetch(`${API_BASE_URL}/inventory`, { method: 'GET', headers: getHeaders() });
         if (!response.ok) throw new Error('API Error');
         return await response.json();
-    } catch (e) { return null; }
+    } catch { return null; }
 };
 
 export const updateProfile = async (profileData) => {
@@ -253,55 +254,6 @@ export const createListing = async (itemData) => {
     }
 };
 
-// --- Business Trips ---
-
-export const fetchTrips = async () => {
-    const headers = getHeaders();
-    try {
-        const response = await apiFetch(`${API_BASE_URL}/trips`, { method: 'GET', headers: headers });
-        if (!response.ok) {
-            console.warn('Trips API not ready');
-            return null;
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to fetch trips:', error);
-        return null;
-    }
-};
-
-export const createOrUpdateTrip = async (tripData) => {
-    const headers = getHeaders();
-    try {
-        const response = await apiFetch(`${API_BASE_URL}/trips`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(tripData)
-        });
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error('Save trip failed:', error);
-        throw error;
-    }
-};
-
-export const submitTrip = async (tripId) => {
-    const headers = getHeaders();
-    try {
-        const response = await apiFetch(`${API_BASE_URL}/trips/submit`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({ tripId })
-        });
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error('Submit trip failed:', error);
-        throw error;
-    }
-};
-
 // --- Requests ---
 
 export const fetchRequests = async (view = 'my') => {
@@ -435,7 +387,7 @@ export const deleteTimesheetReport = async (dateStr) => {
             try {
                 const errorData = await response.json();
                 if (errorData.message) errorMsg = errorData.message;
-            } catch (e) {
+            } catch {
                 // Ignore parse error
             }
             throw new Error(errorMsg);
@@ -596,83 +548,6 @@ export const saveWarehouseInventory = async (inventoryData) => {
     }
 };
 
-// --- Warehouse Operations ---
-
-export const fetchWarehouses = async () => {
-    const headers = getHeaders();
-    try {
-        const response = await apiFetch(`${API_BASE_URL}/warehouses`, { method: 'GET', headers });
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to fetch warehouses:', error);
-        return [];
-    }
-};
-
-export const fetchWarehouseOperations = async (month) => {
-    // month: 'YYYY-MM'
-    const headers = getHeaders();
-    try {
-        const response = await apiFetch(`${API_BASE_URL}/WarehouseOperations/list?month=${month}`, {
-            method: 'GET',
-            headers
-        });
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to fetch warehouse operations:', error);
-        return [];
-    }
-};
-
-export const fetchNomenclature = async (warehouseId) => {
-    const headers = getHeaders();
-    try {
-        const response = await apiFetch(
-            `${API_BASE_URL}/nomenclature?warehouses=${warehouseId}`,
-            { method: 'GET', headers }
-        );
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to fetch nomenclature:', error);
-        return [];
-    }
-};
-
-export const fetchNomenclatureSpec = async (warehouseId) => {
-    const headers = getHeaders();
-    try {
-        const response = await apiFetch(
-            `${API_BASE_URL}/nomenclature/specification?warehouses=${warehouseId}`,
-            { method: 'GET', headers }
-        );
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to fetch nomenclature specification:', error);
-        return [];
-    }
-};
-
-export const saveWarehouseOperation = async (operationData) => {
-    // operationData: { id: '', Warehouse: '', Operation: '', products: [{ id: '', count: 1 }] }
-    const headers = getHeaders();
-    try {
-        const response = await apiFetch(`${API_BASE_URL}/WarehouseOperations/update`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(operationData)
-        });
-        if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to save warehouse operation:', error);
-        throw error;
-    }
-};
-
 // --- Supplier Orders Receiving (Прийом замовлень постачальнику на складі) ---
 //
 // ⚠️ Backend contracts below are ASSUMED — adjust endpoints/shapes once the
@@ -776,8 +651,7 @@ const MOCK_SUPPLIER_ORDERS = () => ({
     ],
 });
 
-export const fetchSupplierOrders = async (filters = {}) => {
-    // filters (all optional): { search, status, warehouse }
+export const fetchSupplierOrders = async () => {
     const headers = getHeaders();
     const useMock = supplierOrdersMockEnabled();
     try {
@@ -913,14 +787,14 @@ const MOCK_INTERNAL_ORDERS = () => ({
     ]
 });
 
-export const fetchInternalOrders = async (filters = {}) => {
+export const fetchInternalOrders = async () => {
     const headers = getHeaders();
     try {
         const response = await apiFetch(`${API_BASE_URL}/InternalOrders`, { method: 'GET', headers });
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         const data = await response.json();
         return { orders: data.orders || [], statuses: data.statuses || [] };
-    } catch (error) {
+    } catch {
         console.warn('[InternalOrders] Using mock data (backend unavailable)');
         return MOCK_INTERNAL_ORDERS();
     }
@@ -937,7 +811,7 @@ export const saveInternalOrderIssuing = async (payload) => {
         });
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return await response.json();
-    } catch (error) {
+    } catch {
         console.warn('[InternalOrders] Mock save (backend unavailable):', payload);
         return { success: true };
     }

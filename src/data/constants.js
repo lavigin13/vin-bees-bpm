@@ -1,26 +1,3 @@
-export const RECIPES = [
-    {
-        id: 'power_pack',
-        name: "Блок живлення",
-        outputItem: { name: "Блок живлення", rarity: "Rare", icon: "battery", type: "equipment", quantity: 1 },
-        ingredients: [
-            { name: "Елемент живлення", quantity: 5 },
-            { name: "Металобрухт", quantity: 2 }
-        ]
-    },
-    {
-        id: 'super_computer',
-        name: "Суперкомп'ютер",
-        outputItem: { name: "Суперкомп'ютер", rarity: "Legendary", icon: "cpu", type: "equipment", quantity: 1 },
-        ingredients: [
-            { name: "Друкована плата", quantity: 3 },
-            { name: "Металобрухт", quantity: 10 }
-        ]
-    }
-];
-
-
-
 export const DAY_TYPES = [
     "Work",
     "Vacation",

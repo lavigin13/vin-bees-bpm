@@ -151,7 +151,7 @@ class AudioEngine {
                         this.introNodes = null;
                     }
                 }, 500);
-            } catch (e) {
+            } catch {
                 this.introNodes = null;
             }
         }

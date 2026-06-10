@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hexagon, Award, Bell, ShoppingBag, Send, Network, Rocket, Calendar, PackageCheck, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import ActionPanel from './ActionPanel';
 import './HeroProfile.css';
 
@@ -58,7 +58,6 @@ const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgC
                 onGamesClick={onGamesClick}
                 incomingCount={incomingCount}
                 userHoney={user.honey}
-                timesheetStats="15 / 22"
             />
         </div>
     );

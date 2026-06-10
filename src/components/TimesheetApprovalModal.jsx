@@ -58,6 +58,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
         if (isOpen) {
             loadSubordinateData();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the modal opens or the month changes
     }, [currentDate, isOpen]);
 
     const loadSubordinateData = async () => {
@@ -105,7 +106,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
         const employee = subordinateData[employeeId];
         if (!employee) return;
         const employeeReports = Object.entries(employee.reports)
-            .filter(([_, r]) => r.status === 'pending')
+            .filter(([, r]) => r.status === 'pending')
             .map(([date]) => ({ employeeId, date }));
         const allSelected = employeeReports.every(r =>
             selectedReports.find(sr => sr.employeeId === r.employeeId && sr.date === r.date)
@@ -271,12 +272,12 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                         .sort(([aDate], [bDate]) => aDate.localeCompare(bDate));
                                     const filteredReports = statusFilter === 'all'
                                         ? allReports
-                                        : allReports.filter(([_, r]) => r.status === statusFilter);
+                                        : allReports.filter(([, r]) => r.status === statusFilter);
 
                                     if (filteredReports.length === 0) return null;
 
-                                    const totalRegular = allReports.reduce((sum, [_, r]) => sum + (r.regularHours || 0), 0);
-                                    const totalOvertime = allReports.reduce((sum, [_, r]) => sum + (r.overtimeHours || 0), 0);
+                                    const totalRegular = allReports.reduce((sum, [, r]) => sum + (r.regularHours || 0), 0);
+                                    const totalOvertime = allReports.reduce((sum, [, r]) => sum + (r.overtimeHours || 0), 0);
                                     const allSelected = filteredReports.every(([date]) =>
                                         selectedReports.find(r => r.employeeId === employee.id && r.date === date)
                                     );
@@ -375,7 +376,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                     const reportsByTopWeek = {};
                                     Object.values(subordinateData).forEach(employee => {
                                         const sortedReports = Object.entries(employee.reports || {}).sort(([a], [b]) => a.localeCompare(b));
-                                        const filteredReports = statusFilter === 'all' ? sortedReports : sortedReports.filter(([_, r]) => r.status === statusFilter);
+                                        const filteredReports = statusFilter === 'all' ? sortedReports : sortedReports.filter(([, r]) => r.status === statusFilter);
                                         filteredReports.forEach(([date, report]) => {
                                             const weekNumber = getWeekOfMonth(date);
                                             const weekKey = `week_${weekNumber}`;
@@ -412,7 +413,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                     <div className="group-items">
                                                         {weekEmployees.map(({ employee, items }) => {
                                                             const dates = items.map(([date]) => date);
-                                                            const pendingDates = items.filter(([_, r]) => r.status === 'pending').map(([d]) => d);
+                                                            const pendingDates = items.filter(([, r]) => r.status === 'pending').map(([d]) => d);
                                                             const allEmployeeWeekSelected = pendingDates.length > 0 && pendingDates.every(date =>
                                                                 selectedReports.some(r => r.employeeId === employee.id && r.date === date)
                                                             );

@@ -14,7 +14,7 @@ const iconMap = {
     default: Package
 };
 
-const Inventory = ({ items = [], onCraftClick, onTransferClick, onValidateClick, onReportMissing }) => {
+const Inventory = ({ items = [], onTransferClick, onValidateClick, onReportMissing }) => {
     const [activeTab, setActiveTab] = useState('equipment');
 
     const filteredItems = (items || []).filter(item => item.type === activeTab);

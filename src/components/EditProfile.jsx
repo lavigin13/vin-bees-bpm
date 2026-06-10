@@ -23,12 +23,6 @@ const EditProfile = ({ user, onSave }) => {
         onSave(formData);
     };
 
-    const formatDateForDisplay = (isoDate) => {
-        if (!isoDate) return '';
-        const [year, month, day] = isoDate.split('-');
-        return `${day}.${month}.${year}`;
-    };
-
     return (
         <div className="edit-profile-container">
             <h2 className="section-title">Лист Персонажа</h2>

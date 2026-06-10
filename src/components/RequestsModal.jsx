@@ -39,6 +39,7 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
             // Trigger fetch for initial filter
             onViewChange(initialFilter);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- onViewChange is an inline callback from App; re-run only on open
     }, [isOpen, initialFilter]);
 
     const handleFilterChange = (newFilter) => {

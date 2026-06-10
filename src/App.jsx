@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react';
 import HeroProfile from './components/HeroProfile';
 import Inventory from './components/Inventory';
-import EditProfile from './components/EditProfile';
 import EditProfileModal from './components/EditProfileModal';
-import CraftingModal from './components/CraftingModal';
 import TransferModal from './components/TransferModal';
 import InboxModal from './components/InboxModal';
 import ShopModal from './components/ShopModal';
 import CreateListingModal from './components/CreateListingModal';
 import SendHoneyModal from './components/SendHoneyModal';
 import OrgChartModal from './components/OrgChartModal';
-import BusinessTripsModal from './components/BusinessTripsModal';
 import TimesheetModal from './components/TimesheetModal';
 import TimesheetApprovalModal from './components/TimesheetApprovalModal';
 import RequestsModal from './components/RequestsModal';
@@ -19,21 +16,30 @@ import WarehouseInventoryModal from './components/WarehouseInventoryModal';
 import WarehouseOperationsModal from './components/WarehouseOperationsModal';
 import RemainingItemsModal from './components/RemainingItemsModal';
 import AuthPage from './components/AuthPage';
-import ComingSoonModal from './components/ComingSoonModal';
 import GamesModal from './components/GamesModal';
 
 import {
   fetchProfile, fetchInventory, updateProfile, sendAuditResult, transferHoney,
   transferItem, getMarketplaceItems, buyItem, createListing, fetchPendingTransfers,
-  respondToTransfer, fetchColleagues, fetchTrips, createOrUpdateTrip, submitTrip, respondToRequest,
+  respondToTransfer, fetchColleagues, respondToRequest,
   saveWarehouseInventory, fetchRequests, createOrUpdateRequest, submitRequest
 } from './services/api';
 
-import { RECIPES } from './data/constants';
-
 import './index.css';
-import { Coins, LogOut } from 'lucide-react';
 
+// Fetch "my" and "subordinates" requests in parallel and merge them into one
+// list deduplicated by id.
+const loadAllRequests = async () => {
+  const [myRequests, subRequests] = await Promise.all([
+    fetchRequests('my'),
+    fetchRequests('subordinates')
+  ]);
+  const allRequests = [
+    ...(Array.isArray(myRequests) ? myRequests : []),
+    ...(Array.isArray(subRequests) ? subRequests : [])
+  ];
+  return Array.from(new Map(allRequests.map(item => [item.id, item])).values());
+};
 
 const App = () => {
   // Check for saved Basic Auth token
@@ -45,7 +51,6 @@ const App = () => {
   const [user, setUser] = useState(null);
   const [inventory, setInventory] = useState(null);
   const [colleagues, setColleagues] = useState([]);
-  const [isCraftingOpen, setIsCraftingOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Transfer State
@@ -68,13 +73,8 @@ const App = () => {
   // Profile Settings State
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Business Trips State
-  const [isTripsOpen, setIsTripsOpen] = useState(false);
-  const [trips, setTrips] = useState([]);
-
   // Timesheet State
   const [isTimesheetOpen, setIsTimesheetOpen] = useState(false);
-  const [dailyReports, setDailyReports] = useState({});
 
   // Requests State
   const [isRequestsOpen, setIsRequestsOpen] = useState(false);
@@ -96,17 +96,8 @@ const App = () => {
   // Reward Report State
   const [isRewardReportOpen, setIsRewardReportOpen] = useState(false);
 
-  // Coming Soon State
-  const [isComingSoonOpen, setIsComingSoonOpen] = useState(false);
-  const [comingSoonFeature, setComingSoonFeature] = useState('');
-
   // Games State
   const [isGamesOpen, setIsGamesOpen] = useState(false);
-
-  const handleComingSoon = (featureName) => {
-    setComingSoonFeature(featureName);
-    setIsComingSoonOpen(true);
-  };
 
   // Helper to count pending requests (simulated for team members)
   const pendingRequestsCount = (requests || []).filter(r => {
@@ -130,52 +121,42 @@ const App = () => {
 
   // Refresh requests when modal opens
   useEffect(() => {
-    if (isRequestsOpen) {
-      const refreshRequests = async () => {
-        try {
-          const myRequests = await fetchRequests('my');
-          const subRequests = await fetchRequests('subordinates');
-          const allRequests = [
-            ...(myRequests || []),
-            ...(subRequests || [])
-          ];
-          const uniqueRequests = Array.from(new Map(allRequests.map(item => [item.id, item])).values());
-          if (uniqueRequests.length > 0) {
-            setRequests(uniqueRequests);
-          }
-        } catch (e) {
-          console.error("Failed to refresh requests", e);
+    if (!isRequestsOpen) return;
+    loadAllRequests()
+      .then(uniqueRequests => {
+        if (uniqueRequests.length > 0) {
+          setRequests(uniqueRequests);
         }
-      };
-      refreshRequests();
-    }
+      })
+      .catch(e => console.error("Failed to refresh requests", e));
   }, [isRequestsOpen]);
 
   useEffect(() => {
-    // Fetch Data from API
+    if (!isAuthenticated) return;
+
+    // Initial data load: all sections are independent, so fetch them in
+    // parallel — on slow mobile connections sequential requests add up fast.
     const loadData = async () => {
       setIsLoading(true);
 
       try {
-        let profileData = null;
-        try {
-          profileData = await fetchProfile();
-        } catch (e) {
-          console.warn("Failed to fetch profile", e);
-        }
+        const [profileData, marketData, inventoryData, pendingTransfers, colleaguesData, uniqueRequests] =
+          await Promise.all([
+            fetchProfile().catch(e => { console.warn("Failed to fetch profile", e); return null; }),
+            getMarketplaceItems().catch(e => { console.warn("Failed to load marketplace", e); return null; }),
+            fetchInventory().catch(e => { console.warn("Failed to load inventory", e); return null; }),
+            fetchPendingTransfers().catch(e => { console.warn("Failed to load pending transfers", e); return null; }),
+            fetchColleagues().catch(e => { console.warn("Failed to load colleagues", e); return null; }),
+            loadAllRequests().catch(e => { console.warn("Failed to load requests", e); return []; })
+          ]);
 
-        // Load Marketplace
-        try {
-          const marketData = await getMarketplaceItems();
-          if (marketData) {
-            setMarketplaceItems(marketData);
-          } else {
-            setMarketplaceItems([]);
-          }
-        } catch (e) {
-          console.warn("Failed to load marketplace", e);
-          setMarketplaceItems([]);
+        setMarketplaceItems(marketData || []);
+        setInventory(inventoryData || []);
+        setIncomingTransfers(pendingTransfers || []);
+        if (colleaguesData) {
+          setColleagues(colleaguesData);
         }
+        setRequests(uniqueRequests);
 
         if (profileData) {
           // Normalize birthday to YYYY-MM-DD
@@ -198,81 +179,6 @@ const App = () => {
             children: typeof profileData.children !== 'undefined' ? Number(profileData.children) : (prev?.children || 0)
           }));
         }
-
-
-        try {
-          const inventoryData = await fetchInventory();
-          if (inventoryData) {
-            setInventory(inventoryData);
-          } else {
-            setInventory([]);
-          }
-        } catch (e) {
-          console.warn("Failed to load inventory", e);
-          setInventory([]);
-        }
-
-        try {
-          const pendingTransfers = await fetchPendingTransfers();
-          if (pendingTransfers) {
-            setIncomingTransfers(pendingTransfers);
-          } else {
-            setIncomingTransfers([]);
-          }
-        } catch (e) {
-          console.warn("Failed to load pending transfers", e);
-          setIncomingTransfers([]);
-        }
-
-        try {
-          const colleaguesData = await fetchColleagues();
-          if (colleaguesData) {
-            setColleagues(colleaguesData);
-          }
-        } catch (e) {
-          console.warn("Failed to load colleagues", e);
-        }
-
-        // Load Trips
-        try {
-          const tripsData = await fetchTrips();
-          if (tripsData) {
-            setTrips(tripsData);
-          } else {
-            setTrips([]);
-          }
-        } catch (e) {
-          console.warn("Failed to load trips", e);
-          setTrips([]);
-        }
-
-        // Load Requests
-        let myRequests = [];
-        let subRequests = [];
-        try {
-          const myReqRes = await fetchRequests('my');
-          if (myReqRes) myRequests = myReqRes;
-
-          const subReqRes = await fetchRequests('subordinates');
-          if (subReqRes) subRequests = subReqRes;
-        } catch (e) {
-          console.warn("Failed to load requests", e);
-        }
-
-        const allRequests = [
-          ...(Array.isArray(myRequests) ? myRequests : []),
-          ...(Array.isArray(subRequests) ? subRequests : [])
-        ];
-
-        // Remove duplicates by ID just in case
-        const uniqueRequests = Array.from(new Map(allRequests.map(item => [item.id, item])).values());
-
-        if (uniqueRequests.length > 0) {
-          setRequests(uniqueRequests);
-        } else {
-          setRequests([]);
-        }
-
       } catch (e) {
         console.error("Error loading data", e);
       } finally {
@@ -280,10 +186,7 @@ const App = () => {
       }
     };
 
-    if (isAuthenticated) {
-      loadData();
-    }
-
+    loadData();
   }, [isAuthenticated]);
 
   // If not authenticated, render Auth Page
@@ -328,43 +231,6 @@ const App = () => {
       const errorMessage = error.message || 'Unknown error';
       alert(`Не вдалося зберегти профіль: ${errorMessage}`);
     }
-  };
-
-  const handleCraft = (recipe, craftQuantity, consumedMaterials, additionalCost) => {
-    // 1. Deduct Ingredients (using custom consumed amounts)
-    const newInventory = inventory.map(item => {
-      const consumedAmount = consumedMaterials[item.name];
-      if (consumedAmount) {
-        return { ...item, quantity: item.quantity - consumedAmount };
-      }
-      return item;
-    }).filter(item => item.quantity > 0);
-
-    // 2. Add Output Item (multiplied by quantity)
-    const existingItemIndex = newInventory.findIndex(i => i.name === recipe.outputItem.name);
-    if (existingItemIndex >= 0) {
-      newInventory[existingItemIndex].quantity += (recipe.outputItem.quantity * craftQuantity);
-    } else {
-      newInventory.push({
-        id: Date.now(),
-        ...recipe.outputItem,
-        quantity: recipe.outputItem.quantity * craftQuantity
-      });
-    }
-
-    setInventory(newInventory);
-
-    // 3. Mock Server Request
-    console.log("Sending Craft Request to Server:", {
-      recipeId: recipe.id,
-      craftQuantity: craftQuantity,
-      consumedMaterials: consumedMaterials,
-      additionalCost: additionalCost,
-      timestamp: new Date().toISOString()
-    });
-
-    const message = `Створено ${craftQuantity}x ${recipe.outputItem.name}! Запит надіслано.`;
-    alert(message);
   };
 
   // --- Transfer Logic ---
@@ -460,7 +326,8 @@ const App = () => {
     // 1. Optimistic Update (UI responds immediately)
     const newInventory = inventory.map(i => {
       if (i.id === item.id) {
-        const { auditRequired, ...rest } = i; // Remove flag
+        const rest = { ...i };
+        delete rest.auditRequired;
         return rest;
       }
       return i;
@@ -585,64 +452,6 @@ const App = () => {
     alert(message);
   };
 
-  // --- Trips Logic ---
-
-  const handleSaveTrip = async (trip) => {
-    // 1. Optimistic Update or Local State
-    setTrips(prev => {
-      const exists = prev.find(t => t.id === trip.id);
-      if (exists) {
-        return prev.map(t => t.id === trip.id ? trip : t);
-      }
-      return [...prev, trip];
-    });
-
-    // 2. API Call
-    try {
-      await createOrUpdateTrip(trip);
-      console.log("Trip saved successfully.");
-    } catch (e) {
-      console.error("Failed to save trip", e);
-      alert("Не вдалося зберегти відрядження.");
-    }
-  };
-
-  const handleSubmitTrip = async (trip) => {
-    // 1. Update status locally
-    const updatedTrip = { ...trip, status: 'pending' };
-    setTrips(prev => prev.map(t => t.id === trip.id ? updatedTrip : t));
-
-    // 2. API Call
-    try {
-      // If it's a new trip, save it first? Assuming API handles update-then-submit or we just submit ID
-      if (String(trip.id).startsWith('new_')) {
-        // Usually backend replaces temp ID, but for now we just save content
-        await createOrUpdateTrip(updatedTrip);
-      } else {
-        await createOrUpdateTrip(updatedTrip); // Ensure latest changes are saved
-        await submitTrip(trip.id);
-      }
-
-      alert("Відрядження подано на затвердження!");
-    } catch (e) {
-      console.error("Failed to submit trip", e);
-      alert("Не вдалося подати відрядження.");
-    }
-  };
-
-  // --- Timesheet Logic ---
-
-  const handleSaveDailyReport = (dateStr, reportData) => {
-    setDailyReports(prev => ({
-      ...prev,
-      [dateStr]: reportData
-    }));
-
-    // In a real app: await api.saveDailyReport(dateStr, reportData);
-
-    console.log("Daily report saved.");
-  };
-
   // --- Requests Logic ---
 
   const handleSaveRequest = async (req) => {
@@ -742,10 +551,6 @@ const App = () => {
     }
   };
 
-  const handleOpenRewardReportModal = () => {
-    setIsRewardReportOpen(true);
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     setIsAuthenticated(false);
@@ -776,27 +581,17 @@ const App = () => {
       <div className="main-content-section">
         <Inventory
           items={inventory}
-          onCraftClick={() => setIsCraftingOpen(true)}
           onTransferClick={handleOpenTransfer}
           onValidateClick={handleValidateItem}
           onReportMissing={handleReportMissing}
         />
       </div>
 
-      <EditProfileModal 
-        isOpen={isProfileOpen} 
-        onClose={() => setIsProfileOpen(false)} 
-        user={user} 
-        onSave={handleSaveProfile} 
-      />
-
-
-      <CraftingModal
-        isOpen={isCraftingOpen}
-        onClose={() => setIsCraftingOpen(false)}
-        recipes={RECIPES}
-        inventory={inventory}
-        onCraft={handleCraft}
+      <EditProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
+        onSave={handleSaveProfile}
       />
 
       <TransferModal
@@ -850,14 +645,6 @@ const App = () => {
         colleagues={colleagues}
       />
 
-      <BusinessTripsModal
-        isOpen={isTripsOpen}
-        onClose={() => setIsTripsOpen(false)}
-        trips={trips}
-        onSave={handleSaveTrip}
-        onSubmit={handleSubmitTrip}
-      />
-
       <RequestsModal
         isOpen={isRequestsOpen}
         onClose={() => setIsRequestsOpen(false)}
@@ -881,8 +668,6 @@ const App = () => {
       <TimesheetModal
         isOpen={isTimesheetOpen}
         onClose={() => setIsTimesheetOpen(false)}
-        dailyReports={dailyReports}
-        onSaveReport={handleSaveDailyReport}
       />
 
       <TimesheetApprovalModal
@@ -911,13 +696,7 @@ const App = () => {
         onClose={() => setIsRewardReportOpen(false)}
       />
 
-      <ComingSoonModal
-        isOpen={isComingSoonOpen}
-        onClose={() => setIsComingSoonOpen(false)}
-        featureName={comingSoonFeature}
-      />
-
-      <GamesModal 
+      <GamesModal
         isOpen={isGamesOpen}
         onClose={() => setIsGamesOpen(false)}
       />

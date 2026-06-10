@@ -18,6 +18,7 @@ const RewardReportModal = ({ isOpen, onClose }) => {
         if (isOpen) {
             loadReport();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the modal opens or the view changes
     }, [isOpen, viewMode]);
 
     const loadReport = async () => {

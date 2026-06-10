@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Loader2, Warehouse, ChevronDown, Search, Download, BarChart3, Package, Check } from 'lucide-react';
 import { fetchRemainingItems } from '../services/api';
-import * as XLSX from 'xlsx';
 import './RemainingItemsModal.css';
 
 // ─────────────────────────────────────────
 //  Excel export (.xlsx via SheetJS)
+//  SheetJS is heavy, so it is loaded on demand the first time the user exports.
 // ─────────────────────────────────────────
 const exportToExcel = async (grouped) => {
+    const XLSX = await import('xlsx');
     const rows = [];
 
     grouped.forEach(({ warehouseName, products }) => {
@@ -160,6 +161,7 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
         if (isOpen && !hasLoaded) {
             loadReport();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the modal opens
     }, [isOpen]);
 
     const loadReport = async () => {

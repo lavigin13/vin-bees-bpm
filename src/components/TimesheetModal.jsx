@@ -35,6 +35,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
         if (isOpen) {
             loadMonthData();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the modal opens or the month changes
     }, [currentDate, isOpen]);
 
     const loadMonthData = async () => {

@@ -38,7 +38,6 @@ const BeeInvadersGame = () => {
     const joystickBaseRef = useRef(null);
     const joystickThumbRef = useRef(null);
     const [score, setScore] = useState(0);
-    const [level, setLevel] = useState(1);
     const [lives, setLives] = useState(3);
     const [gameOver, setGameOver] = useState(false);
     const [gameStarted, setGameStarted] = useState(false);
@@ -108,7 +107,7 @@ const BeeInvadersGame = () => {
         loadImg('/assets/grusha.png', 'grusha');
     }, []);
 
-    // Intro Cutscene Flow
+    // Intro Cutscene Flow (beginGameplay is a hoisted function declaration below)
     useEffect(() => {
         let timer;
         if (introStep === 1) {
@@ -120,6 +119,7 @@ const BeeInvadersGame = () => {
             }, 2000); // 2 seconds on slide 2
         }
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- beginGameplay only touches refs/setters and is stable in practice
     }, [introStep]);
 
     const startIntro = async () => {
@@ -136,11 +136,11 @@ const BeeInvadersGame = () => {
         beginGameplay();
     };
 
-    const beginGameplay = () => {
+    // Function declaration so the intro effect above can reference it (hoisted)
+    function beginGameplay() {
         setGameOver(false);
         setGameStarted(true);
         setScore(0);
-        setLevel(1);
         setLives(3);
         setCombo(0);
         setBombs(1);
@@ -251,7 +251,8 @@ const BeeInvadersGame = () => {
         };
     }, []);
 
-    const activateBomb = () => {
+    // Function declaration so the keyboard effect above can reference it (hoisted)
+    function activateBomb() {
         const state = gameState.current;
         if (state.isGameOver || !state.bombs || state.bombs <= 0 || state.bombActive) return;
         
@@ -319,7 +320,6 @@ const BeeInvadersGame = () => {
         const waveLevel = state.wave;
         if (waveLevel !== state.level) {
             state.level = waveLevel;
-            setLevel(waveLevel);
         }
 
         const currentEnemySpeed = Math.min(2.4, 1.2 + (state.level - 1) * 0.2);

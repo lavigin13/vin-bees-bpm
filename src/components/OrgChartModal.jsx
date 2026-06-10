@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Network, Search, Users, X } from 'lucide-react';
 import './CraftingModal.css';
 import './OrgChartModal.css';
@@ -12,9 +12,20 @@ const sortByName = (a, b) => String(a.name || '').localeCompare(String(b.name ||
 
 const VirtualizedList = ({ items, onNodeClick, childrenCountById, emptyText }) => {
     const [scrollTop, setScrollTop] = useState(0);
+    const viewportRef = useRef(null);
+
+    // Reset the virtual window when the list changes (state adjusted during
+    // render per React docs; the DOM scroll position is synced in the effect).
+    const [prevItems, setPrevItems] = useState(items);
+    if (prevItems !== items) {
+        setPrevItems(items);
+        setScrollTop(0);
+    }
 
     useEffect(() => {
-        setScrollTop(0);
+        if (viewportRef.current) {
+            viewportRef.current.scrollTop = 0;
+        }
     }, [items]);
 
     if (!items.length) {
@@ -30,6 +41,7 @@ const VirtualizedList = ({ items, onNodeClick, childrenCountById, emptyText }) =
 
     return (
         <div
+            ref={viewportRef}
             className="org-list-viewport"
             style={{ height: viewportHeight }}
             onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
@@ -110,13 +122,13 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
 
     const defaultRoot = graph.rootNodes[0] || graph.allNodes[0] || null;
 
-    useEffect(() => {
-        if (!isOpen) {
-            return;
-        }
+    // Reset navigation on close; while currentNodeId is null the view falls
+    // back to defaultRoot, so the next open always starts from the top.
+    const handleClose = () => {
         setSearchInput('');
-        setCurrentNodeId(defaultRoot?.id ?? null);
-    }, [isOpen, defaultRoot?.id]);
+        setCurrentNodeId(null);
+        onClose();
+    };
 
     const currentNode = graph.nodesById.get(currentNodeId) || defaultRoot;
     const directReports = currentNode ? graph.childrenById.get(currentNode.id) || [] : [];
@@ -168,14 +180,14 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
     const hasMultipleTopLeaders = topLeaders.length > 1;
 
     return (
-        <div className="modal-overlay" style={{ zIndex: 1400 }} onClick={onClose}>
+        <div className="modal-overlay" style={{ zIndex: 1400 }} onClick={handleClose}>
             <div className="modal-content org-content" onClick={(event) => event.stopPropagation()}>
                 <div className="org-header">
                     <h2 className="modal-title">
                         <Network size={18} className="text-gold" />
                         <span>Структура організації</span>
                     </h2>
-                    <button className="close-btn" onClick={onClose} type="button">
+                    <button className="close-btn" onClick={handleClose} type="button">
                         <X size={24} />
                     </button>
                 </div>

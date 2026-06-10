@@ -11,15 +11,14 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Reset state when modal opens/closes
-    useEffect(() => {
-        if (!isOpen) {
-            setSearchTerm('');
-            setIsDropdownOpen(false);
-            setSelectedColleagueId('');
-            setAmount('');
-        }
-    }, [isOpen]);
+    // Reset state on close so the form is fresh next time
+    const handleClose = () => {
+        setSearchTerm('');
+        setIsDropdownOpen(false);
+        setSelectedColleagueId('');
+        setAmount('');
+        onClose();
+    };
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -54,9 +53,7 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
         if (!colleague) return;
 
         onSend(colleague, val);
-        
-        // Reset
-        onClose();
+        handleClose();
     };
 
     const handleMax = () => {
@@ -66,7 +63,7 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
     return (
         <div className="modal-overlay" style={{ zIndex: 1200 }}>
             <div className="modal-content">
-                <button className="close-btn" onClick={onClose}><X size={24} /></button>
+                <button className="close-btn" onClick={handleClose}><X size={24} /></button>
                 
                 <h2 className="modal-title">
                     <Coins size={20} color="var(--accent-gold)" /> Надіслати Мед

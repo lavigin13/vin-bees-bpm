@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Check, FileText, ScanBarcode } from 'lucide-react';
 import './WarehouseInventoryModal.css';
 import { getProductByBarcode, getInventoryDocuments } from '../services/api';
@@ -8,8 +8,6 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
     const [stage, setStage] = useState('select-document');
     const [documents, setDocuments] = useState([]);
     const [selectedDoc, setSelectedDoc] = useState(null);
-    const [currentItem, setCurrentItem] = useState(null); // No longer needed for modal, can remove if you want full cleanup
-    const [quantity, setQuantity] = useState(1); // No longer needed
     const [inventoryList, setInventoryList] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     
@@ -22,7 +20,6 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
             setStage('select-document');
             setSelectedDoc(null);
             setInventoryList([]);
-            setCurrentItem(null);
             setIsScannerOpen(false);
             loadDocuments();
         }

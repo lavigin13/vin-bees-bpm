@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Scan, Camera, Search } from 'lucide-react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { X, Camera, Search } from 'lucide-react';
 import './BarcodeScannerModal.css';
 
 const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
@@ -8,6 +7,23 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
     const [isCameraActive, setIsCameraActive] = useState(false);
     const scannerRef = useRef(null);
     const inputRef = useRef(null);
+
+    // Keep latest callbacks available to the async scanner without re-creating it
+    const onScanRef = useRef(onScan);
+    const onCloseRef = useRef(onClose);
+    onScanRef.current = onScan;
+    onCloseRef.current = onClose;
+
+    const stopScanner = () => {
+        if (scannerRef.current) {
+            try {
+                scannerRef.current.clear().catch(console.error);
+            } catch (e) {
+                console.error("Error clearing scanner", e);
+            }
+            scannerRef.current = null;
+        }
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -23,50 +39,42 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
     }, [isOpen]);
 
     useEffect(() => {
-        if (isCameraActive) {
-            startScanner();
-        } else {
+        if (!isCameraActive) {
             stopScanner();
+            return;
         }
-    }, [isCameraActive]);
 
-    const startScanner = () => {
-        setTimeout(() => {
-            if (!scannerRef.current && document.getElementById('reader')) {
-                scannerRef.current = new Html5QrcodeScanner(
-                    "reader",
-                    { 
-                        fps: 10, 
-                        qrbox: { width: 250, height: 250 },
-                        aspectRatio: 1.0
-                    },
-                    false
-                );
-                
-                scannerRef.current.render(handleScanSuccess, handleScanFailure);
-            }
+        let cancelled = false;
+        // html5-qrcode is heavy — load it only when the camera is actually started.
+        // The timeout gives React time to mount the #reader container first.
+        const timer = setTimeout(async () => {
+            const { Html5QrcodeScanner } = await import('html5-qrcode');
+            if (cancelled || scannerRef.current || !document.getElementById('reader')) return;
+
+            scannerRef.current = new Html5QrcodeScanner(
+                "reader",
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                },
+                false
+            );
+
+            scannerRef.current.render(
+                (decodedText) => {
+                    onScanRef.current(decodedText);
+                    onCloseRef.current();
+                },
+                () => { /* per-frame decode misses are expected — ignore */ }
+            );
         }, 100);
-    };
 
-    const stopScanner = () => {
-        if (scannerRef.current) {
-            try {
-                scannerRef.current.clear().catch(console.error);
-            } catch (e) {
-                console.error("Error clearing scanner", e);
-            }
-            scannerRef.current = null;
-        }
-    };
-
-    const handleScanSuccess = (decodedText) => {
-        onScan(decodedText);
-        onClose();
-    };
-
-    const handleScanFailure = (error) => {
-        // console.warn(error);
-    };
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [isCameraActive]);
 
     const handleManualSubmit = () => {
         if (barcode.trim()) {
@@ -127,5 +135,3 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
 };
 
 export default BarcodeScannerModal;
-
-
