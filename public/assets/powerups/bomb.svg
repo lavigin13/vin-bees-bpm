@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <defs>
+    <clipPath id="bombBody">
+      <circle cx="31" cy="36" r="13"/>
+    </clipPath>
+  </defs>
+  <path d="M32 5 L55.4 18.5 V45.5 L32 59 L8.6 45.5 V18.5 Z" fill="#171c2b" stroke="#ffd700" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="31" cy="36" r="13" fill="#1f2937"/>
+  <g clip-path="url(#bombBody)">
+    <rect x="16" y="30.5" width="30" height="5" fill="#fbbf24"/>
+    <rect x="16" y="40" width="30" height="5" fill="#fbbf24"/>
+  </g>
+  <circle cx="31" cy="36" r="13" fill="none" stroke="#0b0f19" stroke-width="1.5"/>
+  <circle cx="26.5" cy="29.5" r="2.6" fill="#9ca3af" opacity="0.8"/>
+  <rect x="34.5" y="17.5" width="7" height="6" rx="2" fill="#374151" transform="rotate(25 38 20.5)"/>
+  <path d="M40 18.5 C42.5 15.5 45 14.5 47.5 15" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/>
+  <path d="M49 11.5 L50.3 14.2 L53 15.5 L50.3 16.8 L49 19.5 L47.7 16.8 L45 15.5 L47.7 14.2 Z" fill="#ffd700"/>
+</svg>

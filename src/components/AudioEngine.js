@@ -20,20 +20,42 @@ class AudioEngine {
             32, 32, 44, 32, 31, 31, 43, 31,
             29, 29, 41, 29, 34, 34, 46, 34
         ];
-        this.tempo = 140; 
+        this.tempo = 140;
         this.lookahead = 25.0; // ms
         this.scheduleAheadTime = 0.1; // s
+        this.muted = localStorage.getItem('beeInvadersMuted') === '1';
     }
 
     init() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || window.webkitAudioContext)();
             this.masterGain = this.ctx.createGain();
-            this.masterGain.gain.value = 0.5;
+            this.masterGain.gain.value = this.muted ? 0 : 0.5;
             this.masterGain.connect(this.ctx.destination);
             this.initialized = true;
         }
         if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+
+    setMuted(muted) {
+        this.muted = muted;
+        localStorage.setItem('beeInvadersMuted', muted ? '1' : '0');
+        if (this.masterGain) {
+            this.masterGain.gain.value = muted ? 0 : 0.5;
+        }
+    }
+
+    // Pause/resume the whole audio context (used by the game pause)
+    suspend() {
+        if (this.ctx && this.ctx.state === 'running') {
+            this.ctx.suspend();
+        }
+    }
+
+    resume() {
+        if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
         }
     }

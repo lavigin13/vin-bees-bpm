@@ -187,6 +187,56 @@
     color: #fff;
 }
 
+/* Pause / sound floating buttons (top-right, under the score row) */
+.game-icon-buttons {
+    position: absolute;
+    top: 48px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 5;
+}
+
+.game-icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    color: #ffd700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.game-icon-btn:active {
+    transform: scale(0.92);
+    background: rgba(255, 215, 0, 0.2);
+}
+
+.pause-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    z-index: 6;
+}
+
+.pause-overlay h2 {
+    color: var(--accent-gold, #ffd700);
+    font-size: 2rem;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+}
+
 .game-over-overlay h2 {
     color: #ef4444;
     font-size: 2rem;

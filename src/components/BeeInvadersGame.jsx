@@ -13,11 +13,33 @@ const BULLET_WIDTH = 25;
 const BULLET_HEIGHT = 40;
 
 const PLAYER_SPEED = 5;
-const ENEMY_SPEED = 1.2;
 const BULLET_SPEED = 4;
 const SHOOT_INTERVAL = 800;
-const SPAWN_INTERVAL = 1500;
 const BG_SPEED = 2;
+
+// Balance: points for kills, penalties for leaked enemies, buff duration
+const SCORE = {
+    shahed: 10,
+    lancet: 15,
+    grusha: 25,
+    orlan: 200,
+    bossBase: 500,
+    leakPenaltyShahed: 10,
+    leakPenaltyLancet: 20
+};
+const POWERUP_DURATION = 10000;
+const POWERUP_DROP_CHANCE = 0.1;
+const BOSS_WAVE_INTERVAL = 10;
+
+// Powerup type -> sprite key (loaded from /assets/powerups/*.svg)
+const POWERUP_SPRITES = {
+    1: 'puBigBullets',
+    2: 'puShield',
+    3: 'puDoubleShot',
+    4: 'puHeal',
+    5: 'puSpreadShot',
+    6: 'puBomb'
+};
 
 const getComboMultiplier = (combo) => {
     if (combo >= 20) return 5;
@@ -46,6 +68,9 @@ const BeeInvadersGame = () => {
     const [combo, setCombo] = useState(0);
     const [bombs, setBombs] = useState(1);
     const [waveAnnounce, setWaveAnnounce] = useState(null);
+    const [isPaused, setIsPaused] = useState(false);
+    const [isMuted, setIsMuted] = useState(audioEngine.muted);
+    const dprRef = useRef(1);
     
     // Controls state
     const keys = useRef({ left: false, right: false, up: false, down: false });
@@ -105,6 +130,23 @@ const BeeInvadersGame = () => {
         loadImg('/assets/base.png', 'base');
         loadImg('/assets/bumblebee.png', 'bumblebee');
         loadImg('/assets/grusha.png', 'grusha');
+
+        loadImg('/assets/powerups/big_bullets.svg', 'puBigBullets');
+        loadImg('/assets/powerups/shield.svg', 'puShield');
+        loadImg('/assets/powerups/double_shot.svg', 'puDoubleShot');
+        loadImg('/assets/powerups/heal.svg', 'puHeal');
+        loadImg('/assets/powerups/spread_shot.svg', 'puSpreadShot');
+        loadImg('/assets/powerups/bomb.svg', 'puBomb');
+    }, []);
+
+    // Crisp rendering on high-DPI screens: scale the backing store once
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = GAME_WIDTH * dpr;
+        canvas.height = GAME_HEIGHT * dpr;
+        dprRef.current = dpr;
     }, []);
 
     // Intro Cutscene Flow (beginGameplay is a hoisted function declaration below)
@@ -145,7 +187,8 @@ const BeeInvadersGame = () => {
         setCombo(0);
         setBombs(1);
         setWaveAnnounce(null);
-        
+        setIsPaused(false);
+
         gameState.current = {
             player: { x: GAME_WIDTH / 2 - PLAYER_SIZE / 2, y: GAME_HEIGHT - PLAYER_SIZE - 20, width: PLAYER_SIZE, height: PLAYER_SIZE },
             bullets: [],
@@ -160,6 +203,11 @@ const BeeInvadersGame = () => {
             bgY: 0,
             damageFlash: 0,
             lastFrameTime: 0,
+            frameScale: 1,
+            paused: false,
+            pausedAt: 0,
+            pausedTotal: 0,
+            gameTime: 0,
             particles: [],
             combo: 0,
             comboTexts: [],
@@ -217,6 +265,31 @@ const BeeInvadersGame = () => {
         }
     };
 
+    // Function declaration so the keyboard/visibility effect below can reference it (hoisted)
+    function togglePause(forcePause) {
+        const state = gameState.current;
+        if (state.isGameOver) return;
+        const next = typeof forcePause === 'boolean' ? forcePause : !state.paused;
+        if (next === state.paused) return;
+
+        state.paused = next;
+        setIsPaused(next);
+
+        if (next) {
+            state.pausedAt = performance.now();
+            audioEngine.suspend();
+        } else {
+            state.pausedTotal += performance.now() - state.pausedAt;
+            audioEngine.resume();
+        }
+    }
+
+    const toggleMute = () => {
+        const next = !audioEngine.muted;
+        audioEngine.setMuted(next);
+        setIsMuted(next);
+    };
+
     useEffect(() => {
         const loadLeaderboard = async () => {
             const data = await fetchBeeInvadersLeaderboard();
@@ -233,6 +306,7 @@ const BeeInvadersGame = () => {
             if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w' || e.key.toLowerCase() === 'ц') keys.current.up = true;
             if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's' || e.key.toLowerCase() === 'і' || e.key.toLowerCase() === 'ы') keys.current.down = true;
             if (e.key === ' ') activateBomb();
+            if (e.key.toLowerCase() === 'p' || e.key.toLowerCase() === 'з') togglePause();
         };
         const handleKeyUp = (e) => {
             if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a' || e.key.toLowerCase() === 'ф') keys.current.left = false;
@@ -241,14 +315,23 @@ const BeeInvadersGame = () => {
             if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's' || e.key.toLowerCase() === 'і' || e.key.toLowerCase() === 'ы') keys.current.down = false;
         };
 
+        // Auto-pause when the tab/app goes to background (otherwise rAF stops
+        // but the music keeps playing and buff timers keep running)
+        const handleVisibility = () => {
+            if (document.hidden) togglePause(true);
+        };
+
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
+        document.addEventListener('visibilitychange', handleVisibility);
 
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            document.removeEventListener('visibilitychange', handleVisibility);
             stopGame();
         };
+         
     }, []);
 
     // Function declaration so the keyboard effect above can reference it (hoisted)
@@ -278,6 +361,35 @@ const BeeInvadersGame = () => {
         setTimeout(() => audioEngine.playExplosion(), 200);
     };
 
+    const endGame = () => {
+        const state = gameState.current;
+        state.isGameOver = true;
+        setGameOver(true);
+        audioEngine.stopMusic();
+
+        // Submit score and anti-cheat telemetry (real validation happens server-side)
+        const playTimeMs = Math.round(performance.now() - state.telemetry.playTimeStart - state.pausedTotal);
+        const tokenString = `${state.score}_${state.telemetry.enemiesKilled}_${playTimeMs}_secretSalt123`;
+        const verifyToken = btoa(tokenString);
+
+        const scoreData = {
+            score: state.score,
+            metrics: {
+                kills: state.telemetry.enemiesKilled,
+                misses: state.telemetry.misses,
+                playTimeMs: playTimeMs,
+                levelReached: state.level
+            },
+            verifyToken
+        };
+
+        saveBeeInvadersScore(scoreData).then(() => {
+            fetchBeeInvadersLeaderboard().then(data => {
+                if (Array.isArray(data)) setLeaderboard(data);
+            });
+        });
+    };
+
     const checkCollision = (rect1, rect2) => {
         return (
             rect1.x < rect2.x + rect2.width &&
@@ -288,29 +400,35 @@ const BeeInvadersGame = () => {
     };
 
     const gameLoop = (timestamp) => {
-        if (gameState.current.isGameOver) return;
+        const state = gameState.current;
+        if (state.isGameOver) return;
 
-        // Cap framerate to ~60 FPS (approx 16.6ms per frame)
-        // This prevents the game from running 2x faster on 120Hz screens when touching
-        const elapsed = timestamp - (gameState.current.lastFrameTime || 0);
-        if (elapsed < 16) {
-            gameState.current.animationFrameId = requestAnimationFrame(gameLoop);
+        if (state.paused) {
+            state.lastFrameTime = timestamp;
+            state.animationFrameId = requestAnimationFrame(gameLoop);
             return;
         }
-        gameState.current.lastFrameTime = timestamp;
 
-        // Slowmo: skip update frames to create slow-motion effect
-        const state = gameState.current;
+        // Delta-time physics: scale all per-frame movement by the real frame
+        // duration so the game runs identically on 60/90/120Hz screens.
+        const elapsed = Math.min(timestamp - (state.lastFrameTime || timestamp), 50);
+        state.lastFrameTime = timestamp;
+        state.frameScale = elapsed / 16.667;
+
+        // Slowmo: time-scaled slow-motion effect
         if (state.slowmoFrames > 0) {
-            state.slowmoFrames -= 1;
+            state.slowmoFrames -= state.frameScale;
             state.timeScale = 0.25;
             if (state.slowmoFrames <= 0) state.timeScale = 1;
         }
 
-        update(timestamp);
+        // Game time excludes paused periods, so buff/spawn timers survive pauses
+        state.gameTime = timestamp - state.pausedTotal;
+
+        update(state.gameTime);
         draw();
 
-        gameState.current.animationFrameId = requestAnimationFrame(gameLoop);
+        state.animationFrameId = requestAnimationFrame(gameLoop);
     };
 
     const update = (timestamp) => {
@@ -327,7 +445,11 @@ const BeeInvadersGame = () => {
         const dodgeChance = Math.min(0.6, 0.2 + (state.level - 1) * 0.07);
         const armoredChance = Math.min(0.35, 0.05 + (state.level - 1) * 0.05);
 
-        const ts = state.timeScale;
+        // slow — time dilation only (for interval comparisons);
+        // fs — real frame duration factor; ts — combined movement factor
+        const slow = state.timeScale;
+        const fs = state.frameScale || 1;
+        const ts = slow * fs;
 
         let currentBgSpeed = BG_SPEED * ts;
         if (state.isBossWave && state.bossBgArrived) {
@@ -352,37 +474,38 @@ const BeeInvadersGame = () => {
         }
 
         // Screen shake decay
-        if (state.screenShake > 0) state.screenShake -= 1;
+        if (state.screenShake > 0) state.screenShake -= fs;
 
         // Move Player (not affected by slowmo - player keeps full control)
+        const playerStep = PLAYER_SPEED * fs;
         if (keys.current.left) {
-            state.player.x -= PLAYER_SPEED;
+            state.player.x -= playerStep;
             if (state.player.x < 0) state.player.x = 0;
         }
         if (keys.current.right) {
-            state.player.x += PLAYER_SPEED;
+            state.player.x += playerStep;
             if (state.player.x + state.player.width > GAME_WIDTH) state.player.x = GAME_WIDTH - state.player.width;
         }
         if (keys.current.up) {
-            state.player.y -= PLAYER_SPEED;
+            state.player.y -= playerStep;
             if (state.player.y < 0) state.player.y = 0;
         }
         if (keys.current.down) {
-            state.player.y += PLAYER_SPEED;
+            state.player.y += playerStep;
             if (state.player.y + state.player.height > GAME_HEIGHT - 40) state.player.y = GAME_HEIGHT - state.player.height - 40;
         }
-        
+
         // Joystick Movement
         if (state.joystick.active) {
             const dx = state.joystick.x - state.joystick.originX;
             const dy = state.joystick.y - state.joystick.originY;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            
+
             if (dist > 15) { // Larger Deadzone
                 // Adjusted curve for smoother acceleration
                 const speedScale = Math.pow(Math.min(dist / state.joystick.radius, 1.0), 1.5);
-                state.player.x += (dx / dist) * PLAYER_SPEED * speedScale;
-                state.player.y += (dy / dist) * PLAYER_SPEED * speedScale;
+                state.player.x += (dx / dist) * playerStep * speedScale;
+                state.player.y += (dy / dist) * playerStep * speedScale;
                 
                 state.player.x = Math.max(0, Math.min(GAME_WIDTH - state.player.width, state.player.x));
                 state.player.y = Math.max(0, Math.min(GAME_HEIGHT - state.player.height - 40, state.player.y));
@@ -390,7 +513,7 @@ const BeeInvadersGame = () => {
         }
 
         // Auto Shoot
-        if (timestamp - state.lastShootTime > SHOOT_INTERVAL / ts) {
+        if (timestamp - state.lastShootTime > SHOOT_INTERVAL / slow) {
             const hasSpread = state.activeBuffs.spreadShot > timestamp;
             const hasDouble = state.activeBuffs.doubleShot > timestamp;
             const hasBig = state.activeBuffs.bigBullets > timestamp;
@@ -437,7 +560,7 @@ const BeeInvadersGame = () => {
         // Move Bullets
         state.bullets.forEach(b => {
             b.y -= BULLET_SPEED * ts;
-            if (b.vx) b.x += b.vx;
+            if (b.vx) b.x += b.vx * ts;
         });
         // Remove off-screen bullets
         state.bullets = state.bullets.filter(b => b.y + b.height > 0);
@@ -455,13 +578,13 @@ const BeeInvadersGame = () => {
                     state.lives = Math.min(state.lives + 1, 5);
                     setLives(state.lives);
                 } else if (p.type === 1) { // Big Bullets
-                    state.activeBuffs.bigBullets = timestamp + 10000;
+                    state.activeBuffs.bigBullets = timestamp + POWERUP_DURATION;
                 } else if (p.type === 2) { // Shield
-                    state.activeBuffs.shield = timestamp + 10000;
+                    state.activeBuffs.shield = timestamp + POWERUP_DURATION;
                 } else if (p.type === 3) { // Double Shot
-                    state.activeBuffs.doubleShot = timestamp + 10000;
+                    state.activeBuffs.doubleShot = timestamp + POWERUP_DURATION;
                 } else if (p.type === 5) { // Spread Shot
-                    state.activeBuffs.spreadShot = timestamp + 10000;
+                    state.activeBuffs.spreadShot = timestamp + POWERUP_DURATION;
                 } else if (p.type === 6) { // Bomb
                     state.bombs = Math.min((state.bombs || 0) + 1, 3);
                     setBombs(state.bombs);
@@ -493,7 +616,7 @@ const BeeInvadersGame = () => {
             state.wavePauseUntil = timestamp + 3000;
             
             // Check if this is a boss wave
-            if (state.wave % 10 === 0) {
+            if (state.wave % BOSS_WAVE_INTERVAL === 0) {
                 state.isBossWave = true;
                 state.nextBgImg = 'boss_bg';
                 state.bossBgArrived = false;
@@ -535,16 +658,16 @@ const BeeInvadersGame = () => {
                 });
             }
             state.bossFireParticles.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life -= 1;
+                p.x += p.vx * fs;
+                p.y += p.vy * fs;
+                p.life -= fs;
             });
             state.bossFireParticles = state.bossFireParticles.filter(p => p.life > 0);
-            if (state.bossBase.flashTimer > 0) state.bossBase.flashTimer -= 1;
+            if (state.bossBase.flashTimer > 0) state.bossBase.flashTimer -= fs;
         }
         
         // Boss wave spawning: continuous defenders
-        if (state.isBossWave && state.bossBase && !state.wavePause && timestamp - state.lastSpawnTime > currentSpawnInterval * 1.3 / ts) {
+        if (state.isBossWave && state.bossBase && !state.wavePause && timestamp - state.lastSpawnTime > currentSpawnInterval * 1.3 / slow) {
             const isLancet = Math.random() < 0.4;
             const isArmored = !isLancet && Math.random() < armoredChance;
             const eSize = ENEMY_SIZE;
@@ -567,7 +690,7 @@ const BeeInvadersGame = () => {
         }
         
         // Normal wave spawning
-        if (!state.isBossWave && !state.wavePause && state.waveEnemiesSpawned < state.waveEnemiesTotal && timestamp - state.lastSpawnTime > currentSpawnInterval / ts) {
+        if (!state.isBossWave && !state.wavePause && state.waveEnemiesSpawned < state.waveEnemiesTotal && timestamp - state.lastSpawnTime > currentSpawnInterval / slow) {
             const hasOrlan = state.enemies.some(e => e.type === 'orlan');
             let isOrlan = false;
             let isLancet = false;
@@ -722,16 +845,16 @@ const BeeInvadersGame = () => {
 
         // Update particles
         state.particles.forEach(p => {
-            p.x += p.vx;
-            p.y += p.vy;
-            p.life -= 1;
+            p.x += p.vx * fs;
+            p.y += p.vy * fs;
+            p.life -= fs;
         });
         state.particles = state.particles.filter(p => p.life > 0);
 
         // Update combo texts
         state.comboTexts.forEach(ct => {
-            ct.y -= 1.5;
-            ct.life -= 1;
+            ct.y -= 1.5 * fs;
+            ct.life -= fs;
         });
         state.comboTexts = state.comboTexts.filter(ct => ct.life > 0);
 
@@ -753,7 +876,7 @@ const BeeInvadersGame = () => {
                     }
                     state.combo += 1;
                     const mult = getComboMultiplier(state.combo);
-                    const baseScore = e.type === 'orlan' ? 200 : (e.type === 'grusha' ? 25 : (e.type === 'lancet' ? 15 : 10));
+                    const baseScore = SCORE[e.type] || SCORE.shahed;
                     state.score += baseScore * mult;
                     state.telemetry.enemiesKilled += 1;
                     state.enemies.splice(i, 1);
@@ -797,7 +920,7 @@ const BeeInvadersGame = () => {
             // Enemy hits bottom (Penalty instead of Game Over)
             if (enemy.y > GAME_HEIGHT) {
                 state.enemies.splice(i, 1);
-                state.score -= enemy.type === 'lancet' ? 20 : 10; // 20 penalty for Lancet, 10 for Shahed
+                state.score -= enemy.type === 'lancet' ? SCORE.leakPenaltyLancet : SCORE.leakPenaltyShahed;
                 state.telemetry.misses += 1;
                 state.combo = 0;
                 setCombo(0);
@@ -815,36 +938,23 @@ const BeeInvadersGame = () => {
                 height: state.player.height - 10
             };
             if (checkCollision(enemy, playerHitbox)) {
+                // Ramming gives NO points and drops nothing — destroying enemies
+                // with your hull must never beat shooting them down.
                 audioEngine.playExplosion();
-                state.explosions = state.explosions || [];
-                state.explosions.push({
-                    x: enemy.x + enemy.width / 2,
-                    y: enemy.y + enemy.height / 2,
-                    radius: 0,
-                    maxRadius: enemy.width,
-                    alpha: 1
-                });
-                
-                state.telemetry.enemiesKilled += 1;
-                
-                if (enemy.type === 'orlan') {
-                    state.score += 200;
-                    orlanDied = true;
-                    const types = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
-                    for (let k = 0; k < 3; k++) {
-                        state.powerups.push({ x: enemy.x + enemy.width/2 - 45 + k * 30, y: enemy.y, width: 30, height: 30, type: types[k] });
-                    }
-                } else {
-                    state.score += (enemy.type === 'lancet' ? 50 : 20);
-                    if (Math.random() < 0.1) {
-                        const typeId = Math.floor(Math.random() * 5) + 1;
-                        state.powerups.push({ x: enemy.x, y: enemy.y, width: 30, height: 30, type: typeId });
-                    }
+                for (let p = 0; p < 12; p++) {
+                    state.particles.push({
+                        x: enemy.x + enemy.width / 2,
+                        y: enemy.y + enemy.height / 2,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: (Math.random() - 0.5) * 6,
+                        life: Math.random() * 20 + 10,
+                        maxLife: 30,
+                        color: Math.random() > 0.5 ? '#ef4444' : '#f59e0b'
+                    });
                 }
-                setScore(state.score);
-                
+
                 state.enemies.splice(i, 1);
-                
+
                 if (state.activeBuffs.shield > timestamp) {
                     // Shield protects from damage
                 } else {
@@ -852,41 +962,15 @@ const BeeInvadersGame = () => {
                     setCombo(0);
                     state.lives -= 1;
                     setLives(state.lives);
-                    
+
                     if (state.lives <= 0) {
-                    state.isGameOver = true;
-                    setGameOver(true);
-                    audioEngine.stopMusic();
-                    
-                    // Submit score and anti-cheat telemetry
-                    const playTimeMs = Math.round(performance.now() - state.telemetry.playTimeStart);
-                    const tokenString = `${state.score}_${state.telemetry.enemiesKilled}_${playTimeMs}_secretSalt123`;
-                    const verifyToken = btoa(tokenString);
-                    
-                    const scoreData = {
-                        score: state.score,
-                        metrics: {
-                            kills: state.telemetry.enemiesKilled,
-                            misses: state.telemetry.misses,
-                            playTimeMs: playTimeMs,
-                            levelReached: state.level
-                        },
-                        verifyToken
-                    };
-                    
-                    saveBeeInvadersScore(scoreData).then(() => {
-                        // Refresh leaderboard silently
-                        fetchBeeInvadersLeaderboard().then(data => {
-                            if (Array.isArray(data)) setLeaderboard(data);
-                        });
-                    });
-                } else {
-                    state.damageFlash = 15;
-                    state.screenShake = 8;
+                        endGame();
+                    } else {
+                        state.damageFlash = 15;
+                        state.screenShake = 8;
+                    }
                 }
-                }
-                
-                if (orlanDied) break;
+
                 continue;
             }
 
@@ -915,13 +999,13 @@ const BeeInvadersGame = () => {
                         state.combo += 1;
                         const mult = getComboMultiplier(state.combo);
                         if (enemy.type === 'orlan') {
-                            state.score += 200 * mult;
+                            state.score += SCORE.orlan * mult;
                             orlanDied = true;
                             const types = [1, 2, 3, 4, 5].sort(() => Math.random() - 0.5);
                             for (let k = 0; k < 3; k++) {
                                 state.powerups.push({ x: enemy.x + enemy.width/2 - 45 + k * 30, y: enemy.y, width: 30, height: 30, type: types[k] });
                             }
-                            state.comboTexts.push({ text: mult > 1 ? `+${200 * mult} x${mult}` : `+200`, x: enemy.x + enemy.width / 2, y: enemy.y, color: getComboColor(mult), fontSize: 22, life: 50, maxLife: 50 });
+                            state.comboTexts.push({ text: mult > 1 ? `+${SCORE.orlan * mult} x${mult}` : `+${SCORE.orlan}`, x: enemy.x + enemy.width / 2, y: enemy.y, color: getComboColor(mult), fontSize: 22, life: 50, maxLife: 50 });
                             // Orlan always drops a bomb
                             state.powerups.push({ x: enemy.x + enemy.width/2, y: enemy.y + enemy.height/2, width: 30, height: 30, type: 6 });
                             state.telemetry.enemiesKilled += 1;
@@ -929,9 +1013,9 @@ const BeeInvadersGame = () => {
                             setCombo(state.combo);
                             break; // Break the bullets loop
                         } else {
-                            const baseScore = enemy.type === 'lancet' ? 15 : 10;
+                            const baseScore = SCORE[enemy.type] || SCORE.shahed;
                             state.score += baseScore * mult;
-                            if (Math.random() < 0.1) {
+                            if (Math.random() < POWERUP_DROP_CHANCE) {
                                 const typeId = Math.floor(Math.random() * 5) + 1;
                                 state.powerups.push({ x: enemy.x, y: enemy.y, width: 30, height: 30, type: typeId });
                             }
@@ -977,7 +1061,7 @@ const BeeInvadersGame = () => {
                 }
                 state.combo += 1;
                 const chainMult = getComboMultiplier(state.combo);
-                const chainBase = otherE.type === 'lancet' ? 15 : 10;
+                const chainBase = SCORE[otherE.type] || SCORE.shahed;
                 state.score += chainBase * chainMult;
                 state.telemetry.enemiesKilled += 1;
             });
@@ -1006,23 +1090,9 @@ const BeeInvadersGame = () => {
                     state.lives -= 1;
                     setLives(state.lives);
                     audioEngine.playExplosion();
-                    
+
                     if (state.lives <= 0) {
-                        state.isGameOver = true;
-                        setGameOver(true);
-                        audioEngine.stopMusic();
-                        
-                        const playTimeMs = Math.round(performance.now() - state.telemetry.playTimeStart);
-                        const tokenString = `${state.score}_${state.telemetry.enemiesKilled}_${playTimeMs}_secretSalt123`;
-                        const verifyToken = btoa(tokenString);
-                        const scoreData = {
-                            score: state.score,
-                            metrics: { kills: state.telemetry.enemiesKilled, misses: state.telemetry.misses, playTimeMs: playTimeMs, levelReached: state.level },
-                            verifyToken
-                        };
-                        saveBeeInvadersScore(scoreData).then(() => fetchBeeInvadersLeaderboard().then(data => {
-                            if (Array.isArray(data)) setLeaderboard(data);
-                        }));
+                        endGame();
                     } else {
                         state.damageFlash = 15;
                         state.screenShake = 8;
@@ -1085,8 +1155,8 @@ const BeeInvadersGame = () => {
                         };
                         
                         // Rewards
-                        state.score += 500 * getComboMultiplier(state.combo);
-                        state.comboTexts.push({ text: `БАЗА +500`, x: bb.x + bb.width / 2, y: bb.y + bb.height / 2, color: '#ffd700', fontSize: 28, life: 80, maxLife: 80 });
+                        state.score += SCORE.bossBase * getComboMultiplier(state.combo);
+                        state.comboTexts.push({ text: `БАЗА +${SCORE.bossBase}`, x: bb.x + bb.width / 2, y: bb.y + bb.height / 2, color: '#ffd700', fontSize: 28, life: 80, maxLife: 80 });
                         state.bombs = Math.min(state.bombs + 1, 3);
                         setBombs(state.bombs);
                         
@@ -1135,6 +1205,10 @@ const BeeInvadersGame = () => {
         const state = gameState.current;
         const imgs = imagesRef.current;
 
+        // High-DPI: map logical game coordinates onto the scaled backing store
+        const dpr = dprRef.current;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
         // Screen Shake
         ctx.save();
         if (state.screenShake > 0) {
@@ -1155,7 +1229,8 @@ const BeeInvadersGame = () => {
             ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
         }
 
-        const currentTimestamp = performance.now();
+        // Game time excludes pauses, so animations and buff rings freeze correctly
+        const currentTimestamp = state.gameTime || performance.now();
 
         // Draw Boss Base (oil refinery)
         if (state.bossBase) {
@@ -1222,7 +1297,7 @@ const BeeInvadersGame = () => {
         
         if (state.damageFlash > 0) {
             ctx.globalAlpha = (state.damageFlash % 4 > 1) ? 0.3 : 1.0;
-            state.damageFlash -= 1;
+            state.damageFlash -= state.frameScale || 1;
         }
         
         if (imgs.player) {
@@ -1243,18 +1318,43 @@ const BeeInvadersGame = () => {
             ctx.fill();
         }
 
-        // Draw Powerups
+        // Draw Powerups: hexagonal sprites with a pulsing glow, gentle bobbing
+        // and a slight rocking rotation so they read as pickups, not UI icons
         state.powerups.forEach(p => {
-            ctx.font = '24px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            let icon = '🟢';
-            if (p.type === 2) icon = '🛡️';
-            if (p.type === 3) icon = '♊';
-            if (p.type === 4) icon = '❤️';
-            if (p.type === 5) icon = '✨';
-            if (p.type === 6) icon = '💣';
-            ctx.fillText(icon, p.x + p.width/2, p.y + p.height/2);
+            const sprite = imgs[POWERUP_SPRITES[p.type]];
+            const phase = p.x * 0.1; // de-synchronize neighbouring pickups
+            const pulse = 1 + Math.sin(currentTimestamp / 180 + phase) * 0.08;
+            const bob = Math.sin(currentTimestamp / 260 + phase) * 2.5;
+            const cx = p.x + p.width / 2;
+            const cy = p.y + p.height / 2 + bob;
+
+            ctx.save();
+
+            // Soft golden halo
+            const glowR = (p.width / 2 + 8) * pulse;
+            const halo = ctx.createRadialGradient(cx, cy, glowR * 0.35, cx, cy, glowR);
+            halo.addColorStop(0, 'rgba(255, 215, 0, 0.30)');
+            halo.addColorStop(0.7, 'rgba(255, 215, 0, 0.12)');
+            halo.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            ctx.fillStyle = halo;
+            ctx.beginPath();
+            ctx.arc(cx, cy, glowR, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (sprite) {
+                const size = p.width * 1.35 * pulse;
+                ctx.translate(cx, cy);
+                ctx.rotate(Math.sin(currentTimestamp / 420 + phase) * 0.12);
+                ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+            } else {
+                // Fallback while the sprite is still loading
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(cx, cy, p.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
         });
 
         // Draw Enemies (with rocking animation and targeting)
@@ -1451,6 +1551,24 @@ const BeeInvadersGame = () => {
                 </div>
             )}
 
+            <div className="game-icon-buttons">
+                {gameStarted && !gameOver && (
+                    <button className="game-icon-btn" onClick={() => togglePause()} title="Пауза (P)">
+                        {isPaused ? '▶' : '⏸'}
+                    </button>
+                )}
+                <button className="game-icon-btn" onClick={toggleMute} title={isMuted ? 'Увімкнути звук' : 'Вимкнути звук'}>
+                    {isMuted ? '🔇' : '🔊'}
+                </button>
+            </div>
+
+            {isPaused && gameStarted && !gameOver && (
+                <div className="pause-overlay" onClick={() => togglePause(false)}>
+                    <h2>ПАУЗА</h2>
+                    <button className="restart-btn" onClick={() => togglePause(false)}>Продовжити</button>
+                </div>
+            )}
+
             {/* Control Panel (Moved to bottom) */}
 
             {/* Intro Cutscene */}
@@ -1475,7 +1593,7 @@ const BeeInvadersGame = () => {
             {!gameStarted && !gameOver && introStep === 0 && (
                 <div className="start-screen">
                     <h2>Bee Invaders</h2>
-                    <p>Керуйте бджілкою (Стрілки/WASD). Пробіл — викликати джмеля 🐝</p>
+                    <p>Керуйте бджілкою (Стрілки/WASD). Пробіл — джміль 🐝, P — пауза</p>
                     <button className="restart-btn" onClick={startIntro}>Почати гру</button>
 
                     {leaderboard && leaderboard.length > 0 && (
