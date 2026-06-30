@@ -2,7 +2,8 @@
 
 .inventory-container {
     margin-bottom: 32px;
-    margin-top: 24px; /* Added margin to push it down from HeroProfile */
+    margin-top: 24px;
+    /* Added margin to push it down from HeroProfile */
 }
 
 /* Desktop: align with the top of the hero card */
@@ -75,23 +76,25 @@
     background: var(--card-bg);
     border: 1px solid var(--card-border);
     border-radius: 12px;
-    padding: 12px 8px; /* Less horizontal padding */
+    padding: 8px 6px;
+    /* Reduced padding for smaller cards */
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     transition: transform 0.2s, box-shadow 0.2s;
-    /* aspect-ratio: 1; REMOVED to allow height growth */
-    min-height: 150px; /* Fixed min height for consistency */
-    justify-content: flex-start; /* Align to top */
+    min-height: 96px;
+    /* Reduced from 150px for compact cards */
+    justify-content: flex-start;
+    /* Align to top */
     position: relative;
 }
 
 .item-icon-wrapper {
-    margin-top: 12px; /* Push down a bit */
-    margin-bottom: 8px;
+    margin-top: 8px;
+    margin-bottom: 4px;
     opacity: 0.8;
-    flex-shrink: 0; /* Don't shrink icon */
+    flex-shrink: 0;
 }
 
 .item-name {
@@ -179,7 +182,8 @@
 .item-quantity {
     position: absolute;
     top: 6px;
-    left: 6px; /* Changed from right to left */
+    left: 6px;
+    /* Changed from right to left */
     right: auto;
     background: var(--card-bg);
     border: 1px solid var(--text-secondary);

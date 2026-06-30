@@ -229,3 +229,75 @@
     color: var(--text-primary);
 }
 
+/* ── Attached files ── */
+.req-files {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.req-file-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: rgba(255, 215, 0, 0.06);
+    border: 1px solid rgba(255, 215, 0, 0.22);
+    border-radius: 10px;
+}
+
+.req-file-icon { color: var(--accent-gold); flex-shrink: 0; }
+
+.req-file-name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.req-file-size {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.req-file-btn {
+    background: none;
+    border: none;
+    color: var(--accent-gold);
+    cursor: pointer;
+    display: flex;
+    padding: 2px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+.req-file-btn:hover { background: rgba(255, 215, 0, 0.15); }
+.req-file-remove { color: #f87171; }
+.req-file-remove:hover { background: rgba(239, 68, 68, 0.15); }
+
+.req-files-empty {
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 4px 0;
+}
+
+.req-upload-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 4px;
+    padding: 11px;
+    border: 1px dashed var(--accent-gold);
+    border-radius: 10px;
+    color: var(--accent-gold);
+    background: rgba(255, 215, 0, 0.06);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.req-upload-btn:hover { background: rgba(255, 215, 0, 0.14); }
+

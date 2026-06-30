@@ -36,9 +36,9 @@ const Inventory = ({ items = [], onTransferClick, onValidateClick, onReportMissi
                                     <AlertTriangle size={14} strokeWidth={2.5} />
                                 </div>
                             )}
-                            
+
                             <div className="item-icon-wrapper">
-                                <Icon size={32} strokeWidth={1.5} />
+                                <Icon size={24} strokeWidth={1.5} />
                                 {item.quantity > 1 && (
                                     <div className="item-quantity">{item.quantity}</div>
                                 )}
@@ -46,13 +46,13 @@ const Inventory = ({ items = [], onTransferClick, onValidateClick, onReportMissi
                             <div className="item-details">
                                 <div className="item-name">{item.name}</div>
                                 <div className="item-rarity">
-                                    {isMissing ? <span style={{color: '#ef4444', fontWeight: 'bold'}}>ВІДСУТНІЙ</span> : item.rarity}
+                                    {isMissing ? <span style={{ color: '#ef4444', fontWeight: 'bold' }}>ВІДСУТНІЙ</span> : item.rarity}
                                 </div>
                             </div>
 
                             {isAudit ? (
                                 <div className="validation-actions">
-                                    <button 
+                                    <button
                                         className="missing-btn"
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -61,7 +61,7 @@ const Inventory = ({ items = [], onTransferClick, onValidateClick, onReportMissi
                                     >
                                         <XCircle size={14} /> Відсутній
                                     </button>
-                                    <button 
+                                    <button
                                         className="validate-btn"
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -72,7 +72,7 @@ const Inventory = ({ items = [], onTransferClick, onValidateClick, onReportMissi
                                     </button>
                                 </div>
                             ) : !isMissing && (
-                                <button 
+                                <button
                                     className="item-action-btn"
                                     onClick={(e) => {
                                         e.stopPropagation();

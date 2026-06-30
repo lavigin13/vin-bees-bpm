@@ -57,7 +57,107 @@ class AudioEngine {
     resume() {
         if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume();
+            // avoid a burst of catch-up notes after a long pause
+            if (this.droneOn) this.droneNextTime = this.ctx.currentTime + 0.1;
         }
+    }
+
+    // ===== Drone Flight: procedural indie / lo-fi dynamic soundtrack =====
+    // A gentle chord-progression with a pad, soft bass and an arpeggio whose
+    // density and brightness rise with `intensity` (driven by the drone's speed
+    // and thrust), so the music tracks the action.
+    startDroneMusic() {
+        this.init();
+        if (this.droneOn) return;
+        this.droneOn = true;
+        this.droneIntensity = 0;
+        this.droneStep = 0;
+        this.droneNextTime = this.ctx.currentTime + 0.12;
+        // Cmaj-ish lo-fi loop: Am7 · Fmaj7 · Cmaj7 · G  (root, pad triad, arp tones)
+        this.droneChords = [
+            { root: 45, pad: [57, 60, 64], arp: [57, 60, 64, 67] },
+            { root: 41, pad: [53, 57, 60], arp: [53, 57, 60, 64] },
+            { root: 48, pad: [55, 60, 64], arp: [55, 60, 64, 67] },
+            { root: 43, pad: [55, 59, 62], arp: [55, 59, 62, 67] }
+        ];
+        this.droneSchedulerTick();
+    }
+
+    stopDroneMusic() {
+        this.droneOn = false;
+        if (this.droneTimer) clearTimeout(this.droneTimer);
+    }
+
+    setMusicIntensity(v) {
+        this.droneIntensity = v < 0 ? 0 : v > 1 ? 1 : v;
+    }
+
+    droneSchedulerTick() {
+        if (!this.droneOn) return;
+        const bpm = 90 + this.droneIntensity * 36;
+        const step16 = 60 / bpm / 4;
+        while (this.droneNextTime < this.ctx.currentTime + this.scheduleAheadTime) {
+            this.droneScheduleStep(this.droneStep, this.droneNextTime);
+            this.droneStep += 1;
+            this.droneNextTime += step16;
+        }
+        this.droneTimer = setTimeout(() => this.droneSchedulerTick(), this.lookahead);
+    }
+
+    droneScheduleStep(step, time) {
+        const chord = this.droneChords[Math.floor(step / 16) % this.droneChords.length];
+        const inBar = step % 16;
+        const intensity = this.droneIntensity;
+
+        // sustained pad at the start of each bar
+        if (inBar === 0) {
+            chord.pad.forEach(m => this.playTone(this.midiToFreq(m), time, 1.7, 'sine', 0.045, 0.35));
+        }
+        // soft bass on the beats
+        if (inBar % 4 === 0) {
+            this.playTone(this.midiToFreq(chord.root), time, 0.55, 'triangle', 0.11, 0.01);
+        }
+        // arpeggio — denser & brighter with intensity
+        const every = intensity > 0.66 ? 1 : intensity > 0.33 ? 2 : 4;
+        if (inBar % every === 0) {
+            const note = chord.arp[Math.floor(step / every) % chord.arp.length] + 12;
+            this.playTone(this.midiToFreq(note), time, 0.22, 'triangle', 0.05 + intensity * 0.04, 0.005);
+        }
+        // light hat on offbeats once things pick up
+        if (intensity > 0.4 && inBar % 2 === 1) {
+            this.playHat(time, 0.025 + intensity * 0.03);
+        }
+    }
+
+    playTone(freq, time, dur, type = 'sine', vol = 0.1, attack = 0.02) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, time);
+        gain.gain.linearRampToValueAtTime(vol, time + attack);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(time);
+        osc.stop(time + dur + 0.05);
+    }
+
+    playHat(time, vol = 0.03) {
+        const bufferSize = this.ctx.sampleRate * 0.04;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const hp = this.ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 7000;
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(vol, time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
+        noise.connect(hp); hp.connect(gain); gain.connect(this.masterGain);
+        noise.start(time);
     }
 
     midiToFreq(m) {

@@ -752,6 +752,38 @@ export const saveBeeInvadersScore = async (scoreData) => {
     }
 };
 
+// --- Games (Drone Flight / Політ БПЛА) ---
+
+export const fetchDroneFlightLeaderboard = async () => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/games/drone-flight/leaderboard`, { method: 'GET', headers });
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch leaderboard:', error);
+        return [];
+    }
+};
+
+export const saveDroneFlightScore = async (scoreData) => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/games/drone-flight/score`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(scoreData)
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        // The endpoint may return 200 with an empty body — tolerate that.
+        const text = await response.text();
+        return text ? JSON.parse(text) : { success: true };
+    } catch (error) {
+        console.error('Failed to save score:', error);
+        return null;
+    }
+};
+
 // --- Internal Orders Issuing (Внутрішні замовлення / заявки) ---
 
 const INTERNAL_ORDER_STATUSES = [

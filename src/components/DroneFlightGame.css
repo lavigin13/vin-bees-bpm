@@ -1,0 +1,278 @@
+.drone-game-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    /* Three.js canvas has no intrinsic height, so define a portrait shape here
+       (mirrors how Bee Invaders' canvas aspect-ratio sizes its wrapper). */
+    aspect-ratio: 9 / 16;
+    max-width: min(100%, 50vh);
+    max-height: 82vh;
+    margin: 0 auto;
+    background-color: #0b1220;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    border: 1px solid #333;
+}
+
+.drone-playfield {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #0b1220;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.drone-canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* --- HUD --- */
+.drone-hud-top {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.drone-dist {
+    font-family: 'Courier New', monospace;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.drone-sub {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: #fbbf24;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.drone-fuel {
+    width: 150px;
+    height: 11px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 2px;
+}
+
+.drone-fuel-fill {
+    height: 100%;
+    width: 100%;
+    background: #34d399;
+    border-radius: 6px;
+    transition: width 0.1s linear;
+}
+
+.drone-icon-buttons {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 5;
+}
+
+.game-icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    color: #ffd700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.game-icon-btn:active {
+    transform: scale(0.92);
+    background: rgba(255, 215, 0, 0.2);
+}
+
+.drone-gauge {
+    position: absolute;
+    bottom: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 10px;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.drone-gauge span {
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.drone-gauge-track {
+    width: 220px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.drone-gauge-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 5px;
+}
+
+.drone-gauge-fill.power { background: #fbbf24; }
+.drone-gauge-fill.angle { background: #60a5fa; }
+
+.drone-bomb-btn {
+    position: absolute;
+    bottom: 18px;
+    left: 16px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.85);
+    border: 2px solid #fca5a5;
+    font-size: 1.8rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 5;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+}
+
+.drone-bomb-btn:active {
+    transform: scale(0.9);
+    background: rgba(185, 28, 28, 0.95);
+}
+
+.drone-hint {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 20px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.78rem;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* --- Overlays --- */
+.drone-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(8, 12, 22, 0.82);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+    padding: 20px;
+    box-sizing: border-box;
+    z-index: 6;
+}
+
+.drone-overlay h2 {
+    color: var(--accent-gold, #ffd700);
+    font-size: 1.8rem;
+    margin: 0 0 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.drone-overlay p {
+    margin: 0 0 20px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #cbd5e1;
+    max-width: 320px;
+}
+
+.drone-final {
+    font-size: 1.3rem !important;
+    color: #fff !important;
+    font-weight: bold;
+}
+
+.drone-record {
+    color: #fbbf24 !important;
+    font-weight: bold;
+}
+
+.restart-btn {
+    padding: 12px 28px;
+    font-size: 1.05rem;
+    font-weight: bold;
+    background: var(--accent-gold, #ffd700);
+    color: #1a1a1a;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.restart-btn:active {
+    transform: scale(0.96);
+}
+
+.drone-leaderboard {
+    margin-top: 22px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid #ec4899;
+    border-radius: 8px;
+    padding: 10px 18px;
+    min-width: 240px;
+}
+
+.drone-leaderboard h3 {
+    margin: 0 0 8px;
+    color: var(--accent-gold, #ffd700);
+    font-size: 1rem;
+}
+
+.drone-leaderboard table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.drone-leaderboard td {
+    padding: 3px 0;
+    font-size: 0.85rem;
+    color: #e5e7eb;
+}
+
+.drone-leaderboard td:last-child {
+    text-align: right;
+    color: #fbbf24;
+    font-weight: bold;
+}

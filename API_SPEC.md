@@ -2,6 +2,36 @@
 
 // ... (existing content for sections 1-7) ...
 
+### Request Attachments (files)
+Requests (`заявки на потребу`) support file attachments, transferred as **base64**.
+
+**Create / Update Request** — **POST** `/requests`
+The request body includes a `files` array. Each file's `data` is base64 **without** the `data:*;base64,` prefix:
+```json
+{
+  "id": "req_1",
+  "categoryId": "cat_1",
+  "shortDesc": "Новий монітор",
+  "fullDesc": "Деталі...",
+  "files": [
+    { "name": "invoice.pdf", "type": "application/pdf", "size": 10240, "data": "base64_encoded_content..." }
+  ]
+}
+```
+
+**Get Requests** — **GET** `/requests?view=my`
+Each returned request echoes its attachments in the same shape, with `data` as base64 so the client can preview/download them:
+```json
+{
+  "id": "req_1",
+  "files": [
+    { "name": "invoice.pdf", "type": "application/pdf", "size": 10240, "data": "base64_encoded_content..." }
+  ]
+}
+```
+
+---
+
 ### Respond to Request (Approve/Reject)
 **POST** `/requests/respond`
 Manager approves or rejects a request.

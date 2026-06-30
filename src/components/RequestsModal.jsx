@@ -1,9 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Calendar, FileText, ArrowLeft, Users, User } from 'lucide-react';
+import { X, Plus, Calendar, FileText, ArrowLeft, Users, User, Paperclip, Trash2, Download } from 'lucide-react';
 import './CraftingModal.css'; // Reusing base modal styles
 import './RequestsModal.css';
 import { REQUEST_CATEGORIES } from '../data/constants';
 import { fetchRequestCategories } from '../services/api';
+
+// Read a File into a base64 string (strips the "data:*;base64," prefix).
+const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result || '';
+            resolve(String(result).split(',')[1] || '');
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+
+const formatSize = (bytes) => {
+    if (!bytes && bytes !== 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+// Trigger a browser download for a base64-encoded attachment.
+const downloadFile = (f) => {
+    if (!f.data) {
+        alert('Вміст файлу недоступний для завантаження.');
+        return;
+    }
+    const a = document.createElement('a');
+    a.href = `data:${f.type || 'application/octet-stream'};base64,${f.data}`;
+    a.download = f.name || 'file';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+};
 
 const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApprove, onReject, currentUser, initialFilter = 'my', onViewChange }) => {
     const [view, setView] = useState('list'); // 'list' or 'edit'
@@ -56,6 +89,7 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
             categoryId: '',
             shortDesc: '',
             fullDesc: '',
+            files: [],
             createdBy: currentUser ? currentUser.id : 999
         });
         setView('edit');
@@ -81,6 +115,29 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
         if (listFilter === 'subordinates') return; // Prevent editing subordinates' requests here
         setCurrentRequest(prev => ({ ...prev, [field]: value }));
     };
+
+    const handleAddFiles = async (e) => {
+        const picked = Array.from(e.target.files || []);
+        if (picked.length === 0) return;
+        try {
+            const encoded = await Promise.all(
+                picked.map(async (f) => ({
+                    name: f.name,
+                    type: f.type,
+                    size: f.size,
+                    data: await fileToBase64(f), // base64 (without data: prefix)
+                }))
+            );
+            setCurrentRequest(prev => ({ ...prev, files: [...(prev.files || []), ...encoded] }));
+        } catch (err) {
+            alert('Не вдалося прочитати файл: ' + (err.message || err));
+        } finally {
+            e.target.value = '';
+        }
+    };
+
+    const handleRemoveFile = (idx) =>
+        setCurrentRequest(prev => ({ ...prev, files: (prev.files || []).filter((_, i) => i !== idx) }));
 
     const handleSaveForm = () => {
         if (!currentRequest.categoryId) {
@@ -232,6 +289,50 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                     placeholder="Вкажіть більше деталей..."
                                     readOnly={listFilter === 'subordinates' || !isEditable}
                                 />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Прикріплені файли</label>
+
+                                {(currentRequest.files && currentRequest.files.length > 0) ? (
+                                    <div className="req-files">
+                                        {currentRequest.files.map((f, idx) => (
+                                            <div className="req-file-row" key={idx}>
+                                                <FileText size={15} className="req-file-icon" />
+                                                <span className="req-file-name" title={f.name}>{f.name}</span>
+                                                <span className="req-file-size">{formatSize(f.size)}</span>
+                                                <button
+                                                    type="button"
+                                                    className="req-file-btn"
+                                                    onClick={() => downloadFile(f)}
+                                                    title="Завантажити"
+                                                >
+                                                    <Download size={15} />
+                                                </button>
+                                                {(listFilter !== 'subordinates' && isEditable) && (
+                                                    <button
+                                                        type="button"
+                                                        className="req-file-btn req-file-remove"
+                                                        onClick={() => handleRemoveFile(idx)}
+                                                        title="Видалити"
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="req-files-empty">Файлів немає</div>
+                                )}
+
+                                {(listFilter !== 'subordinates' && isEditable) && (
+                                    <label className="req-upload-btn">
+                                        <Paperclip size={15} />
+                                        Додати файли
+                                        <input type="file" multiple hidden onChange={handleAddFiles} />
+                                    </label>
+                                )}
                             </div>
                         </div>
 
