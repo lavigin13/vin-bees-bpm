@@ -7,14 +7,14 @@ import './DroneFlightGame.css';
 // --- Tuning (per 60fps frame, scaled by frame delta) ---
 const GAME_SPEED = 0.5;        // global pace; 0.5 = 50% slower than the raw feel
 const GRAVITY = 0.020;
-const MAX_LAUNCH_SPEED = 1.45;
+const MAX_LAUNCH_SPEED = 0.725;
 const THRUST_UP = 0.040;
-const THRUST_FWD = 0.005;       // forward acceleration (halved — slower build-up & lower top speed)
+const THRUST_FWD = 0.0025;       // forward acceleration
 const AIR_DRAG = 0.0010;
 const STEER_ACCEL = 0.05;
 const STEER_DAMP = 0.86;
 const FUEL_MAX = 200;
-const FUEL_BURN = 0.6;
+const FUEL_BURN = 0.3;
 const FUEL_PICKUP = 84;
 const BOOST_SPEED = 0.6;
 const HONEY_POINTS = 25;
@@ -25,6 +25,12 @@ const NUM_REFINERIES = 3;
 const NUM_BOMBS = 6;
 const REFINERY_GAP_MIN = 500;
 const REFINERY_GAP_MAX = 950;
+const AA_POINTS = 200;
+const AA_RANGE = 250;
+const AA_BULLET_SPEED = 2.8;
+const AA_COOLDOWN = 80;
+const NUM_AA_GUNS = 3;
+const NUM_AA_BULLETS = 15;
 const TRACK_HALF = 30;         // lateral steering limit
 const GROUND_CLEAR = 0.7;      // crash if the drone gets this close to the terrain
 const DRONE_R = 1.6;
@@ -36,7 +42,7 @@ const NUM_CHUNKS = 6;          // recycled to build an endless world
 const SEG_X = 24;              // heightfield resolution per chunk
 const SEG_Z = 12;
 const PROPS_PER_CHUNK = 16;    // scattered trees / buildings / rocks
-const BIOME_LEN = 200;         // length of one biome stretch (z)
+const BIOME_LEN = 600;         // length of one biome stretch (z)
 
 // Value-noise helpers (deterministic from world coords, so the mesh and the
 // collision height always agree).
@@ -207,7 +213,12 @@ const DroneFlightGame = () => {
         );
         flash.visible = false; scene.add(flash);
 
-        three.current = { scene, camera, renderer, sky, sun, chunks, maxChunkZ: 0, drone, catapult, entities, refineries, bombs, clouds, shadow, debris, flash };
+        const aaGuns = [];
+        for (let i = 0; i < NUM_AA_GUNS; i++) { const aa = buildAaGun(); scene.add(aa.group); aaGuns.push(aa); }
+        const aaBullets = buildAaBullets();
+        aaBullets.forEach(b => scene.add(b.mesh));
+
+        three.current = { scene, camera, renderer, sky, sun, chunks, maxChunkZ: 0, drone, catapult, entities, refineries, bombs, clouds, shadow, debris, flash, aaGuns, aaBullets };
 
         // initial terrain (seed 0) for the idle/menu view
         chunks.forEach((c, i) => regenChunk(c, i * CHUNK_LEN));
@@ -291,8 +302,8 @@ const DroneFlightGame = () => {
             gameTime: 0, lastFrame: 0, fs: 1,
             paused: false, pausedAt: 0, pausedTotal: 0, startedAt: 0,
             isOver: false, crashing: false, crashTimer: 0,
-            nextSpawnZ: 70, nextRefineryZ: 1500,
-            bombCooldown: 0, refineries: 0, shake: 0,
+            nextSpawnZ: 70, nextRefineryZ: 1500, nextAaZ: 600,
+            bombCooldown: 0, refineries: 0, aaKills: 0, shake: 0, shieldActive: false,
             raf: null
         };
     }
@@ -338,6 +349,8 @@ const DroneFlightGame = () => {
         entities.forEach(e => { e.group.visible = false; e.active = false; });
         refineries.forEach(r => { r.group.visible = false; r.free = true; r.alive = false; });
         bombs.forEach(b => { b.mesh.visible = false; b.active = false; });
+        three.current.aaGuns.forEach(aa => { aa.group.visible = false; aa.free = true; aa.alive = false; });
+        three.current.aaBullets.forEach(b => { b.mesh.visible = false; b.active = false; });
         catapult.visible = true;
         drone.visible = true;
         if (shadow) shadow.visible = true;
@@ -396,7 +409,7 @@ const DroneFlightGame = () => {
         s.isOver = true;
         playing.current = false;
         const dist = Math.floor(s.distance);
-        const score = dist + s.honey * HONEY_POINTS + s.refineries * REFINERY_POINTS;
+        const score = dist + s.honey * HONEY_POINTS + s.refineries * REFINERY_POINTS + s.aaKills * AA_POINTS;
         setFinalDist(dist);
         setFinalScore(score);
         setGameOver(true);
@@ -411,6 +424,18 @@ const DroneFlightGame = () => {
     const crash = () => {
         const s = g.current;
         if (s.crashing || s.isOver) return;
+
+        if (s.shieldActive) {
+            s.shieldActive = false;
+            // Shield bounce/recovery
+            s.vel.z *= 0.3;
+            s.vel.y = 0.4;
+            s.pos.y += 1.5; // push up to prevent immediate re-crash
+            s.shake = Math.max(s.shake, 8);
+            audioEngine.playShoot(); 
+            return;
+        }
+
         s.crashing = true;
         playing.current = false;
         input.current.thrust = false;
@@ -505,6 +530,15 @@ const DroneFlightGame = () => {
 
         s.distance = Math.max(s.distance, s.pos.z);
 
+        const shieldMesh = drone.children.find(c => c.name === 'shield');
+        if (shieldMesh) {
+            shieldMesh.visible = s.shieldActive;
+            if (s.shieldActive) {
+                shieldMesh.rotation.y += 0.05 * s.fs;
+                shieldMesh.material.opacity = 0.2 + Math.sin(s.gameTime / 100) * 0.1;
+            }
+        }
+
         // Dynamic music intensity tracks speed + thrust
         const thrusting = input.current.thrust && s.fuel > 0;
         const speedN = Math.min(1, s.vel.z / 5);
@@ -519,11 +553,14 @@ const DroneFlightGame = () => {
 
         spawnCollectibles();
         spawnRefineries();
+        spawnAaGuns();
         recycleChunks();
         recycleClouds();
         updateEntities();
         updateBombs();
         updateRefineries();
+        updateAaGuns();
+        updateAaBullets();
 
         if (distRef.current) distRef.current.textContent = Math.floor(s.distance);
         if (honeyRef.current) honeyRef.current.textContent = s.honey;
@@ -591,7 +628,7 @@ const DroneFlightGame = () => {
             if (!e) break;
             const type = pickType();
             const x = (Math.random() * 2 - 1) * (TRACK_HALF - 4);
-            const y = heightAt(x, s.nextSpawnZ) + 4 + Math.random() * 12;
+            const y = heightAt(x, s.nextSpawnZ) + 2 + Math.random() * 28;
             setEntity(e, type, x, y, s.nextSpawnZ);
             s.nextSpawnZ += 18 + Math.random() * 24;
         }
@@ -616,7 +653,7 @@ const DroneFlightGame = () => {
     const applyPickup = (e) => {
         const s = g.current;
         if (e.type === 'fuel') { s.fuel = Math.min(FUEL_MAX, s.fuel + FUEL_PICKUP); audioEngine.playShoot(); }
-        else if (e.type === 'honey') { s.honey += 1; audioEngine.playShoot(); }
+        else if (e.type === 'honey') { s.honey += 1; s.shieldActive = true; audioEngine.playShoot(); }
         else if (e.type === 'boost') { s.vel.z += BOOST_SPEED; audioEngine.playShoot(); }
         else { s.vel.z *= 0.5; s.vel.y += 0.25; audioEngine.playExplosion(); } // birds / balloons stay "soft"
     };
@@ -689,6 +726,17 @@ const DroneFlightGame = () => {
                 }
             }
             if (!b.active) return;
+            
+            for (const aa of three.current.aaGuns) {
+                if (aa.free || !aa.alive) continue;
+                const dx = b.mesh.position.x - aa.wx, dz = b.mesh.position.z - aa.wz;
+                if (dx * dx + dz * dz < aa.r * aa.r && b.mesh.position.y < aa.topY + 2) {
+                    hitAaGun(aa);
+                    b.active = false; b.mesh.visible = false;
+                    break;
+                }
+            }
+            if (!b.active) return;
 
             if (b.mesh.position.y <= heightAt(b.mesh.position.x, b.mesh.position.z) + 0.2 || b.mesh.position.z < s.pos.z - 30) {
                 b.active = false; b.mesh.visible = false;
@@ -737,6 +785,15 @@ const DroneFlightGame = () => {
         const cockpit = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), new THREE.MeshStandardMaterial({ color: '#38bdf8', emissive: '#0e7490', emissiveIntensity: 0.4 }));
         cockpit.position.set(0, 0.22, 0.6);
         grp.add(body, nose, wing, tailW, fin, cockpit);
+        
+        const shield = new THREE.Mesh(
+            new THREE.SphereGeometry(2.5, 12, 12),
+            new THREE.MeshStandardMaterial({ color: '#fbbf24', transparent: true, opacity: 0.3, emissive: '#f59e0b', emissiveIntensity: 0.4 })
+        );
+        shield.visible = false;
+        shield.name = 'shield';
+        grp.add(shield);
+        
         return grp;
     }
 
@@ -968,6 +1025,148 @@ const DroneFlightGame = () => {
         }
         return arr;
     }
+
+    // --- Air Defense (ППО) ---
+    function buildAaGun() {
+        const group = new THREE.Group();
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 1, 8), new THREE.MeshStandardMaterial({ color: '#4b5563', flatShading: true }));
+        base.position.y = 0.5; group.add(base);
+        
+        const turretGroup = new THREE.Group();
+        turretGroup.position.y = 1.2;
+        const turretBody = new THREE.Mesh(new THREE.SphereGeometry(1.2, 8, 6), new THREE.MeshStandardMaterial({ color: '#374151', flatShading: true }));
+        turretGroup.add(turretBody);
+        
+        const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 2.5, 6), new THREE.MeshStandardMaterial({ color: '#1f2937' }));
+        barrel.rotation.x = Math.PI / 2; barrel.position.z = 1.25;
+        turretGroup.add(barrel);
+        group.add(turretGroup);
+
+        const flame = new THREE.Mesh(
+            new THREE.SphereGeometry(2.5, 8, 6),
+            new THREE.MeshStandardMaterial({ color: '#ef4444', emissive: '#dc2626', transparent: true, opacity: 0.8 })
+        );
+        flame.position.y = 1; flame.visible = false; group.add(flame);
+
+        group.visible = false;
+        return { group, turret: turretGroup, flame, wx: 0, wz: 0, topY: 0, r: 2.5, alive: false, free: true, cooldown: 0 };
+    }
+
+    function buildAaBullets() {
+        const arr = [];
+        const mat = new THREE.MeshBasicMaterial({ color: '#ef4444' });
+        for (let i = 0; i < NUM_AA_BULLETS; i++) {
+            const m = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 4), mat);
+            m.visible = false;
+            arr.push({ mesh: m, vx: 0, vy: 0, vz: 0, active: false, life: 0 });
+        }
+        return arr;
+    }
+
+    const spawnAaGuns = () => {
+        const s = g.current;
+        const { aaGuns } = three.current;
+        while (s.nextAaZ < s.pos.z + 250) {
+            // 50% chance per biome
+            if (Math.random() < 0.5) {
+                const aa = aaGuns.find(x => x.free);
+                if (aa) {
+                    const x = (Math.random() * 2 - 1) * (TRACK_HALF - 4);
+                    const wz = s.nextAaZ + (Math.random() * 200 - 100); // randomly inside the biome chunk
+                    const gy = heightAt(x, wz);
+                    
+                    aa.group.position.set(x, gy, wz);
+                    aa.wx = x; aa.wz = wz; aa.topY = gy + 2.5;
+                    aa.alive = true; aa.free = false;
+                    aa.flame.visible = false;
+                    aa.group.visible = true;
+                    aa.cooldown = AA_COOLDOWN;
+                }
+            }
+            s.nextAaZ += BIOME_LEN;
+        }
+    };
+
+    const updateAaGuns = () => {
+        const s = g.current;
+        const { aaGuns, aaBullets, drone } = three.current;
+        aaGuns.forEach(aa => {
+            if (aa.free) return;
+            if (aa.wz < s.pos.z - 30) { aa.free = true; aa.group.visible = false; return; }
+            if (!aa.alive) {
+                if (aa.flame.visible) {
+                    aa.flame.scale.multiplyScalar(1 - 0.05 * s.fs);
+                    aa.flame.material.opacity -= 0.03 * s.fs;
+                    if (aa.flame.material.opacity <= 0) aa.flame.visible = false;
+                }
+                return;
+            }
+            
+            const dx = drone.position.x - aa.wx;
+            const dy = drone.position.y - aa.topY;
+            const dz = drone.position.z - aa.wz;
+            const distSq = dx * dx + dy * dy + dz * dz;
+
+            if (distSq < AA_RANGE * AA_RANGE) {
+                aa.turret.lookAt(drone.position);
+                
+                if (aa.cooldown > 0) aa.cooldown -= s.fs;
+                if (aa.cooldown <= 0) {
+                    const b = aaBullets.find(x => !x.active);
+                    if (b) {
+                        const dist = Math.sqrt(distSq);
+                        b.active = true; b.mesh.visible = true; b.life = 120;
+                        const bx = aa.wx, by = aa.topY, bz = aa.wz;
+                        b.mesh.position.set(bx, by, bz);
+                        // aim at drone with some prediction (or just straight at it)
+                        b.vx = (dx / dist) * AA_BULLET_SPEED;
+                        b.vy = (dy / dist) * AA_BULLET_SPEED;
+                        b.vz = (dz / dist) * AA_BULLET_SPEED;
+                        aa.cooldown = AA_COOLDOWN;
+                        audioEngine.playShoot(); // reuse shoot sound for AA
+                    }
+                }
+            }
+        });
+    };
+
+    const updateAaBullets = () => {
+        const s = g.current;
+        const fs = s.fs * GAME_SPEED;
+        const { aaBullets, drone } = three.current;
+        aaBullets.forEach(b => {
+            if (!b.active) return;
+            b.mesh.position.x += b.vx * fs;
+            b.mesh.position.y += b.vy * fs;
+            b.mesh.position.z += b.vz * fs;
+            b.life -= s.fs;
+            
+            // Check collision with drone
+            const dx = b.mesh.position.x - s.pos.x;
+            const dy = b.mesh.position.y - s.pos.y;
+            const dz = b.mesh.position.z - s.pos.z;
+            if (dx * dx + dy * dy + dz * dz < DRONE_R * DRONE_R) {
+                b.active = false; b.mesh.visible = false;
+                crash(); // instantly crash the drone
+                return;
+            }
+            
+            if (b.life <= 0 || b.mesh.position.y < heightAt(b.mesh.position.x, b.mesh.position.z)) {
+                b.active = false; b.mesh.visible = false;
+            }
+        });
+    };
+
+    const hitAaGun = (aa) => {
+        const s = g.current;
+        aa.alive = false;
+        aa.flame.visible = true;
+        aa.flame.scale.set(1, 1, 1);
+        aa.flame.material.opacity = 0.9;
+        s.aaKills += 1;
+        s.shake = Math.max(s.shake, 10);
+        audioEngine.playExplosion();
+    };
 
     const hintText = phase === 'power'
         ? 'Тап — зафіксувати силу'
