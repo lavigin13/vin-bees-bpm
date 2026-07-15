@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { X, ArrowLeft, Paperclip, FileText, Trash2, FileX, Loader2, Plus, Minus } from 'lucide-react';
+import { X, ArrowLeft, Paperclip, FileText, Trash2, FileX, Loader2, Delete, Check } from 'lucide-react';
 import './SupplierOrders.css';
 import { saveSupplierOrderReceiving } from '../services/api';
 
@@ -33,7 +33,18 @@ const SupplierOrderDetailModal = ({ isOpen, order, statuses = [], onClose, onSav
 
     const products = useMemo(() => order?.Products || [], [order]);
 
-    const [statusId, setStatusId]       = useState(initialStatus);
+    // The backend marks which statuses are valid targets for saving the
+    // receiving (Selectable: true). If no status carries the flag at all, the
+    // backend hasn't been updated yet — fall back to offering every status.
+    const selectableStatuses = useMemo(() => {
+        const anyFlagged = statuses.some(s => s && s.Selectable !== undefined);
+        return anyFlagged ? statuses.filter(s => s && s.Selectable === true) : statuses;
+    }, [statuses]);
+
+    // Preselect the order's current status only if it's allowed to be saved.
+    const [statusId, setStatusId]       = useState(() =>
+        selectableStatuses.some(s => statusKeyOf(s) === initialStatus) ? initialStatus : ''
+    );
     const [noDocuments, setNoDocuments] = useState(!!order?.NoDocuments);
     const [files, setFiles]             = useState([]); // [{ name, type, size, data }]
     const [isSaving, setIsSaving]       = useState(false);
@@ -46,6 +57,10 @@ const SupplierOrderDetailModal = ({ isOpen, order, statuses = [], onClose, onSav
         return map;
     });
 
+    // Numeric keypad for entering the received quantity — the native number
+    // input is too fiddly on the warehouse tablets.
+    const [keypad, setKeypad] = useState(null); // { idx, draft, overwrite }
+
     if (!isOpen || !order) return null;
 
     const currency = order.Currency || '';
@@ -54,8 +69,36 @@ const SupplierOrderDetailModal = ({ isOpen, order, statuses = [], onClose, onSav
         const n = Math.max(0, Number.isNaN(parseFloat(val)) ? 0 : parseFloat(val));
         setReceived(prev => ({ ...prev, [idx]: n }));
     };
-    const stepReceived = (idx, delta) =>
-        setReceived(prev => ({ ...prev, [idx]: Math.max(0, (Number(prev[idx]) || 0) + delta) }));
+    // --- Keypad logic. The draft is kept as a string so a trailing decimal
+    // separator ("12,") survives while typing. `overwrite` mimics a calculator:
+    // the first keypress replaces the current value instead of appending.
+    const openKeypad = (idx) =>
+        setKeypad({ idx, draft: String(received[idx] ?? 0), overwrite: true });
+
+    const keypadDigit = (d) => setKeypad(k => {
+        if (k.overwrite) return { ...k, draft: d, overwrite: false };
+        if (k.draft.replace('.', '').length >= 8) return k;
+        return { ...k, draft: k.draft === '0' ? d : k.draft + d };
+    });
+
+    const keypadDot = () => setKeypad(k => {
+        if (k.overwrite) return { ...k, draft: '0.', overwrite: false };
+        if (k.draft.includes('.')) return k;
+        return { ...k, draft: k.draft + '.' };
+    });
+
+    const keypadBackspace = () => setKeypad(k => ({
+        ...k,
+        draft: k.overwrite ? '0' : (k.draft.slice(0, -1) || '0'),
+        overwrite: false,
+    }));
+
+    const keypadClear = () => setKeypad(k => ({ ...k, draft: '0', overwrite: true }));
+
+    const keypadApply = () => {
+        setReceivedQty(keypad.idx, keypad.draft);
+        setKeypad(null);
+    };
 
     const handleAddFiles = async (e) => {
         const picked = Array.from(e.target.files || []);
@@ -195,18 +238,12 @@ const SupplierOrderDetailModal = ({ isOpen, order, statuses = [], onClose, onSav
                                                     </td>
                                                     <td className="so-num">
                                                         <div className={`so-rec-control ${mismatch ? 'mismatch' : ''}`}>
-                                                            <button type="button" className="so-rec-btn" onClick={() => stepReceived(idx, -1)}>
-                                                                <Minus size={11} />
-                                                            </button>
-                                                            <input
-                                                                type="number"
-                                                                className="so-rec-input"
-                                                                min={0}
-                                                                value={rec}
-                                                                onChange={e => setReceivedQty(idx, e.target.value)}
-                                                            />
-                                                            <button type="button" className="so-rec-btn" onClick={() => stepReceived(idx, +1)}>
-                                                                <Plus size={11} />
+                                                            <button
+                                                                type="button"
+                                                                className="so-rec-value"
+                                                                onClick={() => openKeypad(idx)}
+                                                            >
+                                                                {String(rec).replace('.', ',')}
                                                             </button>
                                                         </div>
                                                     </td>
@@ -258,7 +295,7 @@ const SupplierOrderDetailModal = ({ isOpen, order, statuses = [], onClose, onSav
                     {/* Status */}
                     <div className="so-section">
                         <span className="so-section-label">Статус</span>
-                        {statuses.length === 0 ? (
+                        {selectableStatuses.length === 0 ? (
                             <div className="so-empty">Список статусів недоступний</div>
                         ) : (
                             <select
@@ -267,7 +304,7 @@ const SupplierOrderDetailModal = ({ isOpen, order, statuses = [], onClose, onSav
                                 onChange={e => setStatusId(e.target.value)}
                             >
                                 <option value="">-- Оберіть статус --</option>
-                                {statuses.map(s => (
+                                {selectableStatuses.map(s => (
                                     <option key={statusKeyOf(s)} value={statusKeyOf(s)}>
                                         {statusNameOf(s)}
                                     </option>
@@ -292,6 +329,44 @@ const SupplierOrderDetailModal = ({ isOpen, order, statuses = [], onClose, onSav
                     </button>
                 </div>
             </div>
+
+            {/* Touch keypad for received quantity */}
+            {keypad && (() => {
+                const p = products[keypad.idx] || {};
+                return (
+                    <div className="so-keypad-overlay" onClick={e => { e.stopPropagation(); setKeypad(null); }}>
+                        <div className="so-keypad" onClick={e => e.stopPropagation()}>
+                            <div className="so-keypad-head">
+                                <div className="so-keypad-prod">{p.Name}</div>
+                                <button
+                                    type="button"
+                                    className="so-keypad-ordered"
+                                    onClick={() => setKeypad(k => ({ ...k, draft: String(p.Count ?? 0), overwrite: true }))}
+                                >
+                                    Замовлено: {String(p.Count ?? 0).replace('.', ',')}{p.Unit ? ` ${p.Unit}` : ''}
+                                </button>
+                            </div>
+                            <div className="so-keypad-display">{keypad.draft.replace('.', ',')}</div>
+                            <div className="so-keypad-grid">
+                                {['7', '8', '9', '4', '5', '6', '1', '2', '3'].map(d => (
+                                    <button type="button" key={d} className="so-key" onClick={() => keypadDigit(d)}>{d}</button>
+                                ))}
+                                <button type="button" className="so-key" onClick={keypadDot}>,</button>
+                                <button type="button" className="so-key" onClick={() => keypadDigit('0')}>0</button>
+                                <button type="button" className="so-key" onClick={keypadBackspace} aria-label="Стерти">
+                                    <Delete size={22} />
+                                </button>
+                            </div>
+                            <div className="so-keypad-actions">
+                                <button type="button" className="so-key so-key-clear" onClick={keypadClear}>C</button>
+                                <button type="button" className="so-key so-key-ok" onClick={keypadApply}>
+                                    <Check size={20} /> Готово
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };

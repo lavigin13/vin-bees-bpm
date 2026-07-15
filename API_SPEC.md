@@ -93,12 +93,20 @@ Create or update a report for a specific day.
 ### Get Supplier Orders List
 **GET** `/SupplierOrders`
 Fetches a list of supplier orders (incoming goods) and available statuses.
+
+`Selectable: true` marks statuses the warehouse worker is allowed to pick when
+saving a receiving. Statuses without the flag (or with `false`) are shown on
+order cards but cannot be chosen in the save form. If **no** status in the
+array carries the `Selectable` field, the frontend treats all of them as
+selectable (backward compatibility).
+
 **Response:**
 ```json
 {
   "statuses": [
-    { "Id": "new", "Name": "Новий", "Color": "#60a5fa" },
-    { "Id": "inroute", "Name": "В дорозі", "Color": "#fbbf24" }
+    { "Id": "new", "Name": "Новий", "Color": "#60a5fa", "Selectable": false },
+    { "Id": "inroute", "Name": "В дорозі", "Color": "#fbbf24", "Selectable": false },
+    { "Id": "received", "Name": "Прийнято", "Color": "#34d399", "Selectable": true }
   ],
   "orders": [
     {

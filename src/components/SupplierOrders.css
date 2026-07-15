@@ -272,39 +272,134 @@
     gap: 4px;
     justify-content: flex-end;
 }
-.so-rec-btn {
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    border: 1px solid var(--card-border);
-    background: rgba(0, 0, 0, 0.3);
-    color: var(--text-primary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: border-color 0.15s;
-}
-.so-rec-btn:hover { border-color: var(--accent-gold); }
-.so-rec-input {
-    width: 52px;
+/* Tappable value — opens the numeric keypad */
+.so-rec-value {
+    min-width: 56px;
     text-align: center;
-    padding: 5px 4px;
+    padding: 7px 8px;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--card-border);
     border-radius: 6px;
     color: var(--text-primary);
     font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: border-color 0.15s;
 }
-.so-rec-input:focus { outline: none; border-color: var(--accent-gold); }
-.so-rec-input::-webkit-inner-spin-button,
-.so-rec-input::-webkit-outer-spin-button { opacity: 0.4; }
+.so-rec-value:hover { border-color: var(--accent-gold); }
 /* Highlight when received qty differs from ordered */
-.so-rec-control.mismatch .so-rec-input {
+.so-rec-control.mismatch .so-rec-value {
     border-color: #fbbf24;
     color: #fbbf24;
 }
+
+/* ── Numeric keypad (tablet-friendly qty entry) ── */
+.so-keypad-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 1200;
+}
+.so-keypad {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card-bg);
+    border: 1px solid var(--accent-gold);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.5);
+    animation: soKeypadUp 0.2s ease-out;
+}
+@keyframes soKeypadUp {
+    from { transform: translateY(40px); opacity: 0.5; }
+    to   { transform: none; opacity: 1; }
+}
+.so-keypad-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.so-keypad-prod {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.so-keypad-ordered {
+    flex-shrink: 0;
+    padding: 9px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    background: rgba(255, 215, 0, 0.08);
+    color: var(--accent-gold);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.so-keypad-ordered:active { background: rgba(255, 215, 0, 0.2); }
+.so-keypad-display {
+    text-align: right;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 8px 16px;
+    min-height: 56px;
+    box-sizing: border-box;
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+}
+.so-keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.so-key {
+    min-height: 56px;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    touch-action: manipulation;
+    transition: background 0.1s;
+}
+.so-key:active { background: rgba(255, 215, 0, 0.25); }
+.so-keypad-actions {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 8px;
+}
+.so-key-clear { color: #f87171; border-color: rgba(248, 113, 113, 0.4); }
+.so-key-ok {
+    background: var(--accent-gold);
+    color: #000;
+    border: none;
+    font-size: 18px;
+    font-weight: 700;
+}
+.so-key-ok:active { opacity: 0.85; }
 
 /* Documents */
 .so-no-docs {
@@ -452,8 +547,15 @@
     .so-table-wrap { max-height: 440px; }
     .so-prod-name { font-size: 14px; }
 
-    .so-rec-btn { width: 26px; height: 26px; }
-    .so-rec-input { width: 64px; font-size: 14px; padding: 6px; }
+    .so-rec-value { min-width: 64px; font-size: 14px; padding: 8px 10px; }
+
+    /* Keypad becomes a centered dialog instead of a bottom sheet */
+    .so-keypad-overlay { align-items: center; }
+    .so-keypad {
+        border-radius: 20px;
+        border-bottom: 1px solid var(--accent-gold);
+        padding: 20px;
+    }
 
     .so-upload-btn { font-size: 15px; padding: 13px; }
     .so-file-name { font-size: 14px; }

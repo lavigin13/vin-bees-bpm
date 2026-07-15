@@ -556,7 +556,9 @@ export const saveWarehouseInventory = async (inventoryData) => {
 //
 // Expected list response shape (GET /SupplierOrders):
 //   {
-//     statuses: [{ Id, Name, Color? }],          // available statuses for the workflow
+//     statuses: [{ Id, Name, Color?, Selectable? }], // available statuses for the workflow;
+//                                                    // Selectable: true marks statuses the user may
+//                                                    // pick when saving a receiving (omit everywhere = all allowed)
 //     orders: [{
 //       Id, Number, Date,
 //       Supplier:  { Id, Name },
@@ -582,11 +584,12 @@ const supplierOrdersMockEnabled = () => {
 };
 
 const SUPPLIER_ORDER_STATUSES = [
-    { Id: 'new',         Name: 'Новий',         Color: '#60a5fa' },
-    { Id: 'inroute',     Name: 'В дорозі',      Color: '#fbbf24' },
-    { Id: 'partial',     Name: 'Частково прийнято', Color: '#a78bfa' },
-    { Id: 'received',    Name: 'Прийнято',      Color: '#34d399' },
-    { Id: 'discrepancy', Name: 'Розбіжності',   Color: '#f87171' },
+    // Selectable — статуси, які комірник може обрати при збереженні прийому
+    { Id: 'new',         Name: 'Новий',         Color: '#60a5fa', Selectable: false },
+    { Id: 'inroute',     Name: 'В дорозі',      Color: '#fbbf24', Selectable: false },
+    { Id: 'partial',     Name: 'Частково прийнято', Color: '#a78bfa', Selectable: true },
+    { Id: 'received',    Name: 'Прийнято',      Color: '#34d399', Selectable: true },
+    { Id: 'discrepancy', Name: 'Розбіжності',   Color: '#f87171', Selectable: true },
 ];
 
 const MOCK_SUPPLIER_ORDERS = () => ({

@@ -1133,7 +1133,7 @@ const DroneFlightGame = () => {
     const updateAaBullets = () => {
         const s = g.current;
         const fs = s.fs * GAME_SPEED;
-        const { aaBullets, drone } = three.current;
+        const { aaBullets } = three.current;
         aaBullets.forEach(b => {
             if (!b.active) return;
             b.mesh.position.x += b.vx * fs;

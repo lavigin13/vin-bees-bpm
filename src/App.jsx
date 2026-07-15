@@ -251,6 +251,7 @@ const App = () => {
     }
 
     // 1. Optimistic Update
+    const prevInventory = inventory;
     const newInventory = inventory.map(invItem => {
       if (invItem.id === item.id) {
         return { ...invItem, quantity: invItem.quantity - quantity };
@@ -265,7 +266,7 @@ const App = () => {
       await transferItem(recipient.id, item.id, quantity);
     } catch (e) {
       console.error("Transfer failed", e);
-      // Optional: Revert state
+      setInventory(prevInventory);
       alert("Передача не вдалася, спробуйте ще раз.");
       return;
     }
@@ -286,18 +287,10 @@ const App = () => {
     }
 
     // 2. Add Item to Inventory (Optimistic)
-    const newInventory = [...inventory];
-    const existingItemIndex = newInventory.findIndex(i => i.name === transfer.item.name);
-
-    if (existingItemIndex >= 0) {
-      newInventory[existingItemIndex].quantity += transfer.quantity;
-    } else {
-      newInventory.push({
-        id: Date.now(),
-        ...transfer.item,
-        quantity: transfer.quantity
-      });
-    }
+    const existingItem = inventory.find(i => i.name === transfer.item.name);
+    const newInventory = existingItem
+      ? inventory.map(i => i === existingItem ? { ...i, quantity: i.quantity + transfer.quantity } : i)
+      : [...inventory, { id: Date.now(), ...transfer.item, quantity: transfer.quantity }];
     setInventory(newInventory);
 
     // 3. Remove from Inbox
@@ -448,6 +441,9 @@ const App = () => {
       await transferHoney(recipient.id, amount);
     } catch (e) {
       console.error(e);
+      setUser(prev => ({ ...prev, honey: prev.honey + amount })); // Revert
+      alert("Не вдалося надіслати Мед, спробуйте ще раз.");
+      return;
     }
 
     // 3. Feedback

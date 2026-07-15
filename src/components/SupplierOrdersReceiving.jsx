@@ -4,8 +4,6 @@ import './SupplierOrders.css';
 import { fetchSupplierOrders } from '../services/api';
 import SupplierOrderDetailModal from './SupplierOrderDetailModal';
 
-const statusKeyOf = (status) =>
-    typeof status === 'object' && status ? (status.Id ?? status.Name ?? '') : (status ?? '');
 const statusNameOf = (status) =>
     typeof status === 'object' && status ? (status.Name ?? status.Id ?? '') : (status ?? '');
 const statusColorOf = (status) =>
@@ -17,7 +15,6 @@ const SupplierOrdersReceiving = () => {
     const [isLoading, setLoading] = useState(true);
 
     const [search, setSearch]               = useState('');
-    const [statusFilter, setStatusFilter]   = useState('');
     const [warehouseFilter, setWHFilter]    = useState('');
 
     const [selectedOrder, setSelectedOrder] = useState(null);
@@ -59,7 +56,6 @@ const SupplierOrdersReceiving = () => {
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
         return orders.filter(o => {
-            if (statusFilter && statusKeyOf(o.Status) !== statusFilter) return false;
             if (warehouseFilter && o.Warehouse?.Id !== warehouseFilter) return false;
             if (!q) return true;
             // Full-text: number, supplier, warehouse, product names + articles
@@ -72,7 +68,7 @@ const SupplierOrdersReceiving = () => {
             ].filter(Boolean).join(' ').toLowerCase();
             return haystack.includes(q);
         });
-    }, [orders, search, statusFilter, warehouseFilter]);
+    }, [orders, search, warehouseFilter]);
 
     const handleSaved = () => {
         setSelectedOrder(null);
@@ -93,12 +89,6 @@ const SupplierOrdersReceiving = () => {
                     />
                 </div>
                 <div className="so-filter-row">
-                    <select className="so-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-                        <option value="">Всі статуси</option>
-                        {statuses.map(s => (
-                            <option key={statusKeyOf(s)} value={statusKeyOf(s)}>{statusNameOf(s)}</option>
-                        ))}
-                    </select>
                     <select className="so-select" value={warehouseFilter} onChange={e => setWHFilter(e.target.value)}>
                         <option value="">Всі склади</option>
                         {warehouseOptions.map(w => (
@@ -148,13 +138,19 @@ const SupplierOrdersReceiving = () => {
                 )}
             </div>
 
-            <SupplierOrderDetailModal
-                isOpen={!!selectedOrder}
-                order={selectedOrder}
-                statuses={statuses}
-                onClose={() => setSelectedOrder(null)}
-                onSaved={handleSaved}
-            />
+            {/* key + conditional mount: React state (received qty, files, status)
+                must reinitialize for every opened order, otherwise values from a
+                previously viewed order leak into the next one. */}
+            {selectedOrder && (
+                <SupplierOrderDetailModal
+                    key={selectedOrder.Id}
+                    isOpen
+                    order={selectedOrder}
+                    statuses={statuses}
+                    onClose={() => setSelectedOrder(null)}
+                    onSaved={handleSaved}
+                />
+            )}
         </div>
     );
 };

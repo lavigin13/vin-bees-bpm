@@ -120,16 +120,16 @@ const BeeInvadersGame = () => {
             };
         };
 
-        loadImg('/assets/combat_bee.png', 'player');
-        loadImg('/assets/shahed_drone.png', 'enemy');
-        loadImg('/assets/lancet_drone.png', 'lancet');
-        loadImg('/assets/orlan_drone.png', 'orlan');
-        loadImg('/assets/interceptor_projectile.png', 'bullet');
-        loadImg('/assets/ground_bg.png', 'background');
-        loadImg('/assets/boss_bg.png', 'boss_bg');
-        loadImg('/assets/base.png', 'base');
-        loadImg('/assets/bumblebee.png', 'bumblebee');
-        loadImg('/assets/grusha.png', 'grusha');
+        loadImg('/assets/combat_bee.webp', 'player');
+        loadImg('/assets/shahed_drone.webp', 'enemy');
+        loadImg('/assets/lancet_drone.webp', 'lancet');
+        loadImg('/assets/orlan_drone.webp', 'orlan');
+        loadImg('/assets/interceptor_projectile.webp', 'bullet');
+        loadImg('/assets/ground_bg.webp', 'background');
+        loadImg('/assets/boss_bg.webp', 'boss_bg');
+        loadImg('/assets/base.webp', 'base');
+        loadImg('/assets/bumblebee.webp', 'bumblebee');
+        loadImg('/assets/grusha.webp', 'grusha');
 
         loadImg('/assets/powerups/big_bullets.svg', 'puBigBullets');
         loadImg('/assets/powerups/shield.svg', 'puShield');
@@ -1575,7 +1575,7 @@ const BeeInvadersGame = () => {
             {!gameStarted && introStep > 0 && (
                 <div className="intro-screen">
                     <img 
-                        src={`/assets/intro_slide_${introStep}.png`} 
+                        src={`/assets/intro_slide_${introStep}.webp`}
                         alt="Cutscene" 
                         className={`intro-image slide-${introStep}`} 
                     />
