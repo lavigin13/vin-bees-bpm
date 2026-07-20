@@ -350,7 +350,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                                         {report.type === 'Vacation' || report.type === 'Відпустка' ? '⛱️' : null}
                                                                                         {report.type === 'Sick' || report.type === 'Лікарняний' ? '💊' : null}
                                                                                         {report.type === 'Business Trip' || report.type === 'Відрядження' ? '💼' : null}
-                                                                                        {report.type === 'Day Off' || report.type === 'Вихідний' ? '☕' : null}
+                                                                                        {report.type === 'Day Off' || report.type === 'Неоплачувана відпустка' ? '☕' : null}
                                                                                         {(report.type === 'omitted' || report.type === 'Omitted') && '❌'}
                                                                                     </div>
                                                                                 )}
@@ -460,7 +460,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                                                 {report.type === 'Vacation' || report.type === 'Відпустка' ? '⛱️' : null}
                                                                                                 {report.type === 'Sick' || report.type === 'Лікарняний' ? '💊' : null}
                                                                                                 {report.type === 'Business Trip' || report.type === 'Відрядження' ? '💼' : null}
-                                                                                                {report.type === 'Day Off' || report.type === 'Вихідний' ? '☕' : null}
+                                                                                                {report.type === 'Day Off' || report.type === 'Неоплачувана відпустка' ? '☕' : null}
                                                                                                 {(report.type === 'omitted' || report.type === 'Omitted') && '❌'}
                                                                                             </div>
                                                                                         )}

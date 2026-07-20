@@ -10,7 +10,7 @@ export const DAY_TYPE_LABELS = {
     "Work": "Робочий",
     "Vacation": "Відпустка",
     "Sick Leave": "Лікарняний",
-    "Day Off": "Вихідний",
+    "Day Off": "Неоплачувана відпустка",
     "Business Trip": "Відрядження"
 };
 

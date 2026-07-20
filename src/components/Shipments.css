@@ -1,0 +1,66 @@
+/* Shipments (Відправка) — additions on top of the shared SupplierOrders.css */
+
+/* Month period navigation */
+.sh-month-nav {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 2px;
+    min-width: 0;
+}
+
+.sh-month-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.2s, background 0.2s;
+}
+
+.sh-month-btn:hover {
+    color: var(--accent-gold);
+    background: rgba(255, 215, 0, 0.08);
+}
+
+.sh-month-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Document status badges: posted / draft */
+.sh-status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.sh-status-badge.posted {
+    color: #34d399;
+    border-color: #34d399;
+}
+
+.sh-status-badge.draft {
+    color: #94a3b8;
+    border-color: #94a3b8;
+}

@@ -851,3 +851,114 @@ export const saveInternalOrderIssuing = async (payload) => {
         return { success: true };
     }
 };
+
+// --- Shipment Documents (Відправка зі складу) ---
+//
+// ⚠️ Backend contracts below are ASSUMED — adjust endpoints/shapes once the
+// real 1C/BPM API is available. To preview the UI before the backend exists,
+// run in the browser console:  localStorage.setItem('mockShipmentDocuments', '1')
+//
+// Expected list response shape (GET /ShipmentDocuments?month=YYYY-MM):
+//   {
+//     documents: [{
+//       Id, Date,
+//       status: 'posted' | 'draft',
+//       departmentName, destination, workflow,
+//       lines: [{ skuId, skuName, quantity }]
+//     }]
+//   }
+
+const SHIPMENT_DOCUMENTS_MOCK_DEFAULT = true;
+const shipmentDocumentsMockEnabled = () => {
+    if (typeof window === 'undefined') return SHIPMENT_DOCUMENTS_MOCK_DEFAULT;
+    const flag = localStorage.getItem('mockShipmentDocuments');
+    if (flag === '1') return true;
+    if (flag === '0') return false;
+    return SHIPMENT_DOCUMENTS_MOCK_DEFAULT;
+};
+
+// Mock documents are generated inside the requested month so the period
+// filter is testable without a backend.
+const MOCK_SHIPMENT_DOCUMENTS = (monthStr) => ({
+    documents: [
+        {
+            Id: `ship-${monthStr}-001`, Date: `${monthStr}-03`,
+            status: 'posted',
+            departmentName: 'Цех фасування',
+            destination: 'НП №12, м. Вінниця',
+            workflow: 'Відправка клієнту',
+            lines: [
+                { skuId: 'sku1', skuName: 'Мед акацієвий 0.5 л', quantity: 24 },
+                { skuId: 'sku2', skuName: 'Мед гречаний 1 л', quantity: 12 },
+            ],
+        },
+        {
+            Id: `ship-${monthStr}-002`, Date: `${monthStr}-11`,
+            status: 'posted',
+            departmentName: 'Основний склад',
+            destination: 'Філія Київ, вул. Медова 8',
+            workflow: 'Внутрішнє переміщення',
+            lines: [
+                { skuId: 'sku3', skuName: 'Вощина натуральна', quantity: 40 },
+                { skuId: 'sku4', skuName: 'Рамка вулика 470х300', quantity: 200 },
+                { skuId: 'sku5', skuName: 'Димар пасічний', quantity: 5 },
+            ],
+        },
+        {
+            Id: `ship-${monthStr}-003`, Date: `${monthStr}-18`,
+            status: 'draft',
+            departmentName: 'Склад готової продукції',
+            destination: 'ТОВ "Медова крамниця", м. Львів',
+            workflow: 'Відправка клієнту',
+            lines: [
+                { skuId: 'sku6', skuName: 'Подарунковий набір "Пасіка"', quantity: 30 },
+            ],
+        },
+    ],
+});
+
+export const fetchShipmentDocuments = async (monthStr) => {
+    // monthStr: YYYY-MM — period (month) filter applied by the backend
+    const headers = getHeaders();
+    const useMock = shipmentDocumentsMockEnabled();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/ShipmentDocuments?month=${monthStr}`, { method: 'GET', headers });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        // Normalise: backend may return an array of documents OR { documents }
+        if (Array.isArray(data)) return { documents: data };
+        return { documents: data.documents || [] };
+    } catch (error) {
+        if (useMock) {
+            console.warn('[ShipmentDocuments] Using mock data (backend unavailable)');
+            return MOCK_SHIPMENT_DOCUMENTS(monthStr);
+        }
+        console.error('Failed to fetch shipment documents:', error);
+        return { documents: [] };
+    }
+};
+
+export const markShipmentDocumentSent = async (payload) => {
+    // payload: {
+    //   id,                                  // document id
+    //   files: [{ name, type, size, data }]  // data = base64 (without data: prefix)
+    // }
+    const headers = getHeaders();
+    const useMock = shipmentDocumentsMockEnabled();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/ShipmentDocuments`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        if (useMock) {
+            console.warn('[ShipmentDocuments] Mock send (backend unavailable):', payload);
+            return { success: true };
+        }
+        console.error('Failed to mark shipment as sent:', error);
+        throw error;
+    }
+};

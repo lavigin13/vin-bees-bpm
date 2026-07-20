@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, Warehouse, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { X, Warehouse, ArrowDownToLine, ArrowUpFromLine, Truck } from 'lucide-react';
 import './WarehouseOperationsModal.css';
 import SupplierOrdersReceiving from './SupplierOrdersReceiving';
 import InternalOrdersIssuing from './InternalOrdersIssuing';
+import ShipmentsSending from './ShipmentsSending';
 
 const WarehouseOperationsModal = ({ isOpen, onClose }) => {
     const [activeTab, setActiveTab] = useState('receiving');
@@ -35,11 +36,18 @@ const WarehouseOperationsModal = ({ isOpen, onClose }) => {
                     >
                         <ArrowUpFromLine size={16} /> Видача (Внутрішні заявки)
                     </button>
+                    <button
+                        className={`wh-ops-tab ${activeTab === 'shipment' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('shipment')}
+                    >
+                        <Truck size={16} /> Відправка
+                    </button>
                 </div>
 
                 <div className="wh-ops-content">
                     {activeTab === 'receiving' && <SupplierOrdersReceiving />}
                     {activeTab === 'issuing' && <InternalOrdersIssuing />}
+                    {activeTab === 'shipment' && <ShipmentsSending />}
                 </div>
             </div>
         </div>

@@ -199,3 +199,50 @@ Saves the issued quantities for an internal order and updates its status.
 ```json
 { "success": true }
 ```
+
+---
+
+## 11. Warehouse Shipments (Відправка)
+
+### Get Shipment Documents List
+**GET** `/ShipmentDocuments?month=YYYY-MM`
+Fetches shipment documents for the given month period (documents to be sent by the warehouse).
+
+`status` is either `posted` (document is posted in 1C) or `draft`.
+
+**Response:**
+```json
+{
+  "documents": [
+    {
+      "Id": "ship-0001",
+      "Date": "2026-07-03",
+      "status": "posted",
+      "departmentName": "Цех фасування",
+      "destination": "НП №12, м. Вінниця",
+      "workflow": "Відправка клієнту",
+      "lines": [
+        { "skuId": "sku1", "skuName": "Мед акацієвий 0.5 л", "quantity": 24 }
+      ]
+    }
+  ]
+}
+```
+
+### Mark Shipment as Sent
+**POST** `/ShipmentDocuments`
+Marks a shipment document as sent, optionally attaching files (e.g. photos of the package or the waybill). `data` is base64 without the `data:` prefix.
+
+**Body:**
+```json
+{
+  "id": "ship-0001",
+  "files": [
+    { "name": "ttn.pdf", "type": "application/pdf", "size": 14230, "data": "JVBERi0x..." }
+  ]
+}
+```
+**Response:**
+```json
+{ "success": true }
+```
