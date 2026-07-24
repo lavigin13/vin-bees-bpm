@@ -43,7 +43,17 @@ export default defineConfig({
         // Game artwork (assets/*.webp) is deliberately NOT precached — it's
         // ~1MB that most employees never need. It's cached on first use below.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallbackDenylist: [/^\/VinBeesERP/],
+        navigateFallbackDenylist: [
+          /^\/Planner(\/|$)/i,
+          /^\/ExpenseReport(\/|$)/i,
+          /^\/Profile(\/|$)/i,
+          /^\/VinBeesERP(\/|$)/i,
+          /^\/VinBeesBUH(\/|$)/i,
+          /^\/VinBeesTelegram(\/|$)/i,
+          /^\/TEST(\/|$)/i,
+          /^\/Repository(\/|$)/i,
+          /^\/aspnet_client(\/|$)/i,
+        ],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.destination === 'image',
