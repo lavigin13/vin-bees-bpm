@@ -302,3 +302,53 @@ Creates a new expense report. `Date` uses the same `YYYY-MM-DD` format as `date`
 ```json
 { "success": true }
 ```
+
+---
+
+## 13. Car Usage Reports (Звіт по використанню авто)
+
+⚠️ Contract is assumed (mirrors Individual Expense Reports) — confirm with the 1C side.
+
+### Get Car Usage Reports List
+**GET** `/CarUsageReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY`
+Fetches the current user's car usage reports for the given period.
+
+`Files` is an array of base64-encoded attachments (empty array if none). A single `File` string is also accepted.
+
+**Response:**
+```json
+[
+  {
+    "UUID": "2e8f4287-136b-22f2-a54c-1307486770e2",
+    "Date": "2026-01-30T00:00:00",
+    "DeletionMark": false,
+    "Posted": true,
+    "Segments": [
+      { "Date": "2026-01-28T00:00:00", "PointA": "Вінниця", "PointB": "Київ", "Km": 256 },
+      { "Date": "2026-01-28T00:00:00", "PointA": "Київ", "PointB": "Вінниця", "Km": 256 }
+    ],
+    "Files": []
+  }
+]
+```
+
+### Create Car Usage Report
+**POST** `/CarUsageReports`
+Creates a new car usage report from route segments. `Date` in each segment uses `YYYY-MM-DD` (same as `date` in `POST /timesheet/day`). `Files[].data` is base64 without the `data:` prefix; `Files` is `[]` when no attachments.
+
+**Body:**
+```json
+{
+  "Segments": [
+    { "Date": "2026-01-28", "PointA": "Вінниця", "PointB": "Київ", "Km": 256 },
+    { "Date": "2026-01-28", "PointA": "Київ", "PointB": "Вінниця", "Km": 256 }
+  ],
+  "Files": [
+    { "name": "check.pdf", "type": "application/pdf", "size": 14230, "data": "JVBERi0x..." }
+  ]
+}
+```
+**Response:**
+```json
+{ "success": true }
+```

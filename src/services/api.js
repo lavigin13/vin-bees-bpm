@@ -998,6 +998,54 @@ export const createIndividualExpenseReport = async (payload) => {
     }
 };
 
+// --- Car Usage Reports (Звіт по використанню авто) ---
+//
+// ⚠️ Contract is ASSUMED (mirrors IndividualExpenseReports) — adjust once
+// confirmed by the 1C side:
+// GET  /CarUsageReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY
+//   → [{ UUID, Date, DeletionMark, Posted,
+//        Segments: [{ Date, PointA, PointB, Km }],
+//        Files: ['base64', ...] }]
+// POST /CarUsageReports
+//   { Segments: [{ Date: 'YYYY-MM-DD', PointA, PointB, Km }],
+//     Files: [{ name, type, size, data }] }
+//   data = base64 without the "data:" prefix
+
+export const fetchCarUsageReports = async (startDate, endDate) => {
+    // startDate / endDate: 'DD.MM.YYYY'
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(
+            `${API_BASE_URL}/CarUsageReports?StartDate=${startDate}&EndDate=${endDate}`,
+            { method: 'GET', headers }
+        );
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        return Array.isArray(data) ? data : (data.reports || []);
+    } catch (error) {
+        if (error instanceof UnauthorizedError) throw error;
+        console.error('Failed to fetch car usage reports:', error);
+        return [];
+    }
+};
+
+export const createCarUsageReport = async (payload) => {
+    // payload: { Segments: [{ Date, PointA, PointB, Km }], Files: [{ name, type, size, data }] }
+    const headers = getHeaders();
+    const response = await apiFetch(`${API_BASE_URL}/CarUsageReports`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    try {
+        return await response.json();
+    } catch {
+        // 1C may reply with an empty body on success
+        return { success: true };
+    }
+};
+
 export const markShipmentDocumentSent = async (payload) => {
     // payload: {
     //   id,                                  // document id

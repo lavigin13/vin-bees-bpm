@@ -1,0 +1,90 @@
+/* Car Usage Reports (Використання авто) — additions on top of ExpenseReports.css */
+
+/* Segment lines inside a report card */
+.cu-seg-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    min-width: 0;
+}
+
+.cu-seg-date {
+    font-size: 11px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.cu-seg-route {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-primary);
+    font-weight: 500;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.cu-seg-route svg { color: var(--text-secondary); flex-shrink: 0; }
+
+.cu-seg-km {
+    color: var(--text-secondary);
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* Create form: segment editor rows */
+.cu-segments {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.cu-segment {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+}
+
+.cu-segment-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cu-seg-date-input { flex: 1; min-width: 0; }
+
+.cu-km-input {
+    width: 90px;
+    flex-shrink: 0;
+}
+
+.cu-segment-head .so-file-remove { flex-shrink: 0; }
+.cu-segment-head .so-file-remove:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.cu-segment-route {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cu-segment-route .er-input { flex: 1; min-width: 0; }
+
+.cu-route-arrow {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.cu-create-actions {
+    display: flex;
+    gap: 8px;
+}
