@@ -1,90 +1,53 @@
 /* Car Usage Reports (Використання авто) — additions on top of ExpenseReports.css */
 
-/* Segment lines inside a report card */
-.cu-seg-line {
+/* Odometer / fuel lines inside a report card */
+.cu-meter-line,
+.cu-fuel-line {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 13px;
-    min-width: 0;
+    color: var(--text-primary);
 }
 
-.cu-seg-date {
-    font-size: 11px;
-    color: var(--text-secondary);
-    flex-shrink: 0;
+.cu-meter-line svg,
+.cu-fuel-line svg { color: var(--text-secondary); flex-shrink: 0; }
+
+.cu-fuel-line { color: var(--text-secondary); font-size: 12px; }
+
+/* Create form */
+.cu-odometers {
+    display: flex;
+    gap: 10px;
 }
 
-.cu-seg-route {
+.cu-odometers .er-field { flex: 1; min-width: 0; }
+
+.cu-km-hint {
     display: flex;
     align-items: center;
-    gap: 5px;
-    color: var(--text-primary);
-    font-weight: 500;
-    min-width: 0;
-    overflow-wrap: anywhere;
-}
-
-.cu-seg-route svg { color: var(--text-secondary); flex-shrink: 0; }
-
-.cu-seg-km {
-    color: var(--text-secondary);
-    white-space: nowrap;
-    margin-left: auto;
-    flex-shrink: 0;
-}
-
-/* Create form: segment editor rows */
-.cu-segments {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 8px;
-}
-
-.cu-segment {
-    display: flex;
-    flex-direction: column;
     gap: 8px;
-    padding: 10px;
+}
+
+.cu-fuel-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid var(--card-border);
-    border-radius: 10px;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
 }
 
-.cu-segment-head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.cu-fuel-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-gold);
+    cursor: pointer;
 }
 
-.cu-seg-date-input { flex: 1; min-width: 0; }
-
-.cu-km-input {
-    width: 90px;
-    flex-shrink: 0;
-}
-
-.cu-segment-head .so-file-remove { flex-shrink: 0; }
-.cu-segment-head .so-file-remove:disabled {
-    opacity: 0.35;
-    cursor: default;
-}
-
-.cu-segment-route {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.cu-segment-route .er-input { flex: 1; min-width: 0; }
-
-.cu-route-arrow {
-    color: var(--text-secondary);
-    flex-shrink: 0;
-}
-
-.cu-create-actions {
-    display: flex;
-    gap: 8px;
-}
+.cu-fuel-toggle svg { color: var(--text-secondary); }

@@ -315,6 +315,8 @@ Fetches the current user's car usage reports for the given period.
 
 `Files` is an array of base64-encoded attachments (empty array if none). A single `File` string is also accepted.
 
+The driven distance is computed on the client as `OdometerEnd - OdometerStart`. `FuelLiters` is `0` when `Refueled` is `false`.
+
 **Response:**
 ```json
 [
@@ -323,10 +325,10 @@ Fetches the current user's car usage reports for the given period.
     "Date": "2026-01-30T00:00:00",
     "DeletionMark": false,
     "Posted": true,
-    "Segments": [
-      { "Date": "2026-01-28T00:00:00", "PointA": "Вінниця", "PointB": "Київ", "Km": 256 },
-      { "Date": "2026-01-28T00:00:00", "PointA": "Київ", "PointB": "Вінниця", "Km": 256 }
-    ],
+    "OdometerStart": 152340,
+    "OdometerEnd": 152852,
+    "Refueled": true,
+    "FuelLiters": 45.5,
     "Files": []
   }
 ]
@@ -334,15 +336,16 @@ Fetches the current user's car usage reports for the given period.
 
 ### Create Car Usage Report
 **POST** `/CarUsageReports`
-Creates a new car usage report from route segments. `Date` in each segment uses `YYYY-MM-DD` (same as `date` in `POST /timesheet/day`). `Files[].data` is base64 without the `data:` prefix; `Files` is `[]` when no attachments.
+Creates a new car usage report. `Date` uses `YYYY-MM-DD` (same as `date` in `POST /timesheet/day`). `FuelLiters` is `0` when `Refueled` is `false`. `Files[].data` is base64 without the `data:` prefix; `Files` is `[]` when no attachments.
 
 **Body:**
 ```json
 {
-  "Segments": [
-    { "Date": "2026-01-28", "PointA": "Вінниця", "PointB": "Київ", "Km": 256 },
-    { "Date": "2026-01-28", "PointA": "Київ", "PointB": "Вінниця", "Km": 256 }
-  ],
+  "Date": "2026-01-28",
+  "OdometerStart": 152340,
+  "OdometerEnd": 152852,
+  "Refueled": true,
+  "FuelLiters": 45.5,
   "Files": [
     { "name": "check.pdf", "type": "application/pdf", "size": 14230, "data": "JVBERi0x..." }
   ]

@@ -1004,10 +1004,11 @@ export const createIndividualExpenseReport = async (payload) => {
 // confirmed by the 1C side:
 // GET  /CarUsageReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY
 //   → [{ UUID, Date, DeletionMark, Posted,
-//        Segments: [{ Date, PointA, PointB, Km }],
+//        OdometerStart, OdometerEnd, Refueled, FuelLiters,
 //        Files: ['base64', ...] }]
 // POST /CarUsageReports
-//   { Segments: [{ Date: 'YYYY-MM-DD', PointA, PointB, Km }],
+//   { Date: 'YYYY-MM-DD', OdometerStart, OdometerEnd,
+//     Refueled: bool, FuelLiters (0 якщо не заправлявся),
 //     Files: [{ name, type, size, data }] }
 //   data = base64 without the "data:" prefix
 
@@ -1030,7 +1031,7 @@ export const fetchCarUsageReports = async (startDate, endDate) => {
 };
 
 export const createCarUsageReport = async (payload) => {
-    // payload: { Segments: [{ Date, PointA, PointB, Km }], Files: [{ name, type, size, data }] }
+    // payload: { Date, OdometerStart, OdometerEnd, Refueled, FuelLiters, Files: [{ name, type, size, data }] }
     const headers = getHeaders();
     const response = await apiFetch(`${API_BASE_URL}/CarUsageReports`, {
         method: 'POST',
