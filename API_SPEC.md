@@ -309,6 +309,28 @@ Creates a new expense report. `Date` uses the same `YYYY-MM-DD` format as `date`
 
 ⚠️ Contract is assumed (mirrors Individual Expense Reports) — confirm with the 1C side.
 
+### Get Cars Catalog
+**GET** `/Cars`
+Fetches the cars available for reporting. `FuelRemainder` is the backend-predicted fuel left in the tank (liters) — shown to the driver in the create form.
+
+**Response:**
+```json
+[
+  { "UUID": "c1d2e3f4-025a-11f1-943b-0296375669d1", "Name": "Renault Trafic АВ1234СD", "FuelRemainder": 23.5 }
+]
+```
+
+### Get Route Points Catalog
+**GET** `/RoutePoints`
+Fetches known route points used as typing suggestions for segment fields (the fields remain free text).
+
+**Response:**
+```json
+[
+  { "UUID": "d5e6f7a8-025a-11f1-943b-0296375669d1", "Name": "Вінниця, офіс" }
+]
+```
+
 ### Get Car Usage Reports List
 **GET** `/CarUsageReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY`
 Fetches the current user's car usage reports for the given period.
@@ -325,10 +347,16 @@ The driven distance is computed on the client as `OdometerEnd - OdometerStart`. 
     "Date": "2026-01-30T00:00:00",
     "DeletionMark": false,
     "Posted": true,
+    "Car": { "UUID": "c1d2e3f4-025a-11f1-943b-0296375669d1", "Name": "Renault Trafic АВ1234СD" },
     "OdometerStart": 152340,
     "OdometerEnd": 152852,
     "Refueled": true,
     "FuelLiters": 45.5,
+    "Segments": [
+      { "PointA": "Вінниця, офіс", "PointB": "Київ, склад" },
+      { "PointA": "Київ, склад", "PointB": "Вінниця, офіс" }
+    ],
+    "Comment": "Доставка обладнання",
     "Files": []
   }
 ]
@@ -336,16 +364,24 @@ The driven distance is computed on the client as `OdometerEnd - OdometerStart`. 
 
 ### Create Car Usage Report
 **POST** `/CarUsageReports`
-Creates a new car usage report. `Date` uses `YYYY-MM-DD` (same as `date` in `POST /timesheet/day`). `FuelLiters` is `0` when `Refueled` is `false`. `Files[].data` is base64 without the `data:` prefix; `Files` is `[]` when no attachments.
+Creates a new car usage report. `Date` uses `YYYY-MM-DD` (same as `date` in `POST /timesheet/day`). `CarUUID` is a UUID from `/Cars`. `FuelLiters` is `0` when `Refueled` is `false`. When the driver confirms the predicted fuel remainder, `FuelRemainderMismatch` is `false` and `ActualFuelRemainder` is `null`; otherwise the driver's own value (liters) is sent. Segment points are free text (suggestions come from `/RoutePoints`). `Files[].data` is base64 without the `data:` prefix; `Files` is `[]` when no attachments.
 
 **Body:**
 ```json
 {
   "Date": "2026-01-28",
+  "CarUUID": "c1d2e3f4-025a-11f1-943b-0296375669d1",
   "OdometerStart": 152340,
   "OdometerEnd": 152852,
   "Refueled": true,
   "FuelLiters": 45.5,
+  "FuelRemainderMismatch": true,
+  "ActualFuelRemainder": 18,
+  "Segments": [
+    { "PointA": "Вінниця, офіс", "PointB": "Київ, склад" },
+    { "PointA": "Київ, склад", "PointB": "Вінниця, офіс" }
+  ],
+  "Comment": "Доставка обладнання",
   "Files": [
     { "name": "check.pdf", "type": "application/pdf", "size": 14230, "data": "JVBERi0x..." }
   ]

@@ -1002,15 +1002,48 @@ export const createIndividualExpenseReport = async (payload) => {
 //
 // ⚠️ Contract is ASSUMED (mirrors IndividualExpenseReports) — adjust once
 // confirmed by the 1C side:
+// GET  /Cars → [{ UUID, Name, FuelRemainder }] — авто + прогнозований залишок палива (л)
+// GET  /RoutePoints → [{ UUID, Name }] — точки маршрутів для підказок вводу
 // GET  /CarUsageReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY
-//   → [{ UUID, Date, DeletionMark, Posted,
+//   → [{ UUID, Date, DeletionMark, Posted, Car: { UUID, Name },
 //        OdometerStart, OdometerEnd, Refueled, FuelLiters,
+//        Segments: [{ PointA, PointB }], Comment,
 //        Files: ['base64', ...] }]
 // POST /CarUsageReports
-//   { Date: 'YYYY-MM-DD', OdometerStart, OdometerEnd,
+//   { Date: 'YYYY-MM-DD', CarUUID, OdometerStart, OdometerEnd,
 //     Refueled: bool, FuelLiters (0 якщо не заправлявся),
+//     FuelRemainderMismatch: bool, ActualFuelRemainder (null якщо збігається),
+//     Segments: [{ PointA, PointB }], Comment,
 //     Files: [{ name, type, size, data }] }
 //   data = base64 without the "data:" prefix
+
+export const fetchCars = async () => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/Cars`, { method: 'GET', headers });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        return Array.isArray(data) ? data : (data.cars || []);
+    } catch (error) {
+        if (error instanceof UnauthorizedError) throw error;
+        console.error('Failed to fetch cars:', error);
+        return [];
+    }
+};
+
+export const fetchRoutePoints = async () => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/RoutePoints`, { method: 'GET', headers });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        return Array.isArray(data) ? data : (data.points || []);
+    } catch (error) {
+        if (error instanceof UnauthorizedError) throw error;
+        console.error('Failed to fetch route points:', error);
+        return [];
+    }
+};
 
 export const fetchCarUsageReports = async (startDate, endDate) => {
     // startDate / endDate: 'DD.MM.YYYY'
@@ -1031,7 +1064,8 @@ export const fetchCarUsageReports = async (startDate, endDate) => {
 };
 
 export const createCarUsageReport = async (payload) => {
-    // payload: { Date, OdometerStart, OdometerEnd, Refueled, FuelLiters, Files: [{ name, type, size, data }] }
+    // payload: { Date, CarUUID, OdometerStart, OdometerEnd, Refueled, FuelLiters,
+    //   FuelRemainderMismatch, ActualFuelRemainder, Segments, Comment, Files }
     const headers = getHeaders();
     const response = await apiFetch(`${API_BASE_URL}/CarUsageReports`, {
         method: 'POST',

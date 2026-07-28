@@ -1,5 +1,39 @@
 /* Car Usage Reports (Використання авто) — additions on top of ExpenseReports.css */
 
+/* Car name / comment inside a report card */
+.cu-car-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.cu-comment {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+    overflow-wrap: anywhere;
+}
+
+/* Route segment lines inside a report card */
+.cu-seg-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    min-width: 0;
+}
+
+.cu-seg-route {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-primary);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.cu-seg-route svg { color: var(--text-secondary); flex-shrink: 0; }
+
 /* Odometer / fuel lines inside a report card */
 .cu-meter-line,
 .cu-fuel-line {
@@ -51,3 +85,30 @@
 }
 
 .cu-fuel-toggle svg { color: var(--text-secondary); }
+
+/* Create form: route segment editor rows */
+.cu-segments {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.cu-segment-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cu-segment-row .er-input { flex: 1; min-width: 0; }
+
+.cu-segment-row .so-file-remove { flex-shrink: 0; }
+.cu-segment-row .so-file-remove:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.cu-route-arrow {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}

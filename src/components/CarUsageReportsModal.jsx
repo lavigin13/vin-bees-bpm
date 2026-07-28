@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     X, ArrowLeft, Loader2, RefreshCw, Car, Plus,
-    Paperclip, FileText, Trash2, Eye, Send, Fuel, Gauge
+    Paperclip, FileText, Trash2, Eye, Send, Fuel, Gauge, MoveRight
 } from 'lucide-react';
 import './SupplierOrders.css';
 import './ExpenseReports.css';
 import './CarUsage.css';
-import { fetchCarUsageReports, createCarUsageReport } from '../services/api';
+import { fetchCarUsageReports, createCarUsageReport, fetchCars, fetchRoutePoints } from '../services/api';
 
 // Read a File into a base64 string (strips the "data:*;base64," prefix).
 const fileToBase64 = (file) =>
@@ -98,6 +98,12 @@ const reportKm = (r) => {
     return km > 0 ? km : 0;
 };
 
+// Catalog items may come as { UUID, Name }, { Id, Name } or plain strings.
+const itemId = (item) => item?.UUID || item?.Id || item?.id || '';
+const itemName = (item) => (typeof item === 'string' ? item : (item?.Name || item?.name || ''));
+
+const emptySegment = () => ({ pointA: '', pointB: '' });
+
 const CarUsageReportsModal = ({ isOpen, onClose }) => {
     const [reports, setReports]   = useState([]);
     const [isLoading, setLoading] = useState(false);
@@ -105,17 +111,28 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
     const [startDate, setStartDate] = useState(monthStartIso);
     const [endDate, setEndDate]     = useState(monthEndIso);
 
+    // Catalogs (loaded once per modal open)
+    const [cars, setCars]                 = useState([]); // [{ UUID, Name, FuelRemainder }]
+    const [carsLoaded, setCarsLoaded]     = useState(false);
+    const [routePoints, setRoutePoints]   = useState([]); // [{ UUID, Name }] | ['...']
+    const [pointsLoaded, setPointsLoaded] = useState(false);
+
     // view: 'list' | 'create'
     const [view, setView] = useState('list');
 
     // Create form state
-    const [reportDate, setReportDate]       = useState(() => toIso(new Date()));
-    const [odometerStart, setOdometerStart] = useState('');
-    const [odometerEnd, setOdometerEnd]     = useState('');
-    const [refueled, setRefueled]           = useState(false);
-    const [fuelLiters, setFuelLiters]       = useState('');
-    const [files, setFiles]                 = useState([]); // [{ name, type, size, data }]
-    const [isSaving, setSaving]             = useState(false);
+    const [reportDate, setReportDate]           = useState(() => toIso(new Date()));
+    const [carUuid, setCarUuid]                 = useState('');
+    const [odometerStart, setOdometerStart]     = useState('');
+    const [odometerEnd, setOdometerEnd]         = useState('');
+    const [refueled, setRefueled]               = useState(false);
+    const [fuelLiters, setFuelLiters]           = useState('');
+    const [remainderMismatch, setRemainderMismatch] = useState(false);
+    const [actualRemainder, setActualRemainder] = useState('');
+    const [segments, setSegments]               = useState([emptySegment()]);
+    const [comment, setComment]                 = useState('');
+    const [files, setFiles]                     = useState([]); // [{ name, type, size, data }]
+    const [isSaving, setSaving]                 = useState(false);
 
     const load = useCallback(() => {
         const start = toApiDate(startDate);
@@ -132,6 +149,26 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
         if (isOpen) load();
     }, [isOpen, load]);
 
+    useEffect(() => {
+        if (!isOpen || carsLoaded) return;
+        fetchCars()
+            .then(data => {
+                setCars(Array.isArray(data) ? data : []);
+                setCarsLoaded(true);
+            })
+            .catch(console.error);
+    }, [isOpen, carsLoaded]);
+
+    useEffect(() => {
+        if (!isOpen || pointsLoaded) return;
+        fetchRoutePoints()
+            .then(data => {
+                setRoutePoints(Array.isArray(data) ? data : []);
+                setPointsLoaded(true);
+            })
+            .catch(console.error);
+    }, [isOpen, pointsLoaded]);
+
     const visibleReports = useMemo(
         () => reports
             .filter(r => !r.DeletionMark)
@@ -144,16 +181,43 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
         [visibleReports]
     );
 
+    const pointNames = useMemo(
+        () => Array.from(new Set(routePoints.map(itemName).filter(Boolean))),
+        [routePoints]
+    );
+
     if (!isOpen) return null;
+
+    const selectedCar = cars.find(c => itemId(c) === carUuid);
+    const predictedRemainder = selectedCar ? Number(selectedCar.FuelRemainder) : null;
+    const hasPrediction = predictedRemainder !== null && !Number.isNaN(predictedRemainder);
 
     const resetCreateForm = () => {
         setReportDate(toIso(new Date()));
+        setCarUuid('');
         setOdometerStart('');
         setOdometerEnd('');
         setRefueled(false);
         setFuelLiters('');
+        setRemainderMismatch(false);
+        setActualRemainder('');
+        setSegments([emptySegment()]);
+        setComment('');
         setFiles([]);
     };
+
+    const updateSegment = (idx, field, value) =>
+        setSegments(prev => prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
+
+    const addSegment = () =>
+        setSegments(prev => {
+            // The next leg starts where the previous one ended.
+            const last = prev[prev.length - 1];
+            return [...prev, { pointA: last ? last.pointB : '', pointB: '' }];
+        });
+
+    const removeSegment = (idx) =>
+        setSegments(prev => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev));
 
     const handleAddFiles = async (e) => {
         const picked = Array.from(e.target.files || []);
@@ -184,7 +248,9 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
         odometerStart !== '' && odometerEnd !== '' &&
         startNum >= 0 && endNum > startNum;
     const fuelValid = !refueled || Number(fuelLiters) > 0;
-    const canSubmit = reportDate && odometersValid && fuelValid && !isSaving;
+    const segmentsValid = segments.length > 0 && segments.every(s => s.pointA.trim() && s.pointB.trim());
+    const remainderValid = !remainderMismatch || (actualRemainder !== '' && Number(actualRemainder) >= 0);
+    const canSubmit = reportDate && carUuid && odometersValid && fuelValid && segmentsValid && remainderValid && !isSaving;
     const draftKm = odometersValid ? endNum - startNum : 0;
 
     const handleCreate = async () => {
@@ -193,10 +259,15 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
         try {
             const result = await createCarUsageReport({
                 Date: reportDate,
+                CarUUID: carUuid,
                 OdometerStart: startNum,
                 OdometerEnd: endNum,
                 Refueled: refueled,
                 FuelLiters: refueled ? Number(fuelLiters) : 0,
+                FuelRemainderMismatch: remainderMismatch,
+                ActualFuelRemainder: remainderMismatch ? Number(actualRemainder) : null,
+                Segments: segments.map(s => ({ PointA: s.pointA.trim(), PointB: s.pointB.trim() })),
+                Comment: comment.trim(),
                 Files: files,
             });
             if (result && result.success === false) {
@@ -267,6 +338,8 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                 <div className="er-list">
                                     {visibleReports.map(r => {
                                         const attachments = reportFiles(r);
+                                        const carName = itemName(r.Car) || r.CarName || '';
+                                        const segs = r.Segments || [];
                                         return (
                                             <div className="er-card" key={r.UUID}>
                                                 <div className="er-card-main">
@@ -276,16 +349,25 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                                             {r.Posted ? 'Проведено' : 'Чернетка'}
                                                         </span>
                                                     </div>
+                                                    {carName && <div className="cu-car-name">{carName}</div>}
                                                     <div className="cu-meter-line">
                                                         <Gauge size={13} />
                                                         <span>{formatNum(r.OdometerStart)} → {formatNum(r.OdometerEnd)}</span>
                                                     </div>
+                                                    {segs.map((seg, i) => (
+                                                        <div className="cu-seg-line" key={i}>
+                                                            <span className="cu-seg-route">
+                                                                {seg.PointA} <MoveRight size={12} /> {seg.PointB}
+                                                            </span>
+                                                        </div>
+                                                    ))}
                                                     {r.Refueled ? (
                                                         <div className="cu-fuel-line">
                                                             <Fuel size={13} />
                                                             <span>Заправка: {formatNum(r.FuelLiters)} л</span>
                                                         </div>
                                                     ) : null}
+                                                    {r.Comment && <div className="cu-comment">{r.Comment}</div>}
                                                 </div>
                                                 <div className="er-card-side">
                                                     <span className="er-amount">{formatNum(reportKm(r))} км</span>
@@ -330,6 +412,24 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                         value={reportDate}
                                         onChange={e => setReportDate(e.target.value)}
                                     />
+                                </label>
+
+                                <label className="er-field">
+                                    <span className="so-section-label">Авто</span>
+                                    <select
+                                        className="er-input"
+                                        value={carUuid}
+                                        onChange={e => setCarUuid(e.target.value)}
+                                    >
+                                        <option value="" disabled>
+                                            {carsLoaded
+                                                ? (cars.length ? 'Оберіть авто...' : 'Список авто порожній')
+                                                : 'Завантаження авто...'}
+                                        </option>
+                                        {cars.map(c => (
+                                            <option value={itemId(c)} key={itemId(c)}>{itemName(c)}</option>
+                                        ))}
+                                    </select>
                                 </label>
 
                                 <div className="cu-odometers">
@@ -388,6 +488,89 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                         />
                                     )}
                                 </div>
+
+                                {/* Fuel remainder: predicted by backend, override on mismatch */}
+                                {carUuid && (
+                                    <div className="er-field">
+                                        {hasPrediction && (
+                                            <div className="so-hint cu-km-hint">
+                                                <Fuel size={14} />
+                                                Прогнозований залишок палива: <strong>{formatNum(predictedRemainder)} л</strong>
+                                            </div>
+                                        )}
+                                        <label className="cu-fuel-toggle">
+                                            <input
+                                                type="checkbox"
+                                                checked={remainderMismatch}
+                                                onChange={e => setRemainderMismatch(e.target.checked)}
+                                            />
+                                            <span>Залишок не збігається</span>
+                                        </label>
+                                        {remainderMismatch && (
+                                            <input
+                                                type="number"
+                                                className="er-input"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="Фактичний залишок, л"
+                                                value={actualRemainder}
+                                                onChange={e => setActualRemainder(e.target.value)}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="er-field">
+                                    <span className="so-section-label">Сегменти маршруту</span>
+                                    <div className="cu-segments">
+                                        {segments.map((s, idx) => (
+                                            <div className="cu-segment-row" key={idx}>
+                                                <input
+                                                    type="text"
+                                                    className="er-input"
+                                                    list="cu-point-options"
+                                                    placeholder="Точка А"
+                                                    value={s.pointA}
+                                                    onChange={e => updateSegment(idx, 'pointA', e.target.value)}
+                                                />
+                                                <MoveRight size={14} className="cu-route-arrow" />
+                                                <input
+                                                    type="text"
+                                                    className="er-input"
+                                                    list="cu-point-options"
+                                                    placeholder="Точка Б"
+                                                    value={s.pointB}
+                                                    onChange={e => updateSegment(idx, 'pointB', e.target.value)}
+                                                />
+                                                <button
+                                                    className="so-file-remove"
+                                                    onClick={() => removeSegment(idx)}
+                                                    disabled={segments.length === 1}
+                                                    title="Видалити сегмент"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <datalist id="cu-point-options">
+                                        {pointNames.map(name => <option value={name} key={name} />)}
+                                    </datalist>
+                                    <button className="so-upload-btn" onClick={addSegment}>
+                                        <Plus size={15} /> Додати сегмент
+                                    </button>
+                                </div>
+
+                                <label className="er-field">
+                                    <span className="so-section-label">Коментар</span>
+                                    <textarea
+                                        className="er-input er-textarea"
+                                        rows={2}
+                                        placeholder="Необов'язково..."
+                                        value={comment}
+                                        onChange={e => setComment(e.target.value)}
+                                    />
+                                </label>
 
                                 <div className="er-field">
                                     <span className="so-section-label">Файли (чеки, подорожній лист)</span>
