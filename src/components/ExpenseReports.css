@@ -160,6 +160,11 @@
 
 .er-input:focus { border-color: var(--accent-gold); }
 
+select.er-input {
+    color-scheme: dark;
+    cursor: pointer;
+}
+
 .er-textarea {
     resize: vertical;
     min-height: 70px;

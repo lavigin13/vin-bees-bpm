@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import './SupplierOrders.css';
 import './ExpenseReports.css';
-import { fetchIndividualExpenseReports, createIndividualExpenseReport } from '../services/api';
+import { fetchIndividualExpenseReports, createIndividualExpenseReport, fetchExpenseArticles } from '../services/api';
 
 // Read a File into a base64 string (strips the "data:*;base64," prefix).
 const fileToBase64 = (file) =>
@@ -86,11 +86,13 @@ const openReportFile = (fileValue) => {
     }
 };
 
-const DEFAULT_ARTICLES = ['Аутсорс послуги'];
-
 const ExpenseReportsModal = ({ isOpen, onClose }) => {
     const [reports, setReports]   = useState([]);
     const [isLoading, setLoading] = useState(false);
+
+    // Articles catalog: [{ UUID, Name }]
+    const [articles, setArticles]             = useState([]);
+    const [articlesLoaded, setArticlesLoaded] = useState(false);
 
     const [startDate, setStartDate] = useState(monthStartIso);
     const [endDate, setEndDate]     = useState(monthEndIso);
@@ -100,7 +102,7 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
     const [view, setView] = useState('list');
 
     // Create form state
-    const [article, setArticle]         = useState('');
+    const [articleUuid, setArticleUuid] = useState('');
     const [description, setDescription] = useState('');
     const [amount, setAmount]           = useState('');
     const [file, setFile]               = useState(null); // { name, type, size, data }
@@ -121,6 +123,17 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
         if (isOpen) load();
     }, [isOpen, load]);
 
+    // The articles catalog is small and static — load it once per modal open.
+    useEffect(() => {
+        if (!isOpen || articlesLoaded) return;
+        fetchExpenseArticles()
+            .then(data => {
+                setArticles(Array.isArray(data) ? data : []);
+                setArticlesLoaded(true);
+            })
+            .catch(console.error);
+    }, [isOpen, articlesLoaded]);
+
     const visibleReports = useMemo(() => {
         const term = search.trim().toLowerCase();
         return reports
@@ -138,16 +151,10 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
         [visibleReports]
     );
 
-    const articleOptions = useMemo(() => {
-        const seen = new Set(DEFAULT_ARTICLES);
-        reports.forEach(r => { if (r.Article) seen.add(r.Article); });
-        return Array.from(seen).sort((a, b) => a.localeCompare(b, 'uk'));
-    }, [reports]);
-
     if (!isOpen) return null;
 
     const resetCreateForm = () => {
-        setArticle('');
+        setArticleUuid('');
         setDescription('');
         setAmount('');
         setFile(null);
@@ -171,14 +178,14 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
     };
 
     const canSubmit =
-        article.trim() && description.trim() && Number(amount) > 0 && !isSaving;
+        articleUuid && description.trim() && Number(amount) > 0 && !isSaving;
 
     const handleCreate = async () => {
         if (!canSubmit) return;
         setSaving(true);
         try {
             const result = await createIndividualExpenseReport({
-                Article: article.trim(),
+                ArticleUUID: articleUuid,
                 Description: description.trim(),
                 Amount: Number(amount),
                 File: file,
@@ -304,17 +311,20 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
                             <div className="er-form">
                                 <label className="er-field">
                                     <span className="so-section-label">Стаття витрат</span>
-                                    <input
-                                        type="text"
+                                    <select
                                         className="er-input"
-                                        list="er-article-options"
-                                        placeholder="Оберіть або введіть статтю..."
-                                        value={article}
-                                        onChange={e => setArticle(e.target.value)}
-                                    />
-                                    <datalist id="er-article-options">
-                                        {articleOptions.map(a => <option value={a} key={a} />)}
-                                    </datalist>
+                                        value={articleUuid}
+                                        onChange={e => setArticleUuid(e.target.value)}
+                                    >
+                                        <option value="" disabled>
+                                            {articlesLoaded
+                                                ? (articles.length ? 'Оберіть статтю...' : 'Каталог статей порожній')
+                                                : 'Завантаження статей...'}
+                                        </option>
+                                        {articles.map(a => (
+                                            <option value={a.UUID} key={a.UUID}>{a.Name}</option>
+                                        ))}
+                                    </select>
                                 </label>
 
                                 <label className="er-field">

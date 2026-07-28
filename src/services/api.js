@@ -943,11 +943,24 @@ export const fetchShipmentDocuments = async (monthStr) => {
 // GET  /IndividualExpenseReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY
 //   → [{ UUID, Date, DeletionMark, Posted, Amount, Description, Article, File }]
 //     File — base64 вкладення ('' якщо немає)
-//
-// ⚠️ POST contract is ASSUMED — adjust once confirmed by the 1C side:
-//   POST /IndividualExpenseReports
-//   { Article, Description, Amount, File: { name, type, size, data } | null }
+// GET  /ExpenseArticles → [{ UUID, Name }] — каталог статей витрат
+// POST /IndividualExpenseReports
+//   { ArticleUUID, Description, Amount, File: { name, type, size, data } | null }
 //   data = base64 without the "data:" prefix
+
+export const fetchExpenseArticles = async () => {
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(`${API_BASE_URL}/ExpenseArticles`, { method: 'GET', headers });
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        return Array.isArray(data) ? data : (data.articles || []);
+    } catch (error) {
+        if (error instanceof UnauthorizedError) throw error;
+        console.error('Failed to fetch expense articles:', error);
+        return [];
+    }
+};
 
 export const fetchIndividualExpenseReports = async (startDate, endDate) => {
     // startDate / endDate: 'DD.MM.YYYY'
@@ -968,7 +981,7 @@ export const fetchIndividualExpenseReports = async (startDate, endDate) => {
 };
 
 export const createIndividualExpenseReport = async (payload) => {
-    // payload: { Article, Description, Amount, File: { name, type, size, data } | null }
+    // payload: { ArticleUUID, Description, Amount, File: { name, type, size, data } | null }
     const headers = getHeaders();
     const response = await apiFetch(`${API_BASE_URL}/IndividualExpenseReports`, {
         method: 'POST',

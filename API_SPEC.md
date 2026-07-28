@@ -273,14 +273,25 @@ Fetches the current user's expense reports for the given period.
 ]
 ```
 
+### Get Expense Articles Catalog
+**GET** `/ExpenseArticles`
+Fetches the catalog of expense articles for the create form.
+
+**Response:**
+```json
+[
+  { "UUID": "a1b2c3d4-025a-11f1-943b-0296375669d1", "Name": "Аутсорс послуги" }
+]
+```
+
 ### Create Expense Report
 **POST** `/IndividualExpenseReports`
-Creates a new expense report. ⚠️ Contract is assumed — confirm with the 1C side. `File.data` is base64 without the `data:` prefix; `File` is `null` when no attachment.
+Creates a new expense report. `ArticleUUID` is a UUID from `/ExpenseArticles`. `File.data` is base64 without the `data:` prefix; `File` is `null` when no attachment.
 
 **Body:**
 ```json
 {
-  "Article": "Аутсорс послуги",
+  "ArticleUUID": "a1b2c3d4-025a-11f1-943b-0296375669d1",
   "Description": "Кудрявцев, пайка польотніків",
   "Amount": 20000,
   "File": { "name": "check.pdf", "type": "application/pdf", "size": 14230, "data": "JVBERi0x..." }
