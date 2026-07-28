@@ -102,6 +102,7 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
     const [view, setView] = useState('list');
 
     // Create form state
+    const [reportDate, setReportDate]   = useState(() => toIso(new Date()));
     const [articleUuid, setArticleUuid] = useState('');
     const [description, setDescription] = useState('');
     const [amount, setAmount]           = useState('');
@@ -154,6 +155,7 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     const resetCreateForm = () => {
+        setReportDate(toIso(new Date()));
         setArticleUuid('');
         setDescription('');
         setAmount('');
@@ -178,13 +180,14 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
     };
 
     const canSubmit =
-        articleUuid && description.trim() && Number(amount) > 0 && !isSaving;
+        reportDate && articleUuid && description.trim() && Number(amount) > 0 && !isSaving;
 
     const handleCreate = async () => {
         if (!canSubmit) return;
         setSaving(true);
         try {
             const result = await createIndividualExpenseReport({
+                Date: `${reportDate}T00:00:00`,
                 ArticleUUID: articleUuid,
                 Description: description.trim(),
                 Amount: Number(amount),
@@ -309,6 +312,17 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
                     <>
                         <div className="so-body">
                             <div className="er-form">
+                                <label className="er-field">
+                                    <span className="so-section-label">Дата</span>
+                                    <input
+                                        type="date"
+                                        className="er-input"
+                                        style={{ colorScheme: 'dark' }}
+                                        value={reportDate}
+                                        onChange={e => setReportDate(e.target.value)}
+                                    />
+                                </label>
+
                                 <label className="er-field">
                                     <span className="so-section-label">Стаття витрат</span>
                                     <select

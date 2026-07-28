@@ -945,7 +945,8 @@ export const fetchShipmentDocuments = async (monthStr) => {
 //     File — base64 вкладення ('' якщо немає)
 // GET  /ExpenseArticles → [{ UUID, Name }] — каталог статей витрат
 // POST /IndividualExpenseReports
-//   { ArticleUUID, Description, Amount, File: { name, type, size, data } | null }
+//   { Date: 'YYYY-MM-DDT00:00:00', ArticleUUID, Description, Amount,
+//     File: { name, type, size, data } | null }
 //   data = base64 without the "data:" prefix
 
 export const fetchExpenseArticles = async () => {
@@ -981,7 +982,7 @@ export const fetchIndividualExpenseReports = async (startDate, endDate) => {
 };
 
 export const createIndividualExpenseReport = async (payload) => {
-    // payload: { ArticleUUID, Description, Amount, File: { name, type, size, data } | null }
+    // payload: { Date, ArticleUUID, Description, Amount, File: { name, type, size, data } | null }
     const headers = getHeaders();
     const response = await apiFetch(`${API_BASE_URL}/IndividualExpenseReports`, {
         method: 'POST',

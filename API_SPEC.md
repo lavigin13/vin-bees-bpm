@@ -286,11 +286,12 @@ Fetches the catalog of expense articles for the create form.
 
 ### Create Expense Report
 **POST** `/IndividualExpenseReports`
-Creates a new expense report. `ArticleUUID` is a UUID from `/ExpenseArticles`. `File.data` is base64 without the `data:` prefix; `File` is `null` when no attachment.
+Creates a new expense report. `Date` uses the same format the list returns (`YYYY-MM-DDT00:00:00`). `ArticleUUID` is a UUID from `/ExpenseArticles`. `File.data` is base64 without the `data:` prefix; `File` is `null` when no attachment.
 
 **Body:**
 ```json
 {
+  "Date": "2026-01-27T00:00:00",
   "ArticleUUID": "a1b2c3d4-025a-11f1-943b-0296375669d1",
   "Description": "Кудрявцев, пайка польотніків",
   "Amount": 20000,
