@@ -938,6 +938,52 @@ export const fetchShipmentDocuments = async (monthStr) => {
     }
 };
 
+// --- Individual Expense Reports (Звіт по витратам) ---
+//
+// GET  /IndividualExpenseReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY
+//   → [{ UUID, Date, DeletionMark, Posted, Amount, Description, Article, File }]
+//     File — base64 вкладення ('' якщо немає)
+//
+// ⚠️ POST contract is ASSUMED — adjust once confirmed by the 1C side:
+//   POST /IndividualExpenseReports
+//   { Article, Description, Amount, File: { name, type, size, data } | null }
+//   data = base64 without the "data:" prefix
+
+export const fetchIndividualExpenseReports = async (startDate, endDate) => {
+    // startDate / endDate: 'DD.MM.YYYY'
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(
+            `${API_BASE_URL}/IndividualExpenseReports?StartDate=${startDate}&EndDate=${endDate}`,
+            { method: 'GET', headers }
+        );
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        return Array.isArray(data) ? data : (data.reports || []);
+    } catch (error) {
+        if (error instanceof UnauthorizedError) throw error;
+        console.error('Failed to fetch expense reports:', error);
+        return [];
+    }
+};
+
+export const createIndividualExpenseReport = async (payload) => {
+    // payload: { Article, Description, Amount, File: { name, type, size, data } | null }
+    const headers = getHeaders();
+    const response = await apiFetch(`${API_BASE_URL}/IndividualExpenseReports`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    try {
+        return await response.json();
+    } catch {
+        // 1C may reply with an empty body on success
+        return { success: true };
+    }
+};
+
 export const markShipmentDocumentSent = async (payload) => {
     // payload: {
     //   id,                                  // document id

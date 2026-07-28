@@ -246,3 +246,47 @@ Marks a shipment document as sent, optionally attaching files (e.g. photos of th
 ```json
 { "success": true }
 ```
+
+---
+
+## 12. Individual Expense Reports (Звіт по витратам)
+
+### Get Expense Reports List
+**GET** `/IndividualExpenseReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY`
+Fetches the current user's expense reports for the given period.
+
+`File` is a base64-encoded attachment (empty string if none).
+
+**Response:**
+```json
+[
+  {
+    "UUID": "1d7e3176-025a-11f1-943b-0296375669d1",
+    "Date": "2026-01-30T00:00:00",
+    "DeletionMark": false,
+    "Posted": true,
+    "Amount": 12000,
+    "Description": "Підготовка серв",
+    "Article": "Аутсорс послуги",
+    "File": ""
+  }
+]
+```
+
+### Create Expense Report
+**POST** `/IndividualExpenseReports`
+Creates a new expense report. ⚠️ Contract is assumed — confirm with the 1C side. `File.data` is base64 without the `data:` prefix; `File` is `null` when no attachment.
+
+**Body:**
+```json
+{
+  "Article": "Аутсорс послуги",
+  "Description": "Кудрявцев, пайка польотніків",
+  "Amount": 20000,
+  "File": { "name": "check.pdf", "type": "application/pdf", "size": 14230, "data": "JVBERi0x..." }
+}
+```
+**Response:**
+```json
+{ "success": true }
+```

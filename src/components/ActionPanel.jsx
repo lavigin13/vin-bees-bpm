@@ -1,5 +1,5 @@
 import React from 'react';
-import { Network, FileText, PackageCheck, Bell, Hexagon, ShoppingBag, Calendar, HandCoins, User, Forklift, ClipboardCheck, BarChart3, Gamepad2, Backpack } from 'lucide-react';
+import { Network, FileText, PackageCheck, Bell, Hexagon, ShoppingBag, Calendar, HandCoins, User, Forklift, ClipboardCheck, BarChart3, Gamepad2, Backpack, Receipt } from 'lucide-react';
 import './ActionPanel.css';
 
 const ActionPanel = ({
@@ -12,6 +12,7 @@ const ActionPanel = ({
     onSendHoneyClick,
     onTimesheetClick,
     onApprovalClick,
+    onExpenseReportsClick,
     onProfileClick,
     onWarehouseOpsClick,
     onStockReportClick,
@@ -28,6 +29,7 @@ const ActionPanel = ({
                 { label: 'Табель', icon: <Calendar size={14} />, color: '#60a5fa', onClick: onTimesheetClick },
                 { label: 'Погодження', icon: <ClipboardCheck size={14} />, color: '#22d3ee', onClick: onApprovalClick },
                 { label: 'Запити', icon: <FileText size={14} />, onClick: onRequestsClick },
+                { label: 'Витрати', icon: <Receipt size={14} />, color: '#fbbf24', onClick: onExpenseReportsClick },
                 { label: 'Винагороди', icon: <HandCoins size={14} />, onClick: onRewardReportClick },
                 { label: 'Структура', icon: <Network size={14} />, onClick: onOrgChartClick }
             ]

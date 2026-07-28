@@ -9,6 +9,7 @@ import CreateListingModal from './components/CreateListingModal';
 import SendHoneyModal from './components/SendHoneyModal';
 import OrgChartModal from './components/OrgChartModal';
 import TimesheetModal from './components/TimesheetModal';
+import ExpenseReportsModal from './components/ExpenseReportsModal';
 import TimesheetApprovalModal from './components/TimesheetApprovalModal';
 import RequestsModal from './components/RequestsModal';
 import RewardReportModal from './components/RewardReportModal';
@@ -75,6 +76,7 @@ const App = () => {
 
   // Timesheet State
   const [isTimesheetOpen, setIsTimesheetOpen] = useState(false);
+  const [isExpenseReportsOpen, setIsExpenseReportsOpen] = useState(false);
 
   // Requests State
   const [isRequestsOpen, setIsRequestsOpen] = useState(false);
@@ -567,6 +569,7 @@ const App = () => {
           onRewardReportClick={() => setIsRewardReportOpen(true)}
           onTimesheetClick={() => setIsTimesheetOpen(true)}
           onApprovalClick={() => setIsApprovalOpen(true)}
+          onExpenseReportsClick={() => setIsExpenseReportsOpen(true)}
           onRequestsClick={() => setIsRequestsOpen(true)}
           onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
           onWarehouseOpsClick={() => setIsWarehouseOpsOpen(true)}
@@ -670,6 +673,11 @@ const App = () => {
       <TimesheetModal
         isOpen={isTimesheetOpen}
         onClose={() => setIsTimesheetOpen(false)}
+      />
+
+      <ExpenseReportsModal
+        isOpen={isExpenseReportsOpen}
+        onClose={() => setIsExpenseReportsOpen(false)}
       />
 
       <TimesheetApprovalModal
