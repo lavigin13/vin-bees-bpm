@@ -187,7 +187,7 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
         setSaving(true);
         try {
             const result = await createIndividualExpenseReport({
-                Date: toApiDate(reportDate),
+                Date: reportDate,
                 ArticleUUID: articleUuid,
                 Description: description.trim(),
                 Amount: Number(amount),

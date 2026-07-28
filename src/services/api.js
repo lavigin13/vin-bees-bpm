@@ -945,8 +945,8 @@ export const fetchShipmentDocuments = async (monthStr) => {
 //     File — base64 вкладення ('' якщо немає)
 // GET  /ExpenseArticles → [{ UUID, Name }] — каталог статей витрат
 // POST /IndividualExpenseReports
-//   { Date: 'DD.MM.YYYY', ArticleUUID, Description, Amount,
-//     File: { name, type, size, data } | null }
+//   { Date: 'YYYY-MM-DD' (як date у /timesheet/day), ArticleUUID, Description,
+//     Amount, File: { name, type, size, data } | null }
 //   data = base64 without the "data:" prefix
 
 export const fetchExpenseArticles = async () => {
