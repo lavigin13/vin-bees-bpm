@@ -311,12 +311,18 @@ Creates a new expense report. `Date` uses the same `YYYY-MM-DD` format as `date`
 
 ### Get Cars Catalog
 **GET** `/Cars`
-Fetches the cars available for reporting. `FuelRemainder` is the backend-predicted fuel left in the tank (liters) — shown to the driver in the create form.
+Fetches the cars available for reporting. `FuelRemainder` is the **initial** fuel remainder recorded in the system (liters); `FuelConsumption` is the car's average consumption (liters per 100 km).
+
+The predicted remainder is computed **on the client**:
+```
+PredictedFuelRemainder = FuelRemainder - (OdometerEnd - OdometerStart) * FuelConsumption / 100 + FuelLiters (якщо заправлявся)
+```
+(clamped at 0; recalculated live while the driver fills the form).
 
 **Response:**
 ```json
 [
-  { "UUID": "c1d2e3f4-025a-11f1-943b-0296375669d1", "Name": "Renault Trafic АВ1234СD", "FuelRemainder": 23.5 }
+  { "UUID": "c1d2e3f4-025a-11f1-943b-0296375669d1", "Name": "Renault Trafic АВ1234СD", "FuelRemainder": 23.5, "FuelConsumption": 8.5 }
 ]
 ```
 
@@ -364,7 +370,7 @@ The driven distance is computed on the client as `OdometerEnd - OdometerStart`. 
 
 ### Create Car Usage Report
 **POST** `/CarUsageReports`
-Creates a new car usage report. `Date` uses `YYYY-MM-DD` (same as `date` in `POST /timesheet/day`). `CarUUID` is a UUID from `/Cars`. `FuelLiters` is `0` when `Refueled` is `false`. When the driver confirms the predicted fuel remainder, `FuelRemainderMismatch` is `false` and `ActualFuelRemainder` is `null`; otherwise the driver's own value (liters) is sent. Segment points are free text (suggestions come from `/RoutePoints`). `Files[].data` is base64 without the `data:` prefix; `Files` is `[]` when no attachments.
+Creates a new car usage report. `Date` uses `YYYY-MM-DD` (same as `date` in `POST /timesheet/day`). `CarUUID` is a UUID from `/Cars`. `FuelLiters` is `0` when `Refueled` is `false`. `PredictedFuelRemainder` is the client-computed value the driver saw (formula above, rounded to 2 decimals). When the driver confirms it, `FuelRemainderMismatch` is `false` and `ActualFuelRemainder` is `null`; otherwise the driver's own value (liters) is sent. Segment points are free text (suggestions come from `/RoutePoints`). `Files[].data` is base64 without the `data:` prefix; `Files` is `[]` when no attachments.
 
 **Body:**
 ```json
@@ -375,6 +381,7 @@ Creates a new car usage report. `Date` uses `YYYY-MM-DD` (same as `date` in `POS
   "OdometerEnd": 152852,
   "Refueled": true,
   "FuelLiters": 45.5,
+  "PredictedFuelRemainder": 25.48,
   "FuelRemainderMismatch": true,
   "ActualFuelRemainder": 18,
   "Segments": [

@@ -189,8 +189,6 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     const selectedCar = cars.find(c => itemId(c) === carUuid);
-    const predictedRemainder = selectedCar ? Number(selectedCar.FuelRemainder) : null;
-    const hasPrediction = predictedRemainder !== null && !Number.isNaN(predictedRemainder);
 
     const resetCreateForm = () => {
         setReportDate(toIso(new Date()));
@@ -253,6 +251,19 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
     const canSubmit = reportDate && carUuid && odometersValid && fuelValid && segmentsValid && remainderValid && !isSaving;
     const draftKm = odometersValid ? endNum - startNum : 0;
 
+    // Predicted fuel remainder:
+    //   початковий залишок − (дельта одометра × середній розхід / 100) + літри заправки
+    const initialRemainder = selectedCar ? Number(selectedCar.FuelRemainder) : NaN;
+    const consumption = selectedCar ? Number(selectedCar.FuelConsumption) : NaN;
+    const hasPrediction =
+        !Number.isNaN(initialRemainder) && !Number.isNaN(consumption) && odometersValid;
+    const predictedRemainder = hasPrediction
+        ? Math.max(0,
+            initialRemainder
+            - (draftKm * consumption) / 100
+            + (refueled ? (Number(fuelLiters) || 0) : 0))
+        : null;
+
     const handleCreate = async () => {
         if (!canSubmit) return;
         setSaving(true);
@@ -264,6 +275,7 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                 OdometerEnd: endNum,
                 Refueled: refueled,
                 FuelLiters: refueled ? Number(fuelLiters) : 0,
+                PredictedFuelRemainder: hasPrediction ? Math.round(predictedRemainder * 100) / 100 : null,
                 FuelRemainderMismatch: remainderMismatch,
                 ActualFuelRemainder: remainderMismatch ? Number(actualRemainder) : null,
                 Segments: segments.map(s => ({ PointA: s.pointA.trim(), PointB: s.pointB.trim() })),
@@ -489,13 +501,19 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                     )}
                                 </div>
 
-                                {/* Fuel remainder: predicted by backend, override on mismatch */}
+                                {/* Fuel remainder: computed from the car's initial remainder
+                                    and average consumption, override on mismatch */}
                                 {carUuid && (
                                     <div className="er-field">
-                                        {hasPrediction && (
+                                        {hasPrediction ? (
                                             <div className="so-hint cu-km-hint">
                                                 <Fuel size={14} />
                                                 Прогнозований залишок палива: <strong>{formatNum(predictedRemainder)} л</strong>
+                                            </div>
+                                        ) : (
+                                            <div className="so-hint cu-km-hint">
+                                                <Fuel size={14} />
+                                                Введіть одометри — залишок палива порахується автоматично
                                             </div>
                                         )}
                                         <label className="cu-fuel-toggle">
