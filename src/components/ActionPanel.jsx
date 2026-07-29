@@ -14,6 +14,7 @@ const ActionPanel = ({
     onApprovalClick,
     onExpenseReportsClick,
     onCarUsageClick,
+    isSectionAvailable = () => true,
     onProfileClick,
     onWarehouseOpsClick,
     onStockReportClick,
@@ -31,7 +32,7 @@ const ActionPanel = ({
                 { label: 'Погодження', icon: <ClipboardCheck size={14} />, color: '#22d3ee', onClick: onApprovalClick },
                 { label: 'Запити', icon: <FileText size={14} />, onClick: onRequestsClick },
                 { label: 'Витрати', icon: <Receipt size={14} />, color: '#fbbf24', onClick: onExpenseReportsClick },
-                { label: 'Авто', icon: <Car size={14} />, color: '#38bdf8', onClick: onCarUsageClick },
+                { label: 'Авто', icon: <Car size={14} />, color: '#38bdf8', section: 'CarUsage', onClick: onCarUsageClick },
                 { label: 'Винагороди', icon: <HandCoins size={14} />, onClick: onRewardReportClick },
                 { label: 'Структура', icon: <Network size={14} />, onClick: onOrgChartClick }
             ]
@@ -63,9 +64,18 @@ const ActionPanel = ({
         }
     ];
 
+    // An action with a `section` key is shown only when the profile marks that
+    // section as available; actions without the key are always visible.
+    const visibleGroups = groups
+        .map(group => ({
+            ...group,
+            actions: group.actions.filter(a => !a.section || isSectionAvailable(a.section)),
+        }))
+        .filter(group => group.actions.length > 0);
+
     return (
         <div className="action-panel">
-            {groups.map(group => (
+            {visibleGroups.map(group => (
                 <div className="action-section" key={group.title}>
                     <div className="action-section-label">{group.title}</div>
                     <div className="action-grid">

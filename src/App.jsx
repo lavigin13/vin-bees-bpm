@@ -559,6 +559,13 @@ const App = () => {
     setIsAuthenticated(false);
   };
 
+  // Section availability from the profile (`Sections: { CarUsage: true, ... }`).
+  // A missing Sections object or a missing key means the section is visible
+  // (backward compatible with backends that don't send it yet); only an
+  // explicit `false` hides it.
+  const profileSections = user?.Sections || user?.sections || null;
+  const isSectionAvailable = (key) => !profileSections || profileSections[key] !== false;
+
   return (
     <div className="app-container">
       <div className="hero-section">
@@ -573,6 +580,7 @@ const App = () => {
           onApprovalClick={() => setIsApprovalOpen(true)}
           onExpenseReportsClick={() => setIsExpenseReportsOpen(true)}
           onCarUsageClick={() => setIsCarUsageOpen(true)}
+          isSectionAvailable={isSectionAvailable}
           onRequestsClick={() => setIsRequestsOpen(true)}
           onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
           onWarehouseOpsClick={() => setIsWarehouseOpsOpen(true)}

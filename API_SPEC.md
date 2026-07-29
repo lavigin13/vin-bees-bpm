@@ -391,3 +391,28 @@ Creates a new car usage report. `Date` uses `YYYY-MM-DD` (same as `date` in `POS
 ```json
 { "success": true }
 ```
+
+---
+
+## 14. Profile Sections (доступність секцій)
+
+**GET** `/profile`
+The profile response is extended with an optional `Sections` object — a map of section key → availability flag. It controls which worker-panel sections the current user sees.
+
+Frontend rules (backward compatible):
+- no `Sections` object at all → every section is visible;
+- a key missing from `Sections` → that section is visible;
+- only an explicit `false` hides a section.
+
+Currently the frontend checks only `CarUsage` (кнопка «Авто»). Other keys are reserved for the future — the same mechanism will work for any section without frontend rework: `Timesheet`, `Approval`, `Requests`, `ExpenseReports`, `WarehouseOps`, `StockReport`, `Inventory`, etc.
+
+**Response (fragment):**
+```json
+{
+  "name": "Петренко І.В.",
+  "...": "...",
+  "Sections": {
+    "CarUsage": true
+  }
+}
+```
