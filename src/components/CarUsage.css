@@ -34,6 +34,17 @@
 
 .cu-seg-route svg { color: var(--text-secondary); flex-shrink: 0; }
 
+/* Driver line inside a report card */
+.cu-driver-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.cu-driver-line svg { flex-shrink: 0; }
+
 /* Odometer / fuel lines inside a report card */
 .cu-meter-line,
 .cu-fuel-line {

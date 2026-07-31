@@ -1009,10 +1009,11 @@ export const createIndividualExpenseReport = async (payload) => {
 //   FuelRemainder - (дельта одометра * FuelConsumption / 100) + літри заправки
 // GET  /RoutePoints → [{ UUID, Name }] — точки маршрутів для підказок вводу
 // GET  /CarUsageReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY
-//   → [{ UUID, Date, DeletionMark, Posted, Car: { UUID, Name },
+//   → звіти по всіх доступних користувачу авто:
+//     [{ UUID, Date, DeletionMark, Posted, Car: { UUID, Name }, Driver,
 //        OdometerStart, OdometerEnd, Refueled, FuelLiters,
 //        Segments: [{ PointA, PointB }], Comment,
-//        Files: ['base64', ...] }]
+//        Files: [{ name, type, size, data }] }]
 // POST /CarUsageReports
 //   { Date: 'YYYY-MM-DD', CarUUID, OdometerStart, OdometerEnd,
 //     Refueled: bool, FuelLiters (0 якщо не заправлявся),

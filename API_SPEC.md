@@ -339,7 +339,7 @@ Fetches known route points used as typing suggestions for segment fields (the fi
 
 ### Get Car Usage Reports List
 **GET** `/CarUsageReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY`
-Fetches the current user's car usage reports for the given period.
+Fetches car usage reports for the given period across **all cars available to the user** (not only the user's own reports). `Driver` is the display name of the person who filed the report.
 
 `Files` uses the **same shape as request attachments** (§7) — `{ name, type, size, data }`, where `data` is base64 **without** the `data:*;base64,` prefix. Empty array when there are no attachments.
 
@@ -354,6 +354,7 @@ The driven distance is computed on the client as `OdometerEnd - OdometerStart`. 
     "DeletionMark": false,
     "Posted": true,
     "Car": { "UUID": "c1d2e3f4-025a-11f1-943b-0296375669d1", "Name": "Renault Trafic АВ1234СD" },
+    "Driver": "Петренко І.В.",
     "OdometerStart": 152340,
     "OdometerEnd": 152852,
     "Refueled": true,

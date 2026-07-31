@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     X, ArrowLeft, Loader2, RefreshCw, Car, Plus,
-    Paperclip, FileText, Trash2, Download, Send, Fuel, Gauge, MoveRight
+    Paperclip, FileText, Trash2, Download, Send, Fuel, Gauge, MoveRight, UserRound
 } from 'lucide-react';
 import './SupplierOrders.css';
 import './ExpenseReports.css';
@@ -341,6 +341,12 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                                         </span>
                                                     </div>
                                                     {carName && <div className="cu-car-name">{carName}</div>}
+                                                    {r.Driver && (
+                                                        <div className="cu-driver-line">
+                                                            <UserRound size={13} />
+                                                            <span>{r.Driver}</span>
+                                                        </div>
+                                                    )}
                                                     <div className="cu-meter-line">
                                                         <Gauge size={13} />
                                                         <span>{formatNum(r.OdometerStart)} → {formatNum(r.OdometerEnd)}</span>
