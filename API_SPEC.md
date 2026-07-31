@@ -341,7 +341,7 @@ Fetches known route points used as typing suggestions for segment fields (the fi
 **GET** `/CarUsageReports?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY`
 Fetches the current user's car usage reports for the given period.
 
-`Files` is an array of base64-encoded attachments (empty array if none). A single `File` string is also accepted.
+`Files` uses the **same shape as request attachments** (§7) — `{ name, type, size, data }`, where `data` is base64 **without** the `data:*;base64,` prefix. Empty array when there are no attachments.
 
 The driven distance is computed on the client as `OdometerEnd - OdometerStart`. `FuelLiters` is `0` when `Refueled` is `false`.
 
@@ -363,7 +363,9 @@ The driven distance is computed on the client as `OdometerEnd - OdometerStart`. 
       { "PointA": "Київ, склад", "PointB": "Вінниця, офіс" }
     ],
     "Comment": "Доставка обладнання",
-    "Files": []
+    "Files": [
+      { "name": "ttn.pdf", "type": "application/pdf", "size": 14230, "data": "JVBERi0x..." }
+    ]
   }
 ]
 ```

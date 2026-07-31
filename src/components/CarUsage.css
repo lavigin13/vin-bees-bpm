@@ -49,6 +49,14 @@
 
 .cu-fuel-line { color: var(--text-secondary); font-size: 12px; }
 
+/* Attachment name inside the card's file button */
+.cu-file-name {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 /* Create form */
 .cu-odometers {
     display: flex;

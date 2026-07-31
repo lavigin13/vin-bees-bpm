@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     X, ArrowLeft, Loader2, RefreshCw, Car, Plus,
-    Paperclip, FileText, Trash2, Eye, Send, Fuel, Gauge, MoveRight
+    Paperclip, FileText, Trash2, Download, Send, Fuel, Gauge, MoveRight
 } from 'lucide-react';
 import './SupplierOrders.css';
 import './ExpenseReports.css';
@@ -57,40 +57,19 @@ const monthEndIso = () => {
 const formatNum = (value) =>
     (Number(value) || 0).toLocaleString('uk-UA', { maximumFractionDigits: 1 });
 
-// Detect the MIME type of a bare base64 payload by its magic-number prefix.
-const sniffBase64Mime = (base64) => {
-    if (base64.startsWith('JVBERi')) return 'application/pdf';
-    if (base64.startsWith('/9j/')) return 'image/jpeg';
-    if (base64.startsWith('iVBOR')) return 'image/png';
-    if (base64.startsWith('R0lGOD')) return 'image/gif';
-    return 'application/octet-stream';
-};
-
-// Open a report attachment in a new tab. Value is either a URL or bare base64.
-const openReportFile = (fileValue) => {
-    if (!fileValue) return;
-    if (/^https?:\/\//i.test(fileValue)) {
-        window.open(fileValue, '_blank', 'noopener');
+// Trigger a browser download for a base64-encoded attachment
+// ({ name, type, size, data }) — same shape as request attachments.
+const downloadFile = (f) => {
+    if (!f.data) {
+        alert('Вміст файлу недоступний для завантаження.');
         return;
     }
-    try {
-        const byteChars = atob(fileValue);
-        const bytes = new Uint8Array(byteChars.length);
-        for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
-        const blob = new Blob([bytes], { type: sniffBase64Mime(fileValue) });
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank', 'noopener');
-        // Give the new tab time to load the blob before revoking.
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch (e) {
-        alert('Не вдалося відкрити файл: ' + (e.message || e));
-    }
-};
-
-// GET may return Files: ['base64', ...] or a single File string — normalise.
-const reportFiles = (r) => {
-    if (Array.isArray(r.Files)) return r.Files.filter(Boolean);
-    return r.File ? [r.File] : [];
+    const a = document.createElement('a');
+    a.href = `data:${f.type || 'application/octet-stream'};base64,${f.data}`;
+    a.download = f.name || 'file';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
 };
 
 const reportKm = (r) => {
@@ -349,7 +328,7 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                             ) : (
                                 <div className="er-list">
                                     {visibleReports.map(r => {
-                                        const attachments = reportFiles(r);
+                                        const attachments = r.Files || [];
                                         const carName = itemName(r.Car) || r.CarName || '';
                                         const segs = r.Segments || [];
                                         return (
@@ -387,10 +366,11 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                                         <button
                                                             className="er-file-btn"
                                                             key={i}
-                                                            onClick={() => openReportFile(f)}
-                                                            title="Переглянути файл"
+                                                            onClick={() => downloadFile(f)}
+                                                            title={f.name || 'Завантажити файл'}
                                                         >
-                                                            <Eye size={14} /> Файл{attachments.length > 1 ? ` ${i + 1}` : ''}
+                                                            <Download size={14} />
+                                                            <span className="cu-file-name">{f.name || 'Файл'}</span>
                                                         </button>
                                                     ))}
                                                 </div>
