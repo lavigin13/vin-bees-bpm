@@ -417,7 +417,14 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                     <select
                                         className="er-input"
                                         value={carUuid}
-                                        onChange={e => setCarUuid(e.target.value)}
+                                        onChange={e => {
+                                            const uuid = e.target.value;
+                                            setCarUuid(uuid);
+                                            // The start odometer is fixed by the system per car.
+                                            const car = cars.find(c => itemId(c) === uuid);
+                                            const start = car ? Number(car.OdometerStart) : NaN;
+                                            setOdometerStart(Number.isNaN(start) ? '' : String(start));
+                                        }}
                                     >
                                         <option value="" disabled>
                                             {carsLoaded
@@ -436,11 +443,10 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                         <input
                                             type="number"
                                             className="er-input"
-                                            min="0"
-                                            step="1"
-                                            placeholder="км"
+                                            placeholder={carUuid ? 'км' : 'Оберіть авто'}
                                             value={odometerStart}
-                                            onChange={e => setOdometerStart(e.target.value)}
+                                            readOnly
+                                            disabled
                                         />
                                     </label>
                                     <label className="er-field">

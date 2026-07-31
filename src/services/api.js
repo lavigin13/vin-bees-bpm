@@ -1002,9 +1002,11 @@ export const createIndividualExpenseReport = async (payload) => {
 //
 // ⚠️ Contract is ASSUMED (mirrors IndividualExpenseReports) — adjust once
 // confirmed by the 1C side:
-// GET  /Cars → [{ UUID, Name, FuelRemainder, FuelConsumption }]
+// GET  /Cars → [{ UUID, Name, FuelRemainder, FuelConsumption, OdometerStart }]
 //   FuelRemainder — початковий залишок палива в системі (л)
 //   FuelConsumption — середній розхід авто (л/100км)
+//   OdometerStart — поточний одометр авто в системі (км); у формі створення
+//   поле показується, але недоступне для редагування
 //   Прогнозований залишок рахує фронт:
 //   FuelRemainder - (дельта одометра * FuelConsumption / 100) + літри заправки
 // GET  /RoutePoints → [{ UUID, Name }] — точки маршрутів для підказок вводу

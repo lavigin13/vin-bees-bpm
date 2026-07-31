@@ -311,7 +311,7 @@ Creates a new expense report. `Date` uses the same `YYYY-MM-DD` format as `date`
 
 ### Get Cars Catalog
 **GET** `/Cars`
-Fetches the cars available for reporting. `FuelRemainder` is the **initial** fuel remainder recorded in the system (liters); `FuelConsumption` is the car's average consumption (liters per 100 km).
+Fetches the cars available for reporting. `FuelRemainder` is the **initial** fuel remainder recorded in the system (liters); `FuelConsumption` is the car's average consumption (liters per 100 km); `OdometerStart` is the car's current odometer reading (km) — it prefills the create form's start-odometer field, which is **read-only** for the driver.
 
 The predicted remainder is computed **on the client**:
 ```
@@ -322,7 +322,7 @@ PredictedFuelRemainder = FuelRemainder - (OdometerEnd - OdometerStart) * FuelCon
 **Response:**
 ```json
 [
-  { "UUID": "c1d2e3f4-025a-11f1-943b-0296375669d1", "Name": "Renault Trafic АВ1234СD", "FuelRemainder": 23.5, "FuelConsumption": 8.5 }
+  { "UUID": "c1d2e3f4-025a-11f1-943b-0296375669d1", "Name": "Renault Trafic АВ1234СD", "FuelRemainder": 23.5, "FuelConsumption": 8.5, "OdometerStart": 152340 }
 ]
 ```
 
