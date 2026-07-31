@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import HeroProfile from './components/HeroProfile';
 import EquipmentModal from './components/EquipmentModal';
 import EditProfileModal from './components/EditProfileModal';
@@ -559,18 +559,11 @@ const App = () => {
     setIsAuthenticated(false);
   };
 
-  // Section availability from the profile. 1C sends Sections as an array of
-  // single-key objects (`[{ "CarUsage": false }]`); a plain object map is also
-  // accepted. A missing Sections value or a missing key means the section is
-  // visible (backward compatible with backends that don't send it yet); only an
+  // Section availability from the profile (`Sections: { CarUsage: false, ... }`).
+  // A missing Sections object or a missing key means the section is visible
+  // (backward compatible with backends that don't send it yet); only an
   // explicit `false` hides it.
-  const profileSections = useMemo(() => {
-    const raw = user?.Sections || user?.sections;
-    if (!raw) return null;
-    if (Array.isArray(raw)) return Object.assign({}, ...raw.filter(Boolean));
-    return raw;
-  }, [user]);
-
+  const profileSections = user?.Sections || user?.sections || null;
   const isSectionAvailable = (key) => !profileSections || profileSections[key] !== false;
 
   return (
