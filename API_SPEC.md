@@ -404,10 +404,16 @@ Creates a new car usage report. `Date` uses `YYYY-MM-DD` (same as `date` in `POS
 ## 14. Profile Sections (доступність секцій)
 
 **GET** `/profile`
-The profile response is extended with an optional `Sections` object — a map of section key → availability flag. It controls which worker-panel sections the current user sees.
+The profile response is extended with an optional `Sections` value — section key → availability flag. It controls which worker-panel sections the current user sees.
+
+1C sends it as an **array of single-key objects**; a plain object map is accepted too (both are merged into one map on the client):
+```json
+"Sections": [ { "CarUsage": false } ]
+"Sections": { "CarUsage": false }
+```
 
 Frontend rules (backward compatible):
-- no `Sections` object at all → every section is visible;
+- no `Sections` value at all → every section is visible;
 - a key missing from `Sections` → that section is visible;
 - only an explicit `false` hides a section.
 
@@ -418,8 +424,8 @@ Currently the frontend checks only `CarUsage` (кнопка «Авто»). Other
 {
   "name": "Петренко І.В.",
   "...": "...",
-  "Sections": {
-    "CarUsage": true
-  }
+  "Sections": [
+    { "CarUsage": false }
+  ]
 }
 ```
