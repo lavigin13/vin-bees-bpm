@@ -11,6 +11,7 @@ import OrgChartModal from './components/OrgChartModal';
 import TimesheetModal from './components/TimesheetModal';
 import ExpenseReportsModal from './components/ExpenseReportsModal';
 import CarUsageReportsModal from './components/CarUsageReportsModal';
+import ProductionPlanModal from './components/ProductionPlanModal';
 import TimesheetApprovalModal from './components/TimesheetApprovalModal';
 import RequestsModal from './components/RequestsModal';
 import RewardReportModal from './components/RewardReportModal';
@@ -79,6 +80,7 @@ const App = () => {
   const [isTimesheetOpen, setIsTimesheetOpen] = useState(false);
   const [isExpenseReportsOpen, setIsExpenseReportsOpen] = useState(false);
   const [isCarUsageOpen, setIsCarUsageOpen] = useState(false);
+  const [isProductionPlanOpen, setIsProductionPlanOpen] = useState(false);
 
   // Requests State
   const [isRequestsOpen, setIsRequestsOpen] = useState(false);
@@ -580,6 +582,7 @@ const App = () => {
           onApprovalClick={() => setIsApprovalOpen(true)}
           onExpenseReportsClick={() => setIsExpenseReportsOpen(true)}
           onCarUsageClick={() => setIsCarUsageOpen(true)}
+          onProductionPlanClick={() => setIsProductionPlanOpen(true)}
           isSectionAvailable={isSectionAvailable}
           onRequestsClick={() => setIsRequestsOpen(true)}
           onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
@@ -694,6 +697,11 @@ const App = () => {
       <CarUsageReportsModal
         isOpen={isCarUsageOpen}
         onClose={() => setIsCarUsageOpen(false)}
+      />
+
+      <ProductionPlanModal
+        isOpen={isProductionPlanOpen}
+        onClose={() => setIsProductionPlanOpen(false)}
       />
 
       <TimesheetApprovalModal

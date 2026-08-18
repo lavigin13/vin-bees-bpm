@@ -414,7 +414,7 @@ Frontend rules (backward compatible):
 - a key missing from `Sections` → that section is visible;
 - only an explicit `false` hides a section.
 
-Currently the frontend checks only `CarUsage` (кнопка «Авто»). Other keys are reserved for the future — the same mechanism will work for any section without frontend rework: `Timesheet`, `Approval`, `Requests`, `ExpenseReports`, `WarehouseOps`, `StockReport`, `Inventory`, etc.
+Currently the frontend checks `CarUsage` (кнопка «Авто») and `ProductionPlan` (кнопка «План виробництва»). Other keys are reserved for the future — the same mechanism will work for any section without frontend rework: `Timesheet`, `Approval`, `Requests`, `ExpenseReports`, `WarehouseOps`, `StockReport`, `Inventory`, etc.
 
 **Response (fragment):**
 ```json
@@ -425,4 +425,39 @@ Currently the frontend checks only `CarUsage` (кнопка «Авто»). Other
     "CarUsage": false
   }
 }
+```
+
+---
+
+## 15. Production Plan (План виробництва)
+
+### Get Production Plan
+**GET** `/ProductionPlan?StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY`
+Fetches production plan positions for the given period. The frontend always requests one calendar week (Monday..Sunday) and lets the user switch weeks back and forth; positions are grouped by `Date` on the client and can be filtered with a client-side full-text search (product, workflow number, comment, info, status).
+
+Fields:
+- `Date` — planned day (`YYYY-MM-DDT00:00:00`); positions are grouped by it.
+- `WorkFlow` — production order number (shown as `#758`, leading zeros trimmed).
+- `Product` — product name (string; a `{ UUID, Name }` object is also accepted).
+- `Quantity` / `QuantityDone` — planned vs. produced quantity (card shows `done / plan` with a progress bar).
+- `Unit` — optional unit shown next to the quantity.
+- `Status` — status id: `""` or `new` (Новий), `confirmed` (Підтверджено), `inwork` (В роботі), `done` (Виконано), `cancelled` (Скасовано); unknown ids are shown as-is.
+- `Info` — additional production info (free text, may contain line breaks).
+- `Comment` — production comment (free text, highlighted on the card).
+
+**Response:**
+```json
+[
+  {
+    "Date": "2026-08-11T00:00:00",
+    "WorkFlow": "00000758",
+    "Product": "VB140 Камікадзе \"Блискавка\" (ніч)",
+    "Quantity": 20,
+    "QuantityDone": 20,
+    "Unit": "",
+    "Status": "confirmed",
+    "Info": "",
+    "Comment": ""
+  }
+]
 ```

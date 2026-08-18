@@ -1090,6 +1090,27 @@ export const createCarUsageReport = async (payload) => {
     }
 };
 
+// --- Production Plan (План виробництва) ---
+
+export const fetchProductionPlan = async (startDate, endDate) => {
+    // startDate / endDate: 'DD.MM.YYYY' (Monday..Sunday of the selected week)
+    // Returns: [{ UUID, Date, Product: { UUID, Name } | string, Quantity, Unit, Info }]
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(
+            `${API_BASE_URL}/ProductionPlan?StartDate=${startDate}&EndDate=${endDate}`,
+            { method: 'GET', headers }
+        );
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        return Array.isArray(data) ? data : (data.items || data.plan || []);
+    } catch (error) {
+        if (error instanceof UnauthorizedError) throw error;
+        console.error('Failed to fetch production plan:', error);
+        return [];
+    }
+};
+
 export const markShipmentDocumentSent = async (payload) => {
     // payload: {
     //   id,                                  // document id
