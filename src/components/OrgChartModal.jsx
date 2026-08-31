@@ -89,6 +89,7 @@ const OrgChartModal = ({ isOpen, onClose, colleagues = [] }) => {
         const rootNodes = [];
 
         for (const raw of colleagues) {
+            if (raw?.id == null) continue; // id-less rows would all collapse into one node
             const node = {
                 ...raw,
                 id: raw?.id,

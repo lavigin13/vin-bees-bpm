@@ -70,15 +70,15 @@ const InboxModal = ({ isOpen, onClose, transfers, onAccept, onReject, pendingReq
                                     </div>
                                     
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                                        <div className={`preview-icon rarity-${transfer.item.rarity.toLowerCase()}`} style={{ width: 48, height: 48, fontSize: 20, minWidth: 48 }}>
+                                        <div className={`preview-icon rarity-${(transfer.item.rarity || 'common').toLowerCase()}`} style={{ width: 48, height: 48, fontSize: 20, minWidth: 48 }}>
                                             <Package size={24} />
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontWeight: 'bold' }}>{transfer.item.name}</div>
                                             <div style={{ fontSize: 12, opacity: 0.7, display: 'flex', gap: 8 }}>
                                                 <span>К-сть: {transfer.quantity}</span>
-                                                <span className={`rarity-tag rarity-${transfer.item.rarity.toLowerCase()}`} style={{ fontSize: 10, padding: '0 4px', borderRadius: 4 }}>
-                                                    {transfer.item.rarity}
+                                                <span className={`rarity-tag rarity-${(transfer.item.rarity || 'common').toLowerCase()}`} style={{ fontSize: 10, padding: '0 4px', borderRadius: 4 }}>
+                                                    {transfer.item.rarity || 'Common'}
                                                 </span>
                                             </div>
                                         </div>

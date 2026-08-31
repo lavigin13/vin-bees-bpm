@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Save, Plus, Minus, Trash2 } from 'lucide-react';
 import './CraftingModal.css'; // Reusing modal base
 import './TimesheetModal.css';
@@ -22,6 +22,9 @@ const TimesheetModal = ({ isOpen, onClose }) => {
     const [error, setError] = useState(null);
     const [blockedMessage, setBlockedMessage] = useState(null); // Modal message when API returns blocked=true
 
+    // Monotonic id of the latest month load — rapid prev/next month clicks must
+    // not let an out-of-order response overwrite the newest month's data.
+    const loadSeqRef = useRef(0);
 
     // Reset on open
     useEffect(() => {
@@ -39,12 +42,14 @@ const TimesheetModal = ({ isOpen, onClose }) => {
     }, [currentDate, isOpen]);
 
     const loadMonthData = async () => {
+        const seq = ++loadSeqRef.current;
         setIsLoadingMonth(true);
         setError(null);
         const monthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
 
         try {
             const response = await fetchTimesheet(monthStr);
+            if (seq !== loadSeqRef.current) return; // stale response — a newer month is loading
 
             // Handle new API format: { monthlyNorm, workingDays, calendar: {...}, reports: {...} }
             if (response && typeof response === 'object') {
@@ -65,13 +70,14 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                 setCalendar({});
             }
         } catch (e) {
+            if (seq !== loadSeqRef.current) return;
             console.error('Failed to load timesheet', e);
             setError('Не вдалося завантажити дані');
             setCurrentMonthData({});
             setMonthlyNorm(null);
             setCalendar({});
         } finally {
-            setIsLoadingMonth(false);
+            if (seq === loadSeqRef.current) setIsLoadingMonth(false);
         }
     };
 
@@ -85,7 +91,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
     // Adjust for Monday start (1=Mon, ..., 7=Sun)
     const startDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
-    const monthLabel = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const monthLabel = currentDate.toLocaleString('uk-UA', { month: 'long', year: 'numeric' });
 
     const handlePrevMonth = () => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -160,8 +166,6 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                 [selectedDate]: reportData
             }));
             handleCloseSheet();
-
-            console.log('Report saved successfully');
         } catch (e) {
             if (e instanceof BlockedError) {
                 setBlockedMessage(e.message);
@@ -194,7 +198,6 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                 return nextState;
             });
             handleCloseSheet();
-            console.log('Report deleted successfully');
         } catch (e) {
             if (e instanceof BlockedError) {
                 setBlockedMessage(e.message);
@@ -282,7 +285,7 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                         return emojiMap[type?.toLowerCase().replace(' ', '-')] || '';
                                     };
 
-                                    const totalHours = report ? (report.regularHours || 0) + (report.overtimeHours || 0) : 0;
+                                    const dayTotalHours = report ? (report.regularHours || 0) + (report.overtimeHours || 0) : 0;
 
                                     return (
                                         <div
@@ -295,8 +298,8 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                                                 <div className="day-emoji">{getEmoji(report.type)}</div>
                                             )}
                                             <div>{day}</div>
-                                            {totalHours > 0 && (
-                                                <div className="day-hours">{totalHours}год</div>
+                                            {dayTotalHours > 0 && (
+                                                <div className="day-hours">{dayTotalHours}год</div>
                                             )}
                                         </div>
                                     );
@@ -349,7 +352,12 @@ const TimesheetModal = ({ isOpen, onClose }) => {
                             <div className="sheet-container" onClick={e => e.stopPropagation()}>
                                 <div className="sheet-header">
                                     <div className="sheet-title">
-                                        {new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
+                                        {(() => {
+                                            // Parse locally — new Date('YYYY-MM-DD') is UTC midnight and
+                                            // shifts the displayed day for west-of-UTC users.
+                                            const [y, m, d] = selectedDate.split('-').map(Number);
+                                            return new Date(y, m - 1, d).toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });
+                                        })()}
                                     </div>
                                 </div>
 

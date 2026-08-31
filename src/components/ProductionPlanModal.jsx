@@ -6,6 +6,7 @@ import {
 import './SupplierOrders.css';
 import './ProductionPlan.css';
 import { fetchProductionPlan } from '../services/api';
+import { toIsoDate, isoToApiDate } from '../utils/period';
 
 const DAY_NAMES = ['Понеділок', 'Вівторок', 'Середа', 'Четвер', "П'ятниця", 'Субота', 'Неділя'];
 const MONTH_NAMES_GEN = [
@@ -47,20 +48,19 @@ const addDays = (date, days) => {
     return d;
 };
 
-const toIso = (date) =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const toIso = toIsoDate;
 
 // Date → 'DD.MM.YYYY' (1C API)
-const toApiDate = (date) =>
-    `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
+const toApiDate = (date) => isoToApiDate(toIsoDate(date));
 
-// '2026-01-30T00:00:00' | '30.01.2026' → 'YYYY-MM-DD' (day key)
+// '2026-01-30T00:00:00' | '30.01.2026' | '5.1.2026' → 'YYYY-MM-DD' (day key)
 const dayKeyOf = (value) => {
     if (!value) return '';
     const s = String(value);
     if (s.includes('.')) {
         const [d, m, y] = s.split('T')[0].split('.');
-        return y && m && d ? `${y}-${m}-${d}` : '';
+        // Zero-pad — '5.1.2026' must match the padded toIso() day keys.
+        return y && m && d ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : '';
     }
     return s.split('T')[0];
 };
@@ -238,7 +238,7 @@ const ProductionPlanModal = ({ isOpen, onClose }) => {
                                             const st = statusMeta(item.Status);
                                             const isDone = plan > 0 && done >= plan;
                                             return (
-                                                <div className={`pp-card ${isDone ? 'is-done' : ''}`} key={item.UUID || item.WorkFlow || `${d.key}_${idx}`}>
+                                                <div className={`pp-card ${isDone ? 'is-done' : ''}`} key={`${item.UUID || item.WorkFlow || 'pos'}_${idx}`}>
                                                     <div className="pp-card-top">
                                                         <div className="pp-card-head">
                                                             {item.WorkFlow ? (

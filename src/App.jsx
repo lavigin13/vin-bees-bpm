@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import HeroProfile from './components/HeroProfile';
 import EquipmentModal from './components/EquipmentModal';
 import EditProfileModal from './components/EditProfileModal';
@@ -38,9 +38,11 @@ import './index.css';
 const loadAllRequests = async (period = currentMonthPeriod()) => {
   const start = isoToApiDate(period.startDate);
   const end = isoToApiDate(period.endDate);
+  // Each view degrades to an empty list independently — a failing
+  // "subordinates" fetch must not hide the user's own requests.
   const [myRequests, subRequests] = await Promise.all([
-    fetchRequests('my', start, end),
-    fetchRequests('subordinates', start, end)
+    fetchRequests('my', start, end).catch(() => []),
+    fetchRequests('subordinates', start, end).catch(() => [])
   ]);
   const allRequests = [
     ...(Array.isArray(myRequests) ? myRequests : []),
@@ -113,10 +115,18 @@ const App = () => {
   // Equipment (personal inventory) State
   const [isEquipmentOpen, setIsEquipmentOpen] = useState(false);
 
-  // Helper to count pending requests (simulated for team members)
+  // Bumped by the retry button on the profile-load failure screen.
+  const [loadRetryTick, setLoadRetryTick] = useState(0);
+
+  // Guards against double-submitting a purchase while the first is in flight.
+  const buyInFlightRef = useRef(false);
+
+  // Count of subordinates' requests awaiting this user's approval.
+  // String() comparison — the backend's createdBy type (string vs number) is
+  // not guaranteed to match the profile id type.
   const pendingRequestsCount = (requests || []).filter(r => {
-    if (!r) return false;
-    const isOwn = user ? (r.createdBy === user.id || r.createdBy === user.name) : r.createdBy === 999;
+    if (!r || !user) return false;
+    const isOwn = String(r.createdBy) === String(user.id) || r.createdBy === user.name;
     return !isOwn && (r.status === 'new' || r.status === 'pending');
   }).length;
 
@@ -189,7 +199,12 @@ const App = () => {
     };
 
     loadData();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadRetryTick]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setIsAuthenticated(false);
+  };
 
   // If not authenticated, render Auth Page
   if (!isAuthenticated) {
@@ -209,14 +224,30 @@ const App = () => {
   }
 
   if (!user) {
-    return <div className="app-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Не вдалося завантажити дані профілю.</div>;
+    // Dead-end guard: without retry/logout a broken backend + saved token
+    // would trap the user on this screen forever.
+    return (
+      <div className="app-container" style={{ display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div>Не вдалося завантажити дані профілю.</div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button className="retry-btn" style={{ padding: '10px 18px', borderRadius: 8, cursor: 'pointer' }} onClick={() => setLoadRetryTick(t => t + 1)}>
+            Повторити
+          </button>
+          <button className="logout-btn" style={{ padding: '10px 18px', borderRadius: 8, cursor: 'pointer' }} onClick={handleLogout}>
+            Вийти
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const handleSaveProfile = async (updatedData) => {
-    try {
-      // Optimistic update (keep local state as YYYY-MM-DD for UI consistency)
-      setUser(prev => ({ ...prev, ...updatedData }));
+    // Optimistic update (keep local state as YYYY-MM-DD for UI consistency),
+    // reverted if the API rejects the save.
+    const prevUser = user;
+    setUser(prev => ({ ...prev, ...updatedData }));
 
+    try {
       // Prepare data for API (format birthday to dd.MM.yyyy)
       const apiData = { ...updatedData };
       if (apiData.birthday && apiData.birthday.includes('-')) {
@@ -224,13 +255,13 @@ const App = () => {
         apiData.birthday = `${day}.${month}.${year}`;
       }
 
-      // Send to API
       await updateProfile(apiData);
 
       alert('Профіль успішно збережено! ✅');
     } catch (error) {
       console.error("Failed to save profile:", error);
-      const errorMessage = error.message || 'Unknown error';
+      setUser(prevUser);
+      const errorMessage = error.message || 'Невідома помилка';
       alert(`Не вдалося зберегти профіль: ${errorMessage}`);
     }
   };
@@ -249,14 +280,15 @@ const App = () => {
       return;
     }
 
-    // 1. Optimistic Update
+    // 1. Optimistic Update: decrement only the transferred item, and drop only
+    // that item when it hits zero — other items (including ones without a
+    // numeric quantity) must stay untouched.
     const prevInventory = inventory;
-    const newInventory = inventory.map(invItem => {
-      if (invItem.id === item.id) {
-        return { ...invItem, quantity: invItem.quantity - quantity };
-      }
-      return invItem;
-    }).filter(invItem => invItem.quantity > 0);
+    const newInventory = inventory
+      .map(invItem => invItem.id === item.id
+        ? { ...invItem, quantity: (invItem.quantity || 0) - quantity }
+        : invItem)
+      .filter(invItem => invItem.id !== item.id || invItem.quantity > 0);
 
     setInventory(newInventory);
 
@@ -285,18 +317,14 @@ const App = () => {
       return;
     }
 
-    // 2. Add Item to Inventory (Optimistic)
-    const existingItem = inventory.find(i => i.name === transfer.item.name);
-    const newInventory = existingItem
-      ? inventory.map(i => i === existingItem ? { ...i, quantity: i.quantity + transfer.quantity } : i)
-      : [...inventory, { id: Date.now(), ...transfer.item, quantity: transfer.quantity }];
-    setInventory(newInventory);
-
-    // 3. Remove from Inbox
+    // 2. Remove from Inbox
     setIncomingTransfers(prev => prev.filter(t => t.id !== transfer.id));
 
-    // 4. Feedback
-    console.log("Transfer accepted successfully.");
+    // 3. Refetch inventory: the backend is the source of truth for item ids —
+    // splicing the sender's row in locally would fabricate ids that later
+    // transfer/audit calls send to the API.
+    const fresh = await fetchInventory();
+    if (fresh) setInventory(fresh);
   };
 
   const handleRejectTransfer = async (transferId) => {
@@ -312,13 +340,11 @@ const App = () => {
 
     // 2. Remove from Inbox
     setIncomingTransfers(prev => prev.filter(t => t.id !== transferId));
-
-    // 3. Feedback
-    console.log("Transfer rejected.");
   };
 
   const handleValidateItem = async (item) => {
     // 1. Optimistic Update (UI responds immediately)
+    const prevInventory = inventory;
     const newInventory = inventory.map(i => {
       if (i.id === item.id) {
         const rest = { ...i };
@@ -329,18 +355,15 @@ const App = () => {
     });
     setInventory(newInventory);
 
-    // 2. Send to Backend
+    // 2. Send to Backend; revert and tell the truth on failure
     try {
       await sendAuditResult(item.id, true); // true = present
-      console.log(`Audit confirmed for item ${item.id}`);
+      alert(`Підтверджено: ${item.name} успішно перевірено.`);
     } catch (e) {
       console.error("Failed to send audit result", e);
-      // Optional: Revert UI state if critical
+      setInventory(prevInventory);
+      alert(`Не вдалося підтвердити ${item.name}. Спробуйте ще раз.`);
     }
-
-    // 3. Feedback
-    const message = `Підтверджено: ${item.name} успішно перевірено.`;
-    alert(message);
   };
 
   const handleReportMissing = async (item) => {
@@ -351,6 +374,7 @@ const App = () => {
 
   const processMissingItem = async (item) => {
     // 1. Optimistic Update
+    const prevInventory = inventory;
     const newInventory = inventory.map(i => {
       if (i.id === item.id) {
         return { ...i, auditRequired: false, status: 'missing' };
@@ -359,25 +383,28 @@ const App = () => {
     });
     setInventory(newInventory);
 
-    // 2. Send to Backend
+    // 2. Send to Backend; revert and tell the truth on failure
     try {
       await sendAuditResult(item.id, false); // false = missing
+      alert(`Відмічено ${item.name} як ВІДСУТНІЙ. Адміністратора повідомлено.`);
     } catch (e) {
       console.error("Failed to report missing item", e);
+      setInventory(prevInventory);
+      alert(`Не вдалося відмітити ${item.name} як відсутній. Спробуйте ще раз.`);
     }
-
-    // 3. Feedback
-    const message = `Відмічено ${item.name} як ВІДСУТНІЙ. Адміністратора повідомлено.`;
-    alert(message);
   };
 
   // --- Marketplace Logic ---
 
   const handleBuyItem = async (item) => {
-    if (user.honey < item.price) {
+    // Guard against double-clicks and check the CURRENT balance — the closure's
+    // `user.honey` can be stale after a just-finished purchase/honey transfer.
+    if (buyInFlightRef.current) return;
+    if ((user?.honey ?? 0) < item.price) {
       alert("Недостатньо Меду!");
       return;
     }
+    buyInFlightRef.current = true;
 
     // 1. Deduct Honey (Optimistic)
     setUser(prev => ({ ...prev, honey: prev.honey - item.price }));
@@ -390,41 +417,35 @@ const App = () => {
       alert("Покупка не вдалася.");
       setUser(prev => ({ ...prev, honey: prev.honey + item.price })); // Revert
       return;
+    } finally {
+      buyInFlightRef.current = false;
     }
 
-    // 3. Add to Inventory (Optimistic)
-    const newItem = {
-      id: Date.now(),
-      name: item.name,
-      rarity: item.rarity || "Common",
-      icon: item.icon || "box",
-      type: item.type === 'equipment' || item.type === 'merch' ? 'equipment' : 'resource',
-      quantity: 1
-    };
-    setInventory(prev => [...prev, newItem]);
-
-    // 4. Remove from Marketplace (if P2P)
+    // 3. Remove from Marketplace (if P2P)
     if (item.seller !== 'system') {
       setMarketplaceItems(prev => prev.filter(i => i.id !== item.id));
     }
 
-    // 5. Feedback
+    // 4. Feedback + refetch inventory: the backend assigns the real item id —
+    // fabricating one locally would break later transfer/audit calls.
     alert(`Куплено ${item.name}!`);
+    const fresh = await fetchInventory();
+    if (fresh) setInventory(fresh);
   };
 
   const handleCreateListing = async (listingData) => {
     // 1. API Call
     try {
-      const newItem = await createListing(listingData);
-      // 2. Update UI
-      setMarketplaceItems(prev => [newItem || {
-        id: `u_${Date.now()}`,
-        seller: user.name,
-        ...listingData
-      }, ...prev]);
+      const response = await createListing(listingData);
+      // 2. Update UI. The backend may reply with the full listing, a partial
+      // object, or just { success } — merge over local defaults so ShopModal
+      // always gets the fields it renders (name, rarity, seller, price).
+      const fallback = { id: `u_${Date.now()}`, seller: user.name, ...listingData };
+      const created = (response && typeof response === 'object' && response.name)
+        ? { ...fallback, ...response }
+        : fallback;
+      setMarketplaceItems(prev => [created, ...prev]);
       setIsSellModalOpen(false);
-
-      console.log("Listing created successfully.");
     } catch (e) {
       console.error("Listing failed", e);
       alert("Не вдалося створити оголошення.");
@@ -473,7 +494,6 @@ const App = () => {
         return [savedReq, ...prev];
       });
 
-      console.log("Request saved successfully.");
       return savedReq; // Return for chaining
     } catch (e) {
       console.error("Failed to save request", e);
@@ -506,52 +526,40 @@ const App = () => {
     } catch (e) {
       console.error("Failed to submit request", e);
       alert("Не вдалося подати запит.");
+      throw e; // let the form stay open with the typed data intact
     }
   };
 
-  const handleApproveRequest = async (req) => {
-    // 1. Optimistic Update
-    const updatedReq = { ...req, status: 'approved' };
-    setRequests(prev => prev.map(r => r.id === req.id ? updatedReq : r));
+  // Optimistically set the request's status; revert and notify on API failure —
+  // the manager must never see "approved/rejected" that didn't happen.
+  const respondToRequestOptimistic = async (req, action, newStatus, failMessage) => {
+    const prevStatus = req.status;
+    setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: newStatus } : r));
 
-    // 2. API Call
     try {
-      await respondToRequest(req.id, 'approve');
-      console.log("Request approved.");
+      await respondToRequest(req.id, action);
     } catch (e) {
-      console.error("Failed to approve request", e);
-      // Revert?
+      console.error(`Failed to ${action} request`, e);
+      setRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: prevStatus } : r));
+      alert(failMessage);
     }
   };
 
-  const handleRejectRequest = async (req) => {
-    // 1. Optimistic Update
-    const updatedReq = { ...req, status: 'rejected' };
-    setRequests(prev => prev.map(r => r.id === req.id ? updatedReq : r));
+  const handleApproveRequest = (req) =>
+    respondToRequestOptimistic(req, 'approve', 'approved', 'Не вдалося погодити заявку. Спробуйте ще раз.');
 
-    // 2. API Call
-    try {
-      await respondToRequest(req.id, 'reject');
-      console.log("Request rejected.");
-    } catch (e) {
-      console.error("Failed to reject request", e);
-    }
-  };
+  const handleRejectRequest = (req) =>
+    respondToRequestOptimistic(req, 'reject', 'rejected', 'Не вдалося відхилити заявку. Спробуйте ще раз.');
 
   const handleSaveWarehouseInventory = async (data) => {
     try {
       await saveWarehouseInventory(data);
-
-      alert('Інвентаризацію подано! ✅');
+      alert(data.isDraft ? 'Чернетку збережено! 💾' : 'Інвентаризацію подано! ✅');
     } catch (e) {
       console.error("Inventory save failed", e);
       alert("Не вдалося зберегти інвентаризацію.");
+      throw e; // let the modal keep the scanned list open for a retry
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    setIsAuthenticated(false);
   };
 
   // Section availability from the profile (`Sections: { CarUsage: false, ... }`).
@@ -666,6 +674,7 @@ const App = () => {
         onApprove={handleApproveRequest}
         onReject={handleRejectRequest}
         currentUser={user}
+        colleagues={colleagues}
         initialFilter={initialRequestsFilter}
         onViewChange={async (view, period) => {
           // Fetch requests for the selected view and period
@@ -726,7 +735,7 @@ const App = () => {
       />
 
       <div style={{ textAlign: 'center', marginTop: 32, opacity: 0.5, fontSize: 10 }}>
-        VinBees RPG v1.8
+        VinBees BPM v1.0
       </div>
     </div>
   );

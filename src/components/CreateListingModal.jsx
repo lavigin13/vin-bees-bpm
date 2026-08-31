@@ -10,11 +10,16 @@ const CreateListingModal = ({ isOpen, onClose, onDetailSubmit }) => {
     if (!isOpen) return null;
 
     const handleSubmit = () => {
-        if (!name || !price) return;
-        
+        // Price must be a positive integer — '0', '-5' and '5.5' are all invalid.
+        const priceNum = Number(price);
+        if (!name.trim() || !Number.isInteger(priceNum) || priceNum <= 0) {
+            alert('Вкажіть назву та цілу додатну ціну в Меді.');
+            return;
+        }
+
         onDetailSubmit({
-            name,
-            price: parseInt(price),
+            name: name.trim(),
+            price: priceNum,
             description,
             rarity: "Common", // Default
             icon: "box", // Default

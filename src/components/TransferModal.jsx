@@ -27,9 +27,10 @@ const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
                 setIsDropdownOpen(false);
             }
         };
+        if (!isOpen) return undefined;
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [isOpen]);
 
     if (!isOpen || !item) return null;
 
@@ -72,8 +73,8 @@ const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
 
                 <div className="recipe-details" style={{ marginTop: 20 }}>
                     <div className="output-preview">
-                        <div className={`preview-icon rarity-${item.rarity.toLowerCase()}`}>
-                            <div className="preview-rarity">{item.rarity}</div>
+                        <div className={`preview-icon rarity-${(item.rarity || 'common').toLowerCase()}`}>
+                            <div className="preview-rarity">{item.rarity || 'Common'}</div>
                             <div className="preview-name">{item.name}</div>
                         </div>
                     </div>
@@ -129,13 +130,13 @@ const TransferModal = ({ isOpen, onClose, item, onSend, colleagues = [] }) => {
                         <input
                             type="number"
                             min="1"
-                            max={item.quantity}
+                            max={item.quantity ?? 1}
                             className="rpg-input"
                             value={quantity}
-                            onChange={(e) => setQuantity(Math.max(1, Math.min(item.quantity, parseInt(e.target.value) || 1)))}
+                            onChange={(e) => setQuantity(Math.max(1, Math.min(item.quantity ?? 1, parseInt(e.target.value) || 1)))}
                         />
                         <div style={{fontSize: 12, opacity: 0.6, marginTop: 4, textAlign: 'right'}}>
-                            Доступно: {item.quantity}
+                            Доступно: {item.quantity ?? 1}
                         </div>
                     </div>
 

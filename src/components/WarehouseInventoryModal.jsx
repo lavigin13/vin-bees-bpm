@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Minus, Check, FileText, ScanBarcode } from 'lucide-react';
+import { X, Plus, Minus, FileText, ScanBarcode, Trash2 } from 'lucide-react';
 import './WarehouseInventoryModal.css';
 import { getProductByBarcode, getInventoryDocuments } from '../services/api';
 import BarcodeScannerModal from './BarcodeScannerModal';
@@ -80,12 +80,22 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
         }
     };
 
+    // Match by barcode when both sides have one; products without a barcode
+    // must not merge with each other — fall back to the product id.
+    const sameProduct = (a, b) =>
+        (a.barcode && b.barcode) ? a.barcode === b.barcode : (a.id != null && a.id === b.id);
+
     const handleAddItemDirectly = (product) => {
         setInventoryList(prev => {
-            const existingIndex = prev.findIndex(item => item.barcode === product.barcode);
+            const existingIndex = prev.findIndex(item => sameProduct(item, product));
             if (existingIndex >= 0) {
+                // Copy the row object too — mutating it would double-increment
+                // under StrictMode's double-invoked updaters.
                 const newList = [...prev];
-                newList[existingIndex].scannedQty += 1;
+                newList[existingIndex] = {
+                    ...newList[existingIndex],
+                    scannedQty: newList[existingIndex].scannedQty + 1
+                };
                 return newList;
             } else {
                 return [{
@@ -100,26 +110,35 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
     const handleUpdateQuantity = (index, newQty) => {
         setInventoryList(prev => {
             const newList = [...prev];
-            const safeQty = Math.max(1, newQty);
+            const safeQty = Math.max(0, Number(newQty) || 0);
             newList[index] = { ...newList[index], scannedQty: safeQty };
             return newList;
         });
     };
 
-    const handleFinish = (isDraft = false) => {
-        if (onSaveInventory && selectedDoc) {
-            onSaveInventory({
+    const handleRemoveItem = (index) =>
+        setInventoryList(prev => prev.filter((_, i) => i !== index));
+
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Close only after a successful (non-draft) save — otherwise the scanned
+    // list would be destroyed with no way to retry.
+    const handleFinish = async (isDraft = false) => {
+        if (!onSaveInventory || !selectedDoc || isSaving) return;
+        setIsSaving(true);
+        try {
+            await onSaveInventory({
                 documentId: selectedDoc.id,
                 warehouseName: selectedDoc.warehouseName,
                 items: inventoryList,
                 date: new Date().toISOString(),
                 isDraft: isDraft
             });
-        }
-        if (!isDraft) {
-            onClose();
-        } else {
-            console.log('Draft saved.');
+            if (!isDraft) onClose();
+        } catch {
+            // App already alerted; keep the modal (and the scanned list) open.
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -203,30 +222,37 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
                                                     </tr>
                                                 ) : (
                                                     inventoryList.map((item, idx) => (
-                                                        <tr key={idx}>
+                                                        <tr key={item.barcode || item.id || idx}>
                                                             <td className="item-cell">
                                                                 <div className="item-name-text">{item.name}</div>
                                                                 <div className="item-barcode-text">{item.barcode || item.id}</div>
                                                             </td>
                                                             <td className="qty-cell">
                                                                 <div className="row-qty-control">
-                                                                    <button 
-                                                                        className="row-qty-btn" 
+                                                                    <button
+                                                                        className="row-qty-btn"
                                                                         onClick={() => handleUpdateQuantity(idx, item.scannedQty - 1)}
                                                                     >
                                                                         <Minus size={10} />
                                                                     </button>
-                                                                    <input 
-                                                                        type="number" 
-                                                                        className="row-qty-input" 
+                                                                    <input
+                                                                        type="number"
+                                                                        className="row-qty-input"
                                                                         value={item.scannedQty}
                                                                         onChange={(e) => handleUpdateQuantity(idx, Number(e.target.value))}
                                                                     />
-                                                                    <button 
+                                                                    <button
                                                                         className="row-qty-btn"
                                                                         onClick={() => handleUpdateQuantity(idx, item.scannedQty + 1)}
                                                                     >
                                                                         <Plus size={10} />
+                                                                    </button>
+                                                                    <button
+                                                                        className="row-qty-btn"
+                                                                        onClick={() => handleRemoveItem(idx)}
+                                                                        title="Видалити рядок"
+                                                                    >
+                                                                        <Trash2 size={10} />
                                                                     </button>
                                                                 </div>
                                                             </td>
@@ -244,19 +270,21 @@ const WarehouseInventoryModal = ({ isOpen, onClose, onSaveInventory }) => {
                                 </button>
                                 
                                 <div style={{ display: 'flex', gap: 12 }}>
-                                    <button 
-                                        className="finish-btn" 
-                                        onClick={() => handleFinish(true)} 
+                                    <button
+                                        className="finish-btn"
+                                        onClick={() => handleFinish(true)}
+                                        disabled={isSaving}
                                         style={{ marginTop: 0, background: '#374151', border: '1px solid #4b5563', color: 'white', flex: 1 }}
                                     >
                                         Зберегти чернетку
                                     </button>
-                                    <button 
-                                        className="finish-btn" 
-                                        onClick={() => handleFinish(false)} 
+                                    <button
+                                        className="finish-btn"
+                                        onClick={() => handleFinish(false)}
+                                        disabled={isSaving || inventoryList.length === 0}
                                         style={{ marginTop: 0, flex: 1 }}
                                     >
-                                        Завершити інвентаризацію
+                                        {isSaving ? 'Збереження...' : 'Завершити інвентаризацію'}
                                     </button>
                                 </div>
                             </div>

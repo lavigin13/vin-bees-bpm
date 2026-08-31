@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
     X, ArrowLeft, Loader2, RefreshCw, Car, Plus,
     Paperclip, FileText, Trash2, Download, Send, Fuel, Gauge, MoveRight, UserRound
@@ -7,31 +7,8 @@ import './SupplierOrders.css';
 import './ExpenseReports.css';
 import './CarUsage.css';
 import { fetchCarUsageReports, createCarUsageReport, fetchCars, fetchRoutePoints } from '../services/api';
-
-// Read a File into a base64 string (strips the "data:*;base64," prefix).
-const fileToBase64 = (file) =>
-    new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const result = reader.result || '';
-            resolve(String(result).split(',')[1] || '');
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-
-const formatSize = (bytes) => {
-    if (!bytes && bytes !== 0) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-// 'YYYY-MM-DD' (input[type=date]) → 'DD.MM.YYYY' (1C API)
-const toApiDate = (isoDate) => {
-    const [y, m, d] = (isoDate || '').split('-');
-    return y && m && d ? `${d}.${m}.${y}` : '';
-};
+import { fileToBase64, formatSize, downloadBase64File as downloadFile } from '../utils/files';
+import { isoToApiDate as toApiDate, toIsoDate as toIso, currentMonthPeriod } from '../utils/period';
 
 // '2026-01-30T00:00:00' or '2026-01-30' → '30.01.2026'
 const displayDate = (isoDateTime) => {
@@ -40,37 +17,8 @@ const displayDate = (isoDateTime) => {
     return y && m && d ? `${d}.${m}.${y}` : (isoDateTime || '—');
 };
 
-const toIso = (date) => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
-
-const monthStartIso = () => {
-    const now = new Date();
-    return toIso(new Date(now.getFullYear(), now.getMonth(), 1));
-};
-
-const monthEndIso = () => {
-    const now = new Date();
-    return toIso(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-};
-
 const formatNum = (value) =>
     (Number(value) || 0).toLocaleString('uk-UA', { maximumFractionDigits: 1 });
-
-// Trigger a browser download for a base64-encoded attachment
-// ({ name, type, size, data }) — same shape as request attachments.
-const downloadFile = (f) => {
-    if (!f.data) {
-        alert('Вміст файлу недоступний для завантаження.');
-        return;
-    }
-    const a = document.createElement('a');
-    a.href = `data:${f.type || 'application/octet-stream'};base64,${f.data}`;
-    a.download = f.name || 'file';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-};
 
 const reportKm = (r) => {
     const km = (Number(r.OdometerEnd) || 0) - (Number(r.OdometerStart) || 0);
@@ -86,9 +34,14 @@ const emptySegment = () => ({ pointA: '', pointB: '' });
 const CarUsageReportsModal = ({ isOpen, onClose }) => {
     const [reports, setReports]   = useState([]);
     const [isLoading, setLoading] = useState(false);
+    const [loadError, setLoadError] = useState(false);
 
-    const [startDate, setStartDate] = useState(monthStartIso);
-    const [endDate, setEndDate]     = useState(monthEndIso);
+    const [startDate, setStartDate] = useState(() => currentMonthPeriod().startDate);
+    const [endDate, setEndDate]     = useState(() => currentMonthPeriod().endDate);
+
+    // Monotonic id of the latest list load — rapid period edits must not let an
+    // out-of-order response overwrite the newest list.
+    const loadSeqRef = useRef(0);
 
     // Catalogs (loaded once per modal open)
     const [cars, setCars]                 = useState([]); // [{ UUID, Name, FuelRemainder }]
@@ -117,23 +70,36 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
         const start = toApiDate(startDate);
         const end = toApiDate(endDate);
         if (!start || !end) return;
+        const seq = ++loadSeqRef.current;
         setLoading(true);
+        setLoadError(false);
         fetchCarUsageReports(start, end)
-            .then(data => setReports(Array.isArray(data) ? data : []))
-            .catch(console.error)
-            .finally(() => setLoading(false));
+            .then(data => {
+                if (seq !== loadSeqRef.current) return; // stale response
+                setReports(Array.isArray(data) ? data : []);
+            })
+            .catch(e => {
+                if (seq !== loadSeqRef.current) return;
+                console.error(e);
+                setReports([]);
+                setLoadError(true);
+            })
+            .finally(() => { if (seq === loadSeqRef.current) setLoading(false); });
     }, [startDate, endDate]);
 
     useEffect(() => {
         if (isOpen) load();
     }, [isOpen, load]);
 
+    // Catalogs load once until they succeed (retried on the next modal open).
     useEffect(() => {
         if (!isOpen || carsLoaded) return;
         fetchCars()
             .then(data => {
-                setCars(Array.isArray(data) ? data : []);
-                setCarsLoaded(true);
+                if (Array.isArray(data) && data.length) {
+                    setCars(data);
+                    setCarsLoaded(true);
+                }
             })
             .catch(console.error);
     }, [isOpen, carsLoaded]);
@@ -142,8 +108,10 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
         if (!isOpen || pointsLoaded) return;
         fetchRoutePoints()
             .then(data => {
-                setRoutePoints(Array.isArray(data) ? data : []);
-                setPointsLoaded(true);
+                if (Array.isArray(data) && data.length) {
+                    setRoutePoints(data);
+                    setPointsLoaded(true);
+                }
             })
             .catch(console.error);
     }, [isOpen, pointsLoaded]);
@@ -210,7 +178,7 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
             );
             setFiles(prev => [...prev, ...encoded]);
         } catch (err) {
-            alert('Не вдалося прочитати файл: ' + (err.message || err));
+            alert(err.message || 'Не вдалося прочитати файл');
         } finally {
             e.target.value = '';
         }
@@ -276,6 +244,10 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
     };
 
     const handleClose = () => {
+        // Don't let a stray overlay tap silently discard a half-filled form.
+        const isDirty = view === 'create' &&
+            (carUuid || odometerEnd || comment.trim() || files.length > 0 || segments.some(s => s.pointA.trim() || s.pointB.trim()));
+        if (isDirty && !confirm('Закрити без збереження? Введені дані буде втрачено.')) return;
         setView('list');
         resetCreateForm();
         onClose();
@@ -322,6 +294,13 @@ const CarUsageReportsModal = ({ isOpen, onClose }) => {
                                 <div className="so-loading">
                                     <Loader2 size={22} className="so-spin" />
                                     Завантаження звітів...
+                                </div>
+                            ) : loadError ? (
+                                <div className="so-no-docs">
+                                    Не вдалося завантажити звіти.{' '}
+                                    <button className="er-file-btn" style={{ display: 'inline-flex', marginLeft: 8 }} onClick={load}>
+                                        Спробувати ще раз
+                                    </button>
                                 </div>
                             ) : visibleReports.length === 0 ? (
                                 <div className="so-no-docs">Немає звітів за вибраний період</div>

@@ -9,13 +9,19 @@ const AskQuestionModal = ({ isOpen, onClose, onSend, month, year }) => {
     if (!isOpen) return null;
 
     const handleSend = async () => {
-        if (!question.trim()) return;
-        
+        if (!question.trim() || isSending) return;
+
         setIsSending(true);
-        await onSend(question);
-        setIsSending(false);
-        setQuestion('');
-        onClose();
+        try {
+            const ok = await onSend(question);
+            // Keep the typed question if the parent reports a failure —
+            // closing would silently discard the user's text.
+            if (ok === false) return;
+            setQuestion('');
+            onClose();
+        } finally {
+            setIsSending(false);
+        }
     };
 
     return (

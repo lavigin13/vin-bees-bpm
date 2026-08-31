@@ -147,13 +147,19 @@ const InternalOrdersIssuing = () => {
                 )}
             </div>
 
-            <InternalOrderDetailModal
-                isOpen={!!selectedOrder}
-                order={selectedOrder}
-                statuses={statuses}
-                onClose={() => setSelectedOrder(null)}
-                onSaved={handleSaved}
-            />
+            {/* Conditional mount + key: useState initializers in the detail modal
+                must re-run for each order, otherwise quantities typed for one
+                order leak into the next. */}
+            {selectedOrder && (
+                <InternalOrderDetailModal
+                    key={selectedOrder.Id}
+                    isOpen
+                    order={selectedOrder}
+                    statuses={statuses}
+                    onClose={() => setSelectedOrder(null)}
+                    onSaved={handleSaved}
+                />
+            )}
         </div>
     );
 };

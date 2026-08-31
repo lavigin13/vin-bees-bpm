@@ -14,9 +14,9 @@ const exportToExcel = async (grouped) => {
     grouped.forEach(({ warehouseName, products }) => {
         products.forEach(p => {
             rows.push({
-                'Warehouse': warehouseName,
-                'Product': p.Name,
-                'Qty': p.Count,
+                'Warehouse': String(warehouseName ?? ''),
+                'Product': String(p.Name ?? ''),
+                'Qty': p.Count ?? 0,
                 'Unit': p.Unit || ''
             });
         });
@@ -24,9 +24,11 @@ const exportToExcel = async (grouped) => {
 
     const ws = XLSX.utils.json_to_sheet(rows);
 
+    // reduce, not Math.max(...spread) — tens of thousands of rows would blow
+    // the JS engine's argument limit.
     const colWidths = [
-        { wch: Math.max(12, ...rows.map(r => r.Warehouse.length)) },
-        { wch: Math.max(10, ...rows.map(r => r.Product.length)) },
+        { wch: rows.reduce((m, r) => Math.max(m, r.Warehouse.length), 12) },
+        { wch: rows.reduce((m, r) => Math.max(m, r.Product.length), 10) },
         { wch: 10 },
         { wch: 10 }
     ];
@@ -152,26 +154,37 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
 
     // Search
     const [searchTerm, setSearchTerm] = useState('');
+    const [loadError, setLoadError] = useState(false);
 
     // Collapsed warehouses
     const [collapsed, setCollapsed] = useState({});
+
+    // Monotonic id of the latest load — a response resolving after the modal
+    // was closed must not repopulate the reset state.
+    const loadSeqRef = useRef(0);
 
     // Load data on first open with empty filters to get available options
     useEffect(() => {
         if (isOpen && !hasLoaded) {
             loadReport();
         }
+        if (!isOpen) {
+            loadSeqRef.current++; // invalidate any in-flight load
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the modal opens
     }, [isOpen]);
 
     const loadReport = async () => {
+        const seq = ++loadSeqRef.current;
         setIsLoading(true);
+        setLoadError(false);
         try {
             const data = await fetchRemainingItems({
                 warehouses: selectedWarehouses,
                 folders: selectedFolders,
                 categories: selectedCategories
             });
+            if (seq !== loadSeqRef.current) return; // stale — modal closed or reloaded
 
             if (data) {
                 // Update available filters
@@ -184,9 +197,20 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                 setHasLoaded(true);
             }
         } catch (e) {
+            if (seq !== loadSeqRef.current) return;
             console.error('Failed to fetch remaining items:', e);
+            setLoadError(true);
         } finally {
-            setIsLoading(false);
+            if (seq === loadSeqRef.current) setIsLoading(false);
+        }
+    };
+
+    const handleExport = async () => {
+        try {
+            await exportToExcel(groupedProducts);
+        } catch (e) {
+            console.error('Excel export failed:', e);
+            alert('Не вдалося сформувати Excel-файл. Перевірте з\'єднання і спробуйте ще раз.');
         }
     };
 
@@ -197,7 +221,7 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
         // Apply search filter
         if (searchTerm.trim()) {
             const term = searchTerm.toLowerCase();
-            filtered = filtered.filter(p => p.Name.toLowerCase().includes(term));
+            filtered = filtered.filter(p => String(p.Name || '').toLowerCase().includes(term));
         }
 
         // Build a lookup map for warehouse names
@@ -306,8 +330,9 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                             </button>
                             <button
                                 className="ri-btn-export"
-                                onClick={() => exportToExcel(groupedProducts)}
+                                onClick={handleExport}
                                 disabled={!hasLoaded || totalProducts === 0}
+                                title={searchTerm.trim() ? 'Експортується відфільтрований список' : undefined}
                             >
                                 <Download size={16} /> Excel
                             </button>
@@ -322,8 +347,16 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                         </div>
                     )}
 
+                    {/* Error state */}
+                    {!isLoading && loadError && (
+                        <div className="ri-empty">
+                            <Package size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
+                            <div>Не вдалося завантажити звіт. Натисніть «Завантажити звіт» ще раз.</div>
+                        </div>
+                    )}
+
                     {/* Empty state */}
-                    {!isLoading && hasLoaded && totalProducts === 0 && (
+                    {!isLoading && !loadError && hasLoaded && totalProducts === 0 && (
                         <div className="ri-empty">
                             <Package size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
                             <div>Товарів не знайдено</div>
@@ -390,7 +423,7 @@ const RemainingItemsModal = ({ isOpen, onClose }) => {
                                                                 {product.Name}
                                                             </span>
                                                             <span className="ri-product-qty">
-                                                                {product.Count.toLocaleString()}
+                                                                {(product.Count ?? 0).toLocaleString()}
                                                                 {product.Unit && (
                                                                     <span className="ri-product-unit">{product.Unit}</span>
                                                                 )}

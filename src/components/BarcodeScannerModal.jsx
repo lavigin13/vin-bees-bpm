@@ -7,6 +7,10 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
     const [isCameraActive, setIsCameraActive] = useState(false);
     const scannerRef = useRef(null);
     const inputRef = useRef(null);
+    // html5-qrcode fires the success callback per decoded frame — several can
+    // land before clear() finishes, which would call onScan multiple times per
+    // one physical scan and inflate quantities.
+    const hasScannedRef = useRef(false);
 
     // Keep latest callbacks available to the async scanner without re-creating it
     const onScanRef = useRef(onScan);
@@ -29,6 +33,7 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
         if (isOpen) {
             setBarcode('');
             setIsCameraActive(false);
+            hasScannedRef.current = false;
             if (inputRef.current) {
                 inputRef.current.focus();
             }
@@ -63,6 +68,8 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
 
             scannerRef.current.render(
                 (decodedText) => {
+                    if (hasScannedRef.current) return; // ignore duplicate frames
+                    hasScannedRef.current = true;
                     onScanRef.current(decodedText);
                     onCloseRef.current();
                 },
@@ -78,7 +85,7 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
 
     const handleManualSubmit = () => {
         if (barcode.trim()) {
-            onScan(barcode);
+            onScan(barcode.trim());
             onClose();
         }
     };
@@ -86,7 +93,9 @@ const BarcodeScannerModal = ({ isOpen, onClose, onScan }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="scanner-modal-overlay" onClick={onClose}>
+        // stopPropagation: this modal can be rendered inside another modal's
+        // overlay — a backdrop tap must close only the scanner, not both.
+        <div className="scanner-modal-overlay" onClick={(e) => { e.stopPropagation(); onClose(); }}>
             <div className="scanner-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="scanner-header">
                     <h3>Сканувати штрихкод</h3>
