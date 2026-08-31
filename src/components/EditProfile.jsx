@@ -5,7 +5,7 @@ import './EditProfile.css';
 const EditProfile = ({ user, onSave }) => {
     const [formData, setFormData] = useState({
         gender: user.gender || '',
-        children: user.children || '',
+        children: user.children ?? '', // ?? — the legitimate value 0 must not render as empty
         hobby: user.hobby || '',
         birthday: user.birthday || ''
     });
@@ -14,7 +14,7 @@ const EditProfile = ({ user, onSave }) => {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: name === 'children' ? (parseInt(value) || 0) : value
+            [name]: name === 'children' ? Math.max(0, parseInt(value) || 0) : value
         }));
     };
 

@@ -14,22 +14,23 @@ const AuthPage = ({ onLoginSuccess, notice = '' }) => {
     setError('');
 
     try {
-      if (username && password) {
-        await loginUser(username, password);
+      const login = username.trim();
+      if (login && password) {
+        await loginUser(login, password);
         onLoginSuccess();
-        setIsLoading(false);
       } else {
         setError("Будь ласка, введіть логін та пароль");
-        setIsLoading(false);
       }
     } catch (err) {
       console.error("Login Error:", err);
-      // Improved error message for 'Failed to fetch' (CORS or network issues)
       if (err.message === 'Failed to fetch') {
-         setError("Помилка з'єднання з сервером 1С. Перевірте CORS та доступність мережі.");
+        setError("Помилка з'єднання з сервером 1С. Перевірте доступність мережі.");
+      } else if (err.name === 'UnauthorizedError' || err.status === 401) {
+        setError('Невірний логін або пароль');
       } else {
-         setError(err.message || 'Помилка авторизації');
+        setError(err.message || 'Помилка авторизації');
       }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -76,6 +77,8 @@ const AuthPage = ({ onLoginSuccess, notice = '' }) => {
                 </div>
                 <input
                   type="text"
+                  name="username"
+                  autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-[var(--card-border)] rounded-xl bg-[var(--bg-color)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] xl:text-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-gold)] focus:border-transparent transition-all"
@@ -92,6 +95,8 @@ const AuthPage = ({ onLoginSuccess, notice = '' }) => {
                </div>
                 <input
                   type="password"
+                  name="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-[var(--card-border)] rounded-xl bg-[var(--bg-color)] text-[var(--text-primary)] placeholder-[var(--text-secondary)] xl:text-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-gold)] focus:border-transparent transition-all"

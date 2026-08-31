@@ -27,9 +27,10 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
                 setIsDropdownOpen(false);
             }
         };
+        if (!isOpen) return undefined;
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -46,8 +47,12 @@ const SendHoneyModal = ({ isOpen, onClose, userBalance, onSend, colleagues = [] 
     };
 
     const handleSend = () => {
-        const val = parseInt(amount);
-        if (!selectedColleagueId || !val || val <= 0 || val > userBalance) return;
+        // Whole numbers only — parseInt would silently truncate '5.9' to 5.
+        const val = Number(amount);
+        if (!selectedColleagueId || !Number.isInteger(val) || val <= 0 || val > userBalance) {
+            if (amount && !Number.isInteger(Number(amount))) alert('Вкажіть цілу кількість Меду.');
+            return;
+        }
         
         const colleague = colleagues.find(c => String(c.id) === String(selectedColleagueId));
         if (!colleague) return;

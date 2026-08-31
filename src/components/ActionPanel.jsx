@@ -17,6 +17,7 @@ const ActionPanel = ({
     onProductionPlanClick,
     isSectionAvailable = () => true,
     onProfileClick,
+    // eslint-disable-next-line no-unused-vars -- kept for the hidden «Операції» button below
     onWarehouseOpsClick,
     onStockReportClick,
     onGamesClick,
@@ -42,7 +43,9 @@ const ActionPanel = ({
         {
             title: 'Склад',
             actions: [
-                { label: 'Операції', icon: <Forklift size={14} />, color: '#f97316', onClick: onWarehouseOpsClick },
+                // «Операції» (прийом/видача/відправка) приховано до готовності
+                // бекенда — розкоментувати, коли 1C-ендпоінти запрацюють.
+                // { label: 'Операції', icon: <Forklift size={14} />, color: '#f97316', onClick: onWarehouseOpsClick },
                 { label: 'Залишки', icon: <BarChart3 size={14} />, color: '#a78bfa', onClick: onStockReportClick },
                 { label: 'Інвентаризація', icon: <PackageCheck size={14} />, onClick: onInventoryClick }
             ]

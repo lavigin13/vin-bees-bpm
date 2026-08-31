@@ -1,6 +1,262 @@
-// ... (existing content for sections 1-7) ...
+# VinBees API Specification
 
-// ... (existing content for sections 1-7) ...
+## 1. General
+- **Base URL**: `/VinBeesERP/hs/API` (dev-proxy → `https://bpm.bees.vin`, див. `vite.config.js`)
+- **Authorization**: Basic Auth — `Authorization: Basic base64(login:password)`; на 401 фронтенд чистить токен і повертає на сторінку входу.
+- **Content-Type**: `application/json`
+- ⚠️ **Продакшн reverse-proxy** мусить перейменовувати заголовок `WWW-Authenticate` (напр. у `X-WWW-Authenticate`) на відповідях 401 — інакше браузер показує нативний Basic-Auth попап поверх сторінки входу. У dev це робить проксі Vite.
+- Дати: відповіді — `YYYY-MM-DDT00:00:00` або `DD.MM.YYYY`; тіла POST — `YYYY-MM-DD`; параметри періодів — `StartDate/EndDate=DD.MM.YYYY`.
+- Файли скрізь передаються як `{ name, type, size, data }`, де `data` — base64 **без** префікса `data:*;base64,`. Ліміт на фронтенді — 10 МБ на файл.
+
+---
+
+## 2. Profile & Inventory
+
+### Get User Profile
+**GET** `/profile`
+Returns user stats, level, honey balance.
+**Response:**
+```json
+{
+  "id": 101,
+  "name": "Alex Bee",
+  "role": "Senior Drone",
+  "level": 5,
+  "xp": 3500,
+  "nextLevelXp": 5000,
+  "honey": 1250,
+  "reputation": 850,
+  "avatar": "url_to_image",
+  "gender": "Male",
+  "children": 0,
+  "hobby": "Beekeeping",
+  "birthday": "1995-05-20"
+}
+```
+
+### Update Profile
+**PUT** `/profile`
+Updates editable fields.
+**Body:**
+```json
+{
+  "gender": "Male",
+  "children": 1,
+  "hobby": "Beekeeping",
+  "birthday": "1995-05-20" // ISO 8601 Format (YYYY-MM-DD)
+}
+```
+
+### Get Inventory
+**GET** `/inventory`
+**Response:**
+```json
+[
+  { 
+    "id": 1, 
+    "name": "MacBook Pro M1", 
+    "rarity": "Legendary", 
+    "icon": "laptop", 
+    "type": "equipment", 
+    "quantity": 1,
+    "auditRequired": true
+  },
+  { 
+    "id": 2, 
+    "name": "Scrap Metal", 
+    "rarity": "Common", 
+    "icon": "box", 
+    "type": "resource", 
+    "quantity": 45 
+  }
+]
+```
+
+### Get Pending Transfers
+**GET** `/inventory/transfer`
+Returns list of incoming item transfers waiting for acceptance.
+**Response:**
+```json
+[
+  {
+    "id": "t_1",
+    "fromUser": { "name": "Queen Bee (PM)" },
+    "item": { "name": "Project Specs", "rarity": "Epic", "icon": "file", "type": "resource" },
+    "quantity": 1,
+    "timestamp": "2023-10-27T10:00:00Z"
+  }
+]
+```
+
+### Audit Item (Inventory Check)
+**POST** `/inventory/audit`
+User confirms item possession or reports it missing.
+**Body:**
+```json
+{
+  "itemId": 1,
+  "status": "present" // or "missing"
+}
+```
+**Response:**
+```json
+{ "success": true, "message": "Audit recorded" }
+```
+
+### Transfer Item (P2P)
+**POST** `/inventory/transfer`
+Send an item from your inventory to another user.
+**Body:**
+```json
+{
+  "recipientId": 102,
+  "itemId": 1,
+  "quantity": 1
+}
+```
+**Response:**
+```json
+{ "success": true, "message": "Item transferred" }
+```
+
+### Accept/Reject Transfer (Inbox)
+**POST** `/inventory/transfer/respond`
+Respond to an incoming item transfer request.
+**Body:**
+```json
+{
+  "transferId": "t_1",
+  "action": "accept" // or "reject"
+}
+```
+**Response:**
+```json
+{ "success": true, "message": "Transfer accepted" }
+```
+
+---
+
+## 3. Colleagues (Org Chart & Selects)
+
+### Get Colleagues
+**GET** `/colleagues`
+Returns list of all colleagues for selection lists and org chart.
+**Response:**
+```json
+[
+  { "id": "uuid-string-36-chars", "name": "Queen Bee (CEO)", "role": "CEO", "avatar": "👑", "managerId": null },
+  { "id": "uuid-string-36-chars-2", "name": "Bumble Bee (QA Lead)", "role": "QA Lead", "avatar": "🐝", "managerId": "uuid-string-36-chars" }
+]
+```
+
+---
+
+## 4. Economy (Honey)
+
+### Transfer Honey
+**POST** `/wallet/transfer`
+Send internal currency to another user.
+**Body:**
+```json
+{
+  "recipientId": 102,
+  "amount": 100
+}
+```
+**Response:**
+```json
+{ "success": true, "newBalance": 1150 }
+```
+
+---
+
+## 5. Marketplace (Shop)
+
+### Get Marketplace Items
+**GET** `/marketplace`
+Returns list of items for sale (both Company Store and P2P).
+**Response:**
+```json
+[
+  {
+    "id": "m_1",
+    "seller": "system", // or user name for P2P
+    "sellerId": null, // ID or null for system
+    "name": "Extra Day Off",
+    "price": 500,
+    "description": "Paid leave voucher",
+    "icon": "calendar",
+    "rarity": "Legendary",
+    "type": "perk"
+  }
+]
+```
+
+### Buy Item
+**POST** `/marketplace/buy`
+Purchase an item. Honey is deducted, item added to inventory.
+**Body:**
+```json
+{
+  "listingId": "m_1"
+}
+```
+**Response:**
+```json
+{ "success": true, "message": "Item purchased" }
+```
+
+### Create Listing (Sell Item)
+**POST** `/marketplace/sell`
+List an item for sale from user inventory.
+**Body:**
+```json
+{
+  "name": "Old Laptop",
+  "price": 300,
+  "description": "Working condition",
+  "rarity": "Common",
+  "icon": "box",
+  "type": "user_item"
+}
+```
+**Response:**
+```json
+{
+  "id": "new_listing_id",
+  "seller": "User Name",
+  "name": "Old Laptop",
+  "price": 300,
+  ...
+}
+```
+
+---
+
+## 6. Requests (Заявки на потребу)
+
+### Get Requests
+Див. нижче «Get Requests» у блоці Request Attachments — **GET** `/requests?view=my|subordinates&StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY`.
+
+### Get Request Categories
+**GET** `/requests/categories`
+**Response:** `[{ "id": "cat_1", "name": "Обладнання" }]`
+
+### Create / Update Request
+**POST** `/requests` — див. блок Request Attachments нижче.
+**Response:** `{ "requestId": "req_1", "status": "draft" }`
+
+### Submit Request
+**POST** `/requests/submit`
+**Body:** `{ "requestId": "req_1" }`
+**Response:** `{ "success": true, "status": "new" }`
+
+Статуси заявки: `draft` → `new`/`pending` (на погодженні) → `approved` | `rejected`.
+
+---
+
+## 7. Requests: Attachments & Respond
+
 
 ### Request Attachments (files)
 Requests (`заявки на потребу`) support file attachments, transferred as **base64**.
@@ -51,46 +307,64 @@ Manager approves or rejects a request.
 
 ---
 
-## 8. Timesheet (New)
+## 8. Timesheet (Табель)
+
+Типи дня (`type`): `Work` (Робочий), `Vacation` (Відпустка), `Sick Leave` (Лікарняний), `Day Off` (Неоплачувана відпустка), `Business Trip` (Відрядження).
 
 ### Get Timesheet
-**GET** `/timesheet`
-Returns daily reports for a specific month.
-**Query Params:**
-- `month`: `YYYY-MM` (e.g. `2023-11`)
+**GET** `/timesheet?month=YYYY-MM`
 **Response:**
 ```json
 {
-  "2023-11-01": {
-    "type": "Work",
-    "tasks": [
-      { "id": 1, "workType": "Development", "comment": "Feature A", "quantity": 1, "hours": 8 }
-    ]
+  "monthlyNorm": 168,
+  "workingDays": 21,
+  "calendar": {
+    "2026-08-24": { "dayType": "holiday", "name": "День Незалежності" },
+    "2026-08-30": { "dayType": "weekend" }
   },
-  "2023-11-02": {
-    "type": "Vacation",
-    "tasks": []
+  "reports": {
+    "2026-08-03": { "type": "Work", "regularHours": 8, "overtimeHours": 1 },
+    "2026-08-04": { "type": "Vacation", "regularHours": 8, "overtimeHours": 0 }
   }
 }
 ```
+Старий формат (плоский об'єкт `{"YYYY-MM-DD": {type, ...}}` без обгортки `reports`) також приймається фронтендом.
 
 ### Save Daily Report
 **POST** `/timesheet/day`
-Create or update a report for a specific day.
-**Body:**
+**Body:** `{ "date": "2026-08-03", "type": "Work", "regularHours": 8, "overtimeHours": 1 }`
+**Response:** `{ "success": true }` (порожнє тіло на 200 також приймається). Якщо період закрито — `{ "blocked": true, "message": "..." }`.
+
+### Delete Daily Report
+**POST** `/timesheet/delete`
+**Body:** `{ "date": "2026-08-03" }`
+**Response:** як у Save (підтримує `blocked`).
+
+### Get Subordinate Timesheets (для погодження)
+**GET** `/timesheet/subordinates?month=YYYY-MM`
+**Response:**
 ```json
 {
-  "date": "2023-11-01",
-  "type": "Work",
-  "tasks": [
-    { "workType": "Development", "comment": "Feature A", "quantity": 1, "hours": 8 }
-  ]
+  "emp1": {
+    "id": "emp1", "name": "Петренко І.В.", "role": "Оператор",
+    "reports": {
+      "2026-08-03": { "type": "Work", "regularHours": 8, "overtimeHours": 0, "status": "pending" }
+    }
+  }
 }
 ```
+`status`: `pending` | `approved` | `rejected` — обирати для погодження можна лише `pending`.
+
+### Approve / Reject Reports
+**POST** `/timesheet/approve` — **Body:** `{ "reports": [{ "employeeId": "emp1", "date": "2026-08-03" }] }` → `{ "success": true, "approved": 1 }`
+**POST** `/timesheet/reject` — **Body:** `{ "reports": [...], "reason": "..." | null }` → `{ "success": true, "rejected": 1 }`
 
 ---
 
+
 ## 9. Warehouse Supplier Orders
+
+⚠️ Розділи 9-11 (складські операції) поки НЕ увімкнені в UI — кнопку «Операції» приховано до готовності бекенда (див. ActionPanel.jsx). Мок-режим для розробки: localStorage-флаги `mockSupplierOrders` / `mockInternalOrders` / `mockShipmentDocuments` = "1" (за замовчуванням вимкнено).
 
 ### Get Supplier Orders List
 **GET** `/SupplierOrders`
@@ -463,3 +737,92 @@ Fields:
   }
 ]
 ```
+
+---
+
+## 16. Salary / Reward Report (Звіт по винагороді)
+
+### Get Report
+**GET** `/reports/salary?month=MM&year=YYYY&view=personal|team`
+**Response:**
+```json
+{
+  "totalAmount": 45000,
+  "totalEmployees": 5,
+  "columns": [
+    { "key": "name", "title": "Ім'я", "type": "text" },
+    { "key": "bonus", "title": "Бонус", "type": "currency" }
+  ],
+  "groups": [
+    { "id": "g1", "title": "Відділ продажів", "items": [ { "id": "r1", "name": "Петренко І.В.", "bonus": 1200 } ] }
+  ]
+}
+```
+`columns` і `groups` обов'язкові — без них фронтенд трактує відповідь як помилку. `totalEmployees` — лише для `view=team`.
+
+### Send Question
+**POST** `/reports/salary/question`
+**Body:** `{ "question": "...", "month": "08", "year": "2026" }`
+**Response:** `{ "success": true }`
+
+---
+
+## 17. Warehouse Inventory Audit (Інвентаризація складу)
+
+### Get Open Inventory Documents
+**GET** `/inventory/documents`
+**Response:**
+```json
+[
+  { "id": "inv-1", "number": "ІНВ-0001", "warehouseName": "Основний склад", "date": "2026-08-30",
+    "items": [ { "id": "p1", "name": "Цукор", "barcode": "4820000000001", "quantity": 0 } ] }
+]
+```
+`items` — опційний передзаповнений список.
+
+### Get Product by Barcode
+**GET** `/inventory/product?barcode=<code>`
+**Response:** `{ "id": "p1", "name": "Цукор", "barcode": "4820000000001", "unit": "кг" }`; **404** — товар не знайдено.
+
+### Save Inventory
+**POST** `/inventory/warehouse-audit`
+**Body:**
+```json
+{
+  "documentId": "inv-1",
+  "warehouseName": "Основний склад",
+  "items": [ { "id": "p1", "name": "Цукор", "barcode": "4820000000001", "scannedQty": 12 } ],
+  "date": "2026-08-31T10:00:00.000Z",
+  "isDraft": false
+}
+```
+**Response:** `{ "success": true }`
+
+---
+
+## 18. Remaining Items Report (Залишки)
+
+### Get Report
+**POST** `/RemainingItems`
+**Body:** `{ "warehouses": ["guid"], "folders": ["guid"], "categories": ["guid"] }` (порожні масиви = без фільтра; перший виклик з порожніми фільтрами повертає і довідники для фільтрів).
+**Response:**
+```json
+{
+  "warehouses": [ { "GUID": "w1", "Name": "Основний склад" } ],
+  "folders":    [ { "GUID": "f1", "Name": "Сировина" } ],
+  "categories": [ { "GUID": "c1", "Name": "Мед" } ],
+  "products":   [ { "GUID": "p1", "Name": "Мед акацієвий 0.5 л", "Count": 120, "Unit": "шт", "Warehouse": "w1" } ]
+}
+```
+
+---
+
+## 19. Games (Ігри)
+
+### Bee Invaders
+**GET** `/games/bee-invaders/leaderboard` → `[{ "name": "Петренко І.В.", "score": 12500 }]`
+**POST** `/games/bee-invaders/score` — **Body:** `{ "score": 12500, ... }` → `{ "success": true }` (порожнє тіло приймається). Скор передається з клієнта — сервер має вважати його недовіреним (клієнтський "токен" тривіально підробний).
+
+### Drone Flight (Політ БПЛА)
+**GET** `/games/drone-flight/leaderboard` → той самий формат.
+**POST** `/games/drone-flight/score` — той самий формат.

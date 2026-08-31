@@ -253,13 +253,21 @@ const BeeInvadersGame = () => {
         if (imagesRef.current.loaded >= 5) {
             gameLoop(0);
         } else {
-            // Fallback if images not fully loaded, though rare
-            setTimeout(() => gameLoop(0), 500);
+            // Fallback if images not fully loaded, though rare. Tracked so
+            // unmounting within the delay doesn't start a loop on a dead canvas.
+            gameState.current.startTimerId = setTimeout(() => gameLoop(0), 500);
         }
     };
 
     const stopGame = () => {
         audioEngine.stopMusic();
+        // Unmounting during the intro cutscene must also kill the intro loop —
+        // its oscillators are start()ed with no scheduled stop and would play forever.
+        audioEngine.stopIntroMusic();
+        if (gameState.current.startTimerId) {
+            clearTimeout(gameState.current.startTimerId);
+            gameState.current.startTimerId = null;
+        }
         if (gameState.current.animationFrameId) {
             cancelAnimationFrame(gameState.current.animationFrameId);
         }

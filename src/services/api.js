@@ -58,15 +58,20 @@ const apiFetch = async (url, options = {}) => {
 };
 
 export const loginUser = async (username, password) => {
-    // Basic Auth: base64(username:password). encodeURIComponent handles UTF-8 (Cyrillic) before btoa.
+    // Basic Auth: base64(username:password). TextEncoder handles UTF-8 (Cyrillic) before btoa.
     const credentials = `${username}:${password}`;
-    const token = btoa(unescape(encodeURIComponent(credentials)));
+    const token = btoa(String.fromCharCode(...new TextEncoder().encode(credentials)));
+
+    // Verify credentials BEFORE persisting the token: a 401 throws via apiFetch,
+    // and any other non-OK response (500, proxy error page) must not count as
+    // a successful login either.
+    const response = await apiFetch(`${API_BASE_URL}/profile`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${token}` }
+    });
+    if (!response.ok) throw new Error(`Сервер повернув помилку (${response.status}). Спробуйте пізніше.`);
 
     localStorage.setItem('authToken', token);
-    
-    // Verify credentials immediately
-    await apiFetch(`${API_BASE_URL}/profile`, { method: 'GET', headers: getHeaders() });
-    
     return true;
 };
 
@@ -121,7 +126,7 @@ export const sendAuditResult = async (itemId, status) => {
         return await response.json();
     } catch (error) {
         console.error('Audit failed:', error);
-        return null;
+        throw error;
     }
 };
 
@@ -265,14 +270,11 @@ export const fetchRequests = async (view = 'my', startDate = '', endDate = '') =
     if (endDate) params.set('EndDate', endDate);
     try {
         const response = await apiFetch(`${API_BASE_URL}/requests?${params.toString()}`, { method: 'GET', headers: headers });
-        if (!response.ok) {
-            console.warn('Requests API not ready');
-            return null;
-        }
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return await response.json();
     } catch (error) {
         console.error('Failed to fetch requests:', error);
-        return null;
+        throw error;
     }
 };
 
@@ -343,19 +345,12 @@ export const respondToRequest = async (requestId, action) => {
 // --- Timesheet ---
 
 export const fetchTimesheet = async (monthStr) => {
-    // monthStr: YYYY-MM
+    // monthStr: YYYY-MM. Throws on failure — a backend error must render as an
+    // error state, never as an empty calendar (which invites duplicate re-entry).
     const headers = getHeaders();
-    try {
-        const response = await apiFetch(`${API_BASE_URL}/timesheet?month=${monthStr}`, { method: 'GET', headers: headers });
-        if (!response.ok) {
-            console.warn('Timesheet API not ready');
-            return null;
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to fetch timesheet:', error);
-        return null;
-    }
+    const response = await apiFetch(`${API_BASE_URL}/timesheet?month=${encodeURIComponent(monthStr)}`, { method: 'GET', headers: headers });
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    return await response.json();
 };
 
 export const saveDailyReport = async (dateStr, reportData) => {
@@ -367,7 +362,9 @@ export const saveDailyReport = async (dateStr, reportData) => {
             body: JSON.stringify({ date: dateStr, ...reportData })
         });
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        const data = await response.json();
+        // 1C may return 200 with an empty body — tolerate that.
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : { success: true };
         if (data && data.blocked) {
             throw new BlockedError(data.message || 'Операцію заблоковано');
         }
@@ -397,7 +394,9 @@ export const deleteTimesheetReport = async (dateStr) => {
             }
             throw new Error(errorMsg);
         }
-        const data = await response.json();
+        // 1C may return 200 with an empty body — tolerate that.
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : { success: true };
         if (data && data.blocked) {
             throw new BlockedError(data.message || 'Операцію заблоковано');
         }
@@ -413,7 +412,7 @@ export const fetchSubordinateTimesheets = async (monthStr) => {
     // monthStr: YYYY-MM
     const headers = getHeaders();
     try {
-        const response = await apiFetch(`${API_BASE_URL}/timesheet/subordinates?month=${monthStr}`, {
+        const response = await apiFetch(`${API_BASE_URL}/timesheet/subordinates?month=${encodeURIComponent(monthStr)}`, {
             method: 'GET',
             headers: headers
         });
@@ -421,7 +420,7 @@ export const fetchSubordinateTimesheets = async (monthStr) => {
         return await response.json();
     } catch (error) {
         console.error('Failed to fetch subordinate timesheets:', error);
-        return null;
+        throw error;
     }
 };
 
@@ -479,7 +478,7 @@ export const fetchSalaryReport = async (month, year, view = 'personal') => {
         return data;
     } catch (error) {
         console.error('Failed to fetch salary report:', error);
-        return null;
+        throw error;
     }
 };
 
@@ -520,7 +519,7 @@ export const getInventoryDocuments = async () => {
 export const getProductByBarcode = async (barcode) => {
     const headers = getHeaders();
     try {
-        const response = await apiFetch(`${API_BASE_URL}/inventory/product?barcode=${barcode}`, {
+        const response = await apiFetch(`${API_BASE_URL}/inventory/product?barcode=${encodeURIComponent(barcode)}`, {
             method: 'GET',
             headers: headers
         });
@@ -576,10 +575,11 @@ export const saveWarehouseInventory = async (inventoryData) => {
 //     }]
 //   }
 
-// Demo mode: until the real backend endpoints exist, fall back to mock data so
-// the UI is fully usable. Force-disable once the backend is ready by running:
-//   localStorage.setItem('mockSupplierOrders', '0')
-const SUPPLIER_ORDERS_MOCK_DEFAULT = true;
+// Demo mode: mock data for developing the UI without a backend. OFF by
+// default — in production a backend failure must surface as an error, never
+// as fake data. Enable manually for local development by running:
+//   localStorage.setItem('mockSupplierOrders', '1')
+const SUPPLIER_ORDERS_MOCK_DEFAULT = false;
 const supplierOrdersMockEnabled = () => {
     if (typeof window === 'undefined') return SUPPLIER_ORDERS_MOCK_DEFAULT;
     const flag = localStorage.getItem('mockSupplierOrders');
@@ -699,7 +699,7 @@ export const saveSupplierOrderReceiving = async (payload) => {
         return await response.json();
     } catch (error) {
         if (useMock) {
-            console.warn('[SupplierOrders] Mock save (backend unavailable):', payload);
+            console.warn('[SupplierOrders] Mock save (dev flag enabled)');
             return { success: true };
         }
         console.error('Failed to save supplier order receiving:', error);
@@ -753,7 +753,9 @@ export const saveBeeInvadersScore = async (scoreData) => {
             body: JSON.stringify(scoreData)
         });
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
-        return await response.json();
+        // The endpoint may return 200 with an empty body — tolerate that.
+        const text = await response.text();
+        return text ? JSON.parse(text) : { success: true };
     } catch (error) {
         console.error('Failed to save score:', error);
         return null;
@@ -793,6 +795,18 @@ export const saveDroneFlightScore = async (scoreData) => {
 };
 
 // --- Internal Orders Issuing (Внутрішні замовлення / заявки) ---
+//
+// Mock data for developing the UI without a backend. OFF by default — enable
+// manually with: localStorage.setItem('mockInternalOrders', '1')
+
+const INTERNAL_ORDERS_MOCK_DEFAULT = false;
+const internalOrdersMockEnabled = () => {
+    if (typeof window === 'undefined') return INTERNAL_ORDERS_MOCK_DEFAULT;
+    const flag = localStorage.getItem('mockInternalOrders');
+    if (flag === '1') return true;
+    if (flag === '0') return false;
+    return INTERNAL_ORDERS_MOCK_DEFAULT;
+};
 
 const INTERNAL_ORDER_STATUSES = [
     { Id: 'new',         Name: 'Нова',          Color: '#60a5fa' },
@@ -829,20 +843,26 @@ const MOCK_INTERNAL_ORDERS = () => ({
 
 export const fetchInternalOrders = async () => {
     const headers = getHeaders();
+    const useMock = internalOrdersMockEnabled();
     try {
         const response = await apiFetch(`${API_BASE_URL}/InternalOrders`, { method: 'GET', headers });
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         const data = await response.json();
         return { orders: data.orders || [], statuses: data.statuses || [] };
-    } catch {
-        console.warn('[InternalOrders] Using mock data (backend unavailable)');
-        return MOCK_INTERNAL_ORDERS();
+    } catch (error) {
+        if (useMock) {
+            console.warn('[InternalOrders] Using mock data (dev flag enabled)');
+            return MOCK_INTERNAL_ORDERS();
+        }
+        console.error('Failed to fetch internal orders:', error);
+        return { orders: [], statuses: [] };
     }
 };
 
 export const saveInternalOrderIssuing = async (payload) => {
     // payload: { id, status, products: [{ id, requested, issued }] }
     const headers = getHeaders();
+    const useMock = internalOrdersMockEnabled();
     try {
         const response = await apiFetch(`${API_BASE_URL}/InternalOrders`, {
             method: 'POST',
@@ -851,9 +871,13 @@ export const saveInternalOrderIssuing = async (payload) => {
         });
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         return await response.json();
-    } catch {
-        console.warn('[InternalOrders] Mock save (backend unavailable):', payload);
-        return { success: true };
+    } catch (error) {
+        if (useMock) {
+            console.warn('[InternalOrders] Mock save (dev flag enabled)');
+            return { success: true };
+        }
+        console.error('Failed to save internal order issuing:', error);
+        throw error;
     }
 };
 
@@ -873,7 +897,8 @@ export const saveInternalOrderIssuing = async (payload) => {
 //     }]
 //   }
 
-const SHIPMENT_DOCUMENTS_MOCK_DEFAULT = true;
+// OFF by default — enable manually with: localStorage.setItem('mockShipmentDocuments', '1')
+const SHIPMENT_DOCUMENTS_MOCK_DEFAULT = false;
 const shipmentDocumentsMockEnabled = () => {
     if (typeof window === 'undefined') return SHIPMENT_DOCUMENTS_MOCK_DEFAULT;
     const flag = localStorage.getItem('mockShipmentDocuments');
@@ -927,7 +952,7 @@ export const fetchShipmentDocuments = async (monthStr) => {
     const headers = getHeaders();
     const useMock = shipmentDocumentsMockEnabled();
     try {
-        const response = await apiFetch(`${API_BASE_URL}/ShipmentDocuments?month=${monthStr}`, { method: 'GET', headers });
+        const response = await apiFetch(`${API_BASE_URL}/ShipmentDocuments?month=${encodeURIComponent(monthStr)}`, { method: 'GET', headers });
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
         const data = await response.json();
         // Normalise: backend may return an array of documents OR { documents }
@@ -980,9 +1005,8 @@ export const fetchIndividualExpenseReports = async (startDate, endDate) => {
         const data = await response.json();
         return Array.isArray(data) ? data : (data.reports || []);
     } catch (error) {
-        if (error instanceof UnauthorizedError) throw error;
         console.error('Failed to fetch expense reports:', error);
-        return [];
+        throw error;
     }
 };
 
@@ -1070,9 +1094,8 @@ export const fetchCarUsageReports = async (startDate, endDate) => {
         const data = await response.json();
         return Array.isArray(data) ? data : (data.reports || []);
     } catch (error) {
-        if (error instanceof UnauthorizedError) throw error;
         console.error('Failed to fetch car usage reports:', error);
-        return [];
+        throw error;
     }
 };
 
@@ -1099,7 +1122,8 @@ export const createCarUsageReport = async (payload) => {
 
 export const fetchProductionPlan = async (startDate, endDate) => {
     // startDate / endDate: 'DD.MM.YYYY' (Monday..Sunday of the selected week)
-    // Returns: [{ UUID, Date, Product: { UUID, Name } | string, Quantity, Unit, Info }]
+    // Returns: [{ Date, WorkFlow, Product: { UUID, Name } | string, Quantity,
+    //   QuantityDone, Unit, Status, Info, Comment }] — see API_SPEC.md §15
     const headers = getHeaders();
     try {
         const response = await apiFetch(
@@ -1110,9 +1134,8 @@ export const fetchProductionPlan = async (startDate, endDate) => {
         const data = await response.json();
         return Array.isArray(data) ? data : (data.items || data.plan || []);
     } catch (error) {
-        if (error instanceof UnauthorizedError) throw error;
         console.error('Failed to fetch production plan:', error);
-        return [];
+        throw error;
     }
 };
 
@@ -1133,7 +1156,7 @@ export const markShipmentDocumentSent = async (payload) => {
         return await response.json();
     } catch (error) {
         if (useMock) {
-            console.warn('[ShipmentDocuments] Mock send (backend unavailable):', payload);
+            console.warn('[ShipmentDocuments] Mock send (dev flag enabled)');
             return { success: true };
         }
         console.error('Failed to mark shipment as sent:', error);

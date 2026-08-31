@@ -1,43 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Calendar, FileText, ArrowLeft, Users, User, Paperclip, Trash2, Download, RefreshCw, Loader2 } from 'lucide-react';
 import './CraftingModal.css'; // Reusing base modal styles
 import './RequestsModal.css';
 import { REQUEST_CATEGORIES } from '../data/constants';
 import { fetchRequestCategories } from '../services/api';
-import { currentMonthPeriod } from '../utils/period';
-
-// Read a File into a base64 string (strips the "data:*;base64," prefix).
-const fileToBase64 = (file) =>
-    new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const result = reader.result || '';
-            resolve(String(result).split(',')[1] || '');
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-
-const formatSize = (bytes) => {
-    if (!bytes && bytes !== 0) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-// Trigger a browser download for a base64-encoded attachment.
-const downloadFile = (f) => {
-    if (!f.data) {
-        alert('Вміст файлу недоступний для завантаження.');
-        return;
-    }
-    const a = document.createElement('a');
-    a.href = `data:${f.type || 'application/octet-stream'};base64,${f.data}`;
-    a.download = f.name || 'file';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-};
+import { currentMonthPeriod, toIsoDate } from '../utils/period';
+import { fileToBase64, formatSize, downloadBase64File } from '../utils/files';
 
 // Quick status filters for the "Заявки команди" tab. `statuses` lists the raw
 // backend statuses each chip matches; 'all' matches everything.
@@ -54,46 +22,73 @@ const matchesStatusFilter = (req, filterId) => {
     return f.statuses.includes(String(req.status || '').toLowerCase());
 };
 
-const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApprove, onReject, currentUser, initialFilter = 'my', onViewChange }) => {
+// Raw backend status → Ukrainian label shown on cards; unknown values fall
+// back to the raw string so new backend statuses are still visible.
+const STATUS_LABELS = {
+    draft: 'Чернетка',
+    new: 'На погодженні',
+    pending: 'На погодженні',
+    approved: 'Погоджено',
+    rejected: 'Відхилено',
+};
+const statusLabel = (status) => STATUS_LABELS[String(status || '').toLowerCase()] || String(status || '');
+
+let fileUidCounter = 0;
+
+const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApprove, onReject, currentUser, colleagues = [], initialFilter = 'my', onViewChange }) => {
     const [view, setView] = useState('list'); // 'list' or 'edit'
     const [listFilter, setListFilter] = useState(initialFilter); // 'my' or 'subordinates'
     const [teamStatusFilter, setTeamStatusFilter] = useState('all'); // id from TEAM_STATUS_FILTERS
     const [currentRequest, setCurrentRequest] = useState(null);
     const [categories, setCategories] = useState(REQUEST_CATEGORIES);
     const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+    const [categoriesLoaded, setCategoriesLoaded] = useState(false);
     // Period the list is fetched for (ISO dates); defaults to the current month.
     const [period, setPeriod] = useState(currentMonthPeriod);
     const [isLoadingList, setIsLoadingList] = useState(false);
+    const [listError, setListError] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
-    // Ask the parent to (re)load the list for a view + period. The parent's
-    // onViewChange may or may not return a promise — handle both.
+    // Monotonic id of the latest reload — out-of-order responses from rapid
+    // tab/period switches must not overwrite the newest list or spinner state.
+    const reloadSeqRef = useRef(0);
+
+    // Ask the parent to (re)load the list for a view + period.
     const reloadList = async (view, nextPeriod) => {
         if (!nextPeriod.startDate || !nextPeriod.endDate) return;
+        const seq = ++reloadSeqRef.current;
         setIsLoadingList(true);
+        setListError(false);
         try {
             await onViewChange(view, nextPeriod);
-        } finally {
-            setIsLoadingList(false);
+            if (seq === reloadSeqRef.current) setIsLoadingList(false);
+        } catch (e) {
+            console.error('Failed to load requests', e);
+            if (seq === reloadSeqRef.current) {
+                setIsLoadingList(false);
+                setListError(true);
+            }
         }
     };
 
-    // Fetch categories on mount
+    // Fetch the categories catalog when the modal opens (retried on next open
+    // after a failure; the hardcoded fallback stays until the backend answers).
     useEffect(() => {
-        const loadCategories = async () => {
-            setIsLoadingCategories(true);
-            try {
-                const data = await fetchRequestCategories();
+        if (!isOpen || categoriesLoaded) return;
+        let cancelled = false;
+        setIsLoadingCategories(true);
+        fetchRequestCategories()
+            .then(data => {
+                if (cancelled) return;
                 if (data && Array.isArray(data)) {
                     setCategories(data);
+                    setCategoriesLoaded(true);
                 }
-            } catch (error) {
-                console.error('Failed to load categories', error);
-            } finally {
-                setIsLoadingCategories(false);
-            }
-        };
-        loadCategories();
-    }, []);
+            })
+            .catch(error => console.error('Failed to load categories', error))
+            .finally(() => { if (!cancelled) setIsLoadingCategories(false); });
+        return () => { cancelled = true; };
+    }, [isOpen, categoriesLoaded]);
 
     // Reset state when modal opens
     useEffect(() => {
@@ -120,29 +115,22 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
     };
 
     const handleCreateNew = () => {
-        const today = new Date().toISOString().split('T')[0];
         setCurrentRequest({
             id: null,
             status: 'draft',
-            date: today,
+            date: toIsoDate(new Date()), // local date — toISOString() would shift the day near midnight
             categoryId: '',
             shortDesc: '',
             fullDesc: '',
             files: [],
-            createdBy: currentUser ? currentUser.id : 999
+            createdBy: currentUser?.id ?? null
         });
         setView('edit');
     };
 
     const handleEdit = (req) => {
-        if (listFilter === 'subordinates') {
-            // Read-only view for subordinates' requests (can be expanded later for approval logic)
-            setCurrentRequest(req);
-            setView('edit');
-        } else {
-            setCurrentRequest({ ...req });
-            setView('edit');
-        }
+        setCurrentRequest(listFilter === 'subordinates' ? req : { ...req });
+        setView('edit');
     };
 
     const handleBack = () => {
@@ -161,15 +149,16 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
         try {
             const encoded = await Promise.all(
                 picked.map(async (f) => ({
+                    _uid: `f_${++fileUidCounter}`,
                     name: f.name,
                     type: f.type,
                     size: f.size,
-                    data: await fileToBase64(f), // base64 (without data: prefix)
+                    data: await fileToBase64(f), // base64 (without data: prefix), size-capped
                 }))
             );
             setCurrentRequest(prev => ({ ...prev, files: [...(prev.files || []), ...encoded] }));
         } catch (err) {
-            alert('Не вдалося прочитати файл: ' + (err.message || err));
+            alert(err.message || 'Не вдалося прочитати файл');
         } finally {
             e.target.value = '';
         }
@@ -178,31 +167,36 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
     const handleRemoveFile = (idx) =>
         setCurrentRequest(prev => ({ ...prev, files: (prev.files || []).filter((_, i) => i !== idx) }));
 
-    const handleSaveForm = () => {
+    const validateForm = () => {
         if (!currentRequest.categoryId) {
             alert('Потрібно обрати категорію');
-            return;
+            return false;
         }
         if (!currentRequest.shortDesc) {
             alert('Потрібно вказати короткий опис');
-            return;
+            return false;
         }
-        onSave(currentRequest);
-        setView('list');
+        return true;
     };
 
-    const handleSubmitForm = () => {
-        if (!currentRequest.categoryId) {
-            alert('Потрібно обрати категорію');
-            return;
+    // Await the parent handler and stay on the form when it fails — otherwise
+    // the typed request (with attachments) would be silently discarded.
+    const runFormAction = async (action) => {
+        if (!validateForm() || isSaving) return;
+        setIsSaving(true);
+        try {
+            await action(currentRequest);
+            setView('list');
+            setCurrentRequest(null);
+        } catch {
+            // The parent already alerted; keep the form open with the data intact.
+        } finally {
+            setIsSaving(false);
         }
-        if (!currentRequest.shortDesc) {
-            alert('Потрібно вказати короткий опис');
-            return;
-        }
-        onSubmit(currentRequest);
-        setView('list');
     };
+
+    const handleSaveForm = () => runFormAction(onSave);
+    const handleSubmitForm = () => runFormAction(onSubmit);
 
     // The list is already scoped by view + period on the server; the team tab
     // additionally narrows it by status on the client.
@@ -213,14 +207,23 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
         ? Object.fromEntries(TEAM_STATUS_FILTERS.map(f => [f.id, requests.filter(r => matchesStatusFilter(r, f.id)).length]))
         : {};
 
-    // Check if current request is editable (only new/drats are editable)
+    // Check if current request is editable (only new/drafts are editable)
     const isEditable = currentRequest && (!currentRequest.id || currentRequest.status === 'draft');
 
     if (!isOpen) return null;
 
+    // String() comparison — the backend's createdBy type (string vs number) is
+    // not guaranteed to match the profile id type.
     const isOwnRequest = (req) => {
         if (!req || !currentUser) return false;
-        return req.createdBy === currentUser.id || req.createdBy === currentUser.name;
+        return String(req.createdBy) === String(currentUser.id) || req.createdBy === currentUser.name;
+    };
+
+    // Resolve the author's display name from the colleagues list when the
+    // backend sends only an id.
+    const authorName = (createdBy) => {
+        const match = (colleagues || []).find(c => String(c.id) === String(createdBy));
+        return match?.name || (typeof createdBy === 'string' && !/^\d+$/.test(createdBy) ? createdBy : `ID #${createdBy}`);
     };
 
     return (
@@ -292,7 +295,7 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                         onClick={() => setTeamStatusFilter(f.id)}
                                     >
                                         {f.label}
-                                        {!isLoadingList && (
+                                        {!isLoadingList && !listError && (
                                             <span className="requests-status-chip-count">{teamStatusCounts[f.id] ?? 0}</span>
                                         )}
                                     </button>
@@ -305,6 +308,13 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                 <div className="requests-loading">
                                     <Loader2 size={22} className="requests-spin" />
                                     Завантаження заявок...
+                                </div>
+                            ) : listError ? (
+                                <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 20 }}>
+                                    <div style={{ marginBottom: 12 }}>Не вдалося завантажити заявки.</div>
+                                    <button className="requests-refresh" style={{ width: 'auto', padding: '8px 16px' }} onClick={() => reloadList(listFilter, period)}>
+                                        Спробувати ще раз
+                                    </button>
                                 </div>
                             ) : filteredRequests.length === 0 ? (
                                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 20 }}>
@@ -319,12 +329,12 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                             <span className="request-category">
                                                 {categories.find(c => c.id === req.categoryId)?.name || req.categoryId || 'Невідомо'}
                                             </span>
-                                            <span className={`request-status ${req.status}`}>{req.status}</span>
+                                            <span className={`request-status ${req.status}`}>{statusLabel(req.status)}</span>
                                         </div>
                                         <div className="request-desc">{req.shortDesc}</div>
                                         <div className="request-meta">
                                             <span><Calendar size={12} /> {req.date}</span>
-                                            {listFilter === 'subordinates' && <span>Від: ID #{req.createdBy}</span>}
+                                            {listFilter === 'subordinates' && <span>Від: {authorName(req.createdBy)}</span>}
                                         </div>
                                     </div>
                                 ))
@@ -395,14 +405,14 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                 {(currentRequest.files && currentRequest.files.length > 0) ? (
                                     <div className="req-files">
                                         {currentRequest.files.map((f, idx) => (
-                                            <div className="req-file-row" key={idx}>
+                                            <div className="req-file-row" key={f._uid || `${f.name}_${f.size}_${idx}`}>
                                                 <FileText size={15} className="req-file-icon" />
                                                 <span className="req-file-name" title={f.name}>{f.name}</span>
                                                 <span className="req-file-size">{formatSize(f.size)}</span>
                                                 <button
                                                     type="button"
                                                     className="req-file-btn"
-                                                    onClick={() => downloadFile(f)}
+                                                    onClick={() => downloadBase64File(f)}
                                                     title="Завантажити"
                                                 >
                                                     <Download size={15} />
@@ -436,11 +446,11 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
 
                         {listFilter === 'my' && isEditable && (
                             <div className="form-actions">
-                                <button className="action-btn btn-secondary" onClick={handleSaveForm}>
+                                <button className="action-btn btn-secondary" disabled={isSaving} onClick={handleSaveForm}>
                                     Зберегти чернетку
                                 </button>
-                                <button className="action-btn btn-primary" onClick={handleSubmitForm}>
-                                    Відправити заявку
+                                <button className="action-btn btn-primary" disabled={isSaving} onClick={handleSubmitForm}>
+                                    {isSaving ? 'Надсилання...' : 'Відправити заявку'}
                                 </button>
                             </div>
                         )}
@@ -455,7 +465,7 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                                     color: 'var(--text-secondary)',
                                     fontSize: '14px'
                                 }}>
-                                    Тільки читання: Заявка в статусі {currentRequest.status}
+                                    Тільки читання: заявка в статусі «{statusLabel(currentRequest.status)}»
                                 </div>
                             </div>
                         )}
@@ -497,4 +507,3 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
 };
 
 export default RequestsModal;
-

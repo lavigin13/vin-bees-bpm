@@ -1,9 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, CheckCircle, XCircle, ChevronDown, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import './CraftingModal.css';
 import './TimesheetModal.css';
 import { fetchSubordinateTimesheets, approveTimesheetReports, rejectTimesheetReports } from '../services/api';
 
+// Emoji for non-Work day types. Keys match DAY_TYPES from data/constants.js
+// (the values TimesheetModal saves) plus their Ukrainian display variants.
+const DAY_TYPE_EMOJI = {
+    'Vacation': '⛱️', 'Відпустка': '⛱️',
+    'Sick Leave': '💊', 'Лікарняний': '💊',
+    'Business Trip': '💼', 'Відрядження': '💼',
+    'Day Off': '☕', 'Неоплачувана відпустка': '☕',
+    'omitted': '❌', 'Omitted': '❌',
+};
+
+const isWorkType = (type) => type === 'Work' || type === 'Робочий';
+
+// Parse 'YYYY-MM-DD' as a LOCAL date — new Date(str) is UTC midnight and
+// shifts the day for users west of UTC.
+const parseIsoLocal = (dateStr) => {
+    const [y, m, d] = String(dateStr).split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+};
 
 const TimesheetApprovalModal = ({ isOpen, onClose }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -17,6 +35,10 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
     const [expandedGroups, setExpandedGroups] = useState({});
     const [expandedWeeks, setExpandedWeeks] = useState({});
     const [expandedTopWeeks, setExpandedTopWeeks] = useState({});
+
+    // Monotonic id of the latest month load — rapid prev/next month clicks must
+    // not let an out-of-order response overwrite the newest month's data.
+    const loadSeqRef = useRef(0);
 
     const cloneSubordinateData = (data) => {
         if (!data || typeof data !== 'object') return {};
@@ -62,28 +84,27 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
     }, [currentDate, isOpen]);
 
     const loadSubordinateData = async () => {
+        const seq = ++loadSeqRef.current;
         setIsLoading(true);
         setError(null);
         const monthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
         try {
             const data = await fetchSubordinateTimesheets(monthStr);
-            if (data) {
-                setSubordinateData(cloneSubordinateData(data));
-            } else {
-                setSubordinateData({});
-            }
+            if (seq !== loadSeqRef.current) return; // stale response — a newer month is loading
+            setSubordinateData(data ? cloneSubordinateData(data) : {});
         } catch (e) {
+            if (seq !== loadSeqRef.current) return;
             console.warn('Failed to load subordinate data', e);
             setError('Не вдалося завантажити дані підлеглих');
             setSubordinateData({});
         } finally {
-            setIsLoading(false);
+            if (seq === loadSeqRef.current) setIsLoading(false);
         }
     };
 
     if (!isOpen) return null;
 
-    const monthLabel = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const monthLabel = currentDate.toLocaleString('uk-UA', { month: 'long', year: 'numeric' });
 
     const handlePrevMonth = () => {
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -105,7 +126,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
     const toggleSelectAllForEmployee = (employeeId) => {
         const employee = subordinateData[employeeId];
         if (!employee) return;
-        const employeeReports = Object.entries(employee.reports)
+        const employeeReports = Object.entries(employee.reports || {})
             .filter(([, r]) => r.status === 'pending')
             .map(([date]) => ({ employeeId, date }));
         const allSelected = employeeReports.every(r =>
@@ -126,11 +147,16 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
         setIsProcessing(true);
         try {
             const result = await approveTimesheetReports(selectedReports);
-            if (result.success) {
+            if (result && result.success) {
                 applyStatusToSelectedReports('approved');
                 setSelectedReports([]);
-                alert(`✅ Погоджено ${result.approved} записів`);
+                const count = typeof result.approved === 'number' ? result.approved : selectedReports.length;
+                alert(count < selectedReports.length
+                    ? `⚠️ Погоджено ${count} з ${selectedReports.length} записів`
+                    : `✅ Погоджено ${count} записів`);
                 await loadSubordinateData();
+            } else {
+                alert(result?.message || '❌ Помилка при погодженні');
             }
         } catch (e) {
             console.error('Failed to approve', e);
@@ -143,14 +169,20 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
     const handleRejectSelected = async () => {
         if (selectedReports.length === 0) return;
         const reason = prompt('Причина відхилення (опційно):');
+        if (reason === null) return; // user pressed Cancel — do not reject
         setIsProcessing(true);
         try {
             const result = await rejectTimesheetReports(selectedReports, reason);
-            if (result.success) {
+            if (result && result.success) {
                 applyStatusToSelectedReports('rejected');
                 setSelectedReports([]);
-                alert(`❌ Відхилено ${result.rejected} записів`);
+                const count = typeof result.rejected === 'number' ? result.rejected : selectedReports.length;
+                alert(count < selectedReports.length
+                    ? `⚠️ Відхилено ${count} з ${selectedReports.length} записів`
+                    : `❌ Відхилено ${count} записів`);
                 await loadSubordinateData();
+            } else {
+                alert(result?.message || '❌ Помилка при відхиленні');
             }
         } catch (e) {
             console.error('Failed to reject', e);
@@ -195,7 +227,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
     };
 
     const getWeekOfMonth = (dateStr) => {
-        const dateObj = new Date(dateStr);
+        const dateObj = parseIsoLocal(dateStr);
         const firstDayOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1);
         const firstDayOffset = (firstDayOfMonth.getDay() + 6) % 7;
         return Math.floor((dateObj.getDate() + firstDayOffset - 1) / 7) + 1;
@@ -278,7 +310,10 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
 
                                     const totalRegular = allReports.reduce((sum, [, r]) => sum + (r.regularHours || 0), 0);
                                     const totalOvertime = allReports.reduce((sum, [, r]) => sum + (r.overtimeHours || 0), 0);
-                                    const allSelected = filteredReports.every(([date]) =>
+                                    // Only pending reports are selectable, so "all selected" must be
+                                    // measured against pending ones — otherwise the checkbox never checks.
+                                    const pendingFiltered = filteredReports.filter(([, r]) => r.status === 'pending');
+                                    const allSelected = pendingFiltered.length > 0 && pendingFiltered.every(([date]) =>
                                         selectedReports.find(r => r.employeeId === employee.id && r.date === date)
                                     );
                                     const isExpanded = expandedGroups[employee.id];
@@ -329,7 +364,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                             <div className="week-days-grid">
                                                                 {group.items.map(([date, report]) => {
                                                                     const isSelected = selectedReports.find(r => r.employeeId === employee.id && r.date === date);
-                                                                    const dateObj = new Date(date);
+                                                                    const dateObj = parseIsoLocal(date);
                                                                     const dayNum = dateObj.getDate();
                                                                     const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' }).toUpperCase();
 
@@ -340,19 +375,13 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                                 <div className={`ds-status ${report.status}`} />
                                                                             </div>
                                                                             <div className="ds-body">
-                                                                                {report.type === 'Work' || report.type === 'Робочий' ? (
+                                                                                {isWorkType(report.type) ? (
                                                                                     <>
                                                                                         <div className="ds-hours">{report.regularHours}</div>
                                                                                         {report.overtimeHours > 0 && <div className="ds-ot">+{report.overtimeHours}</div>}
                                                                                     </>
                                                                                 ) : (
-                                                                                    <div className="ds-icon">
-                                                                                        {report.type === 'Vacation' || report.type === 'Відпустка' ? '⛱️' : null}
-                                                                                        {report.type === 'Sick' || report.type === 'Лікарняний' ? '💊' : null}
-                                                                                        {report.type === 'Business Trip' || report.type === 'Відрядження' ? '💼' : null}
-                                                                                        {report.type === 'Day Off' || report.type === 'Неоплачувана відпустка' ? '☕' : null}
-                                                                                        {(report.type === 'omitted' || report.type === 'Omitted') && '❌'}
-                                                                                    </div>
+                                                                                    <div className="ds-icon">{DAY_TYPE_EMOJI[report.type] || ''}</div>
                                                                                 )}
                                                                             </div>
                                                                             {report.status === 'pending' && isSelected && (
@@ -439,7 +468,7 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                     <div className="week-days-grid">
                                                                         {items.map(([date, report]) => {
                                                                             const isSelected = selectedReports.find(r => r.employeeId === employee.id && r.date === date);
-                                                                            const dateObj = new Date(date);
+                                                                            const dateObj = parseIsoLocal(date);
                                                                             const dayNum = dateObj.getDate();
                                                                             const dayName = dateObj.toLocaleDateString('uk-UA', { weekday: 'short' }).toUpperCase();
 
@@ -450,19 +479,13 @@ const TimesheetApprovalModal = ({ isOpen, onClose }) => {
                                                                                         <div className={`ds-status ${report.status}`} />
                                                                                     </div>
                                                                                     <div className="ds-body">
-                                                                                        {report.type === 'Work' || report.type === 'Робочий' ? (
+                                                                                        {isWorkType(report.type) ? (
                                                                                             <>
                                                                                                 <div className="ds-hours">{report.regularHours}</div>
                                                                                                 {report.overtimeHours > 0 && <div className="ds-ot">+{report.overtimeHours}</div>}
                                                                                             </>
                                                                                         ) : (
-                                                                                            <div className="ds-icon">
-                                                                                                {report.type === 'Vacation' || report.type === 'Відпустка' ? '⛱️' : null}
-                                                                                                {report.type === 'Sick' || report.type === 'Лікарняний' ? '💊' : null}
-                                                                                                {report.type === 'Business Trip' || report.type === 'Відрядження' ? '💼' : null}
-                                                                                                {report.type === 'Day Off' || report.type === 'Неоплачувана відпустка' ? '☕' : null}
-                                                                                                {(report.type === 'omitted' || report.type === 'Omitted') && '❌'}
-                                                                                            </div>
+                                                                                            <div className="ds-icon">{DAY_TYPE_EMOJI[report.type] || ''}</div>
                                                                                         )}
                                                                                     </div>
                                                                                     {report.status === 'pending' && isSelected && (

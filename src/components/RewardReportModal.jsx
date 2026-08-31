@@ -1,18 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, Download, ChevronRight, ChevronDown, User, Users, MessageCircleQuestion } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Calendar, ChevronRight, ChevronDown, User, Users, MessageCircleQuestion } from 'lucide-react';
 import { fetchSalaryReport, sendSalaryQuestion } from '../services/api';
 import AskQuestionModal from './AskQuestionModal';
 import './RewardReportModal.css';
 
+// Current month as local 'YYYY-MM' — toISOString() is UTC and opens the
+// previous month when viewed on the 1st before ~03:00 Kyiv time.
+const currentLocalMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+};
+
 const RewardReportModal = ({ isOpen, onClose }) => {
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [selectedDate, setSelectedDate] = useState(currentLocalMonth); // YYYY-MM
     const [viewMode, setViewMode] = useState('personal'); // 'personal' or 'team'
     const [reportData, setReportData] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [loadFailed, setLoadFailed] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState({});
-    
+
     // Question Modal State
     const [isAskQuestionOpen, setIsAskQuestionOpen] = useState(false);
+
+    // Monotonic id of the latest load — a fast personal/team toggle must not
+    // let the slower response overwrite the newer one.
+    const loadSeqRef = useRef(0);
 
     useEffect(() => {
         if (isOpen) {
@@ -22,10 +34,13 @@ const RewardReportModal = ({ isOpen, onClose }) => {
     }, [isOpen, viewMode]);
 
     const loadReport = async () => {
+        const seq = ++loadSeqRef.current;
         setIsLoading(true);
+        setLoadFailed(false);
         try {
             const [year, month] = selectedDate.split('-');
             const data = await fetchSalaryReport(month, year, viewMode);
+            if (seq !== loadSeqRef.current) return; // stale response
             setReportData(data);
             // Default expand all groups
             if (data && data.groups) {
@@ -34,9 +49,12 @@ const RewardReportModal = ({ isOpen, onClose }) => {
                 setExpandedGroups(initialExpanded);
             }
         } catch (error) {
+            if (seq !== loadSeqRef.current) return;
             console.error("Failed to load salary report", error);
+            setReportData(null);
+            setLoadFailed(true);
         } finally {
-            setIsLoading(false);
+            if (seq === loadSeqRef.current) setIsLoading(false);
         }
     };
 
@@ -47,6 +65,7 @@ const RewardReportModal = ({ isOpen, onClose }) => {
         }));
     };
 
+    // Returns false on failure so AskQuestionModal keeps the typed text open.
     const handleSendQuestion = async (questionText) => {
         const [year, month] = selectedDate.split('-');
         try {
@@ -55,11 +74,13 @@ const RewardReportModal = ({ isOpen, onClose }) => {
                 month,
                 year
             });
-            
+
             alert('Питання успішно надіслано!');
+            return true;
         } catch (error) {
             console.error("Failed to send question", error);
             alert("Не вдалося надіслати питання.");
+            return false;
         }
     };
 
@@ -118,13 +139,17 @@ const RewardReportModal = ({ isOpen, onClose }) => {
 
                 <div className="report-body">
                     {!reportData ? (
-                        <div className="empty-state">Оберіть місяць та згенеруйте звіт</div>
+                        <div className="empty-state">
+                            {loadFailed
+                                ? 'Не вдалося завантажити звіт. Спробуйте «Згенерувати» ще раз.'
+                                : 'Оберіть місяць та згенеруйте звіт'}
+                        </div>
                     ) : (
                         <div className="report-table-container">
                             <div className="report-summary">
                                 <div className="summary-item">
                                     <span className="label">Загальна виплата</span>
-                                    <span className="value">{reportData.totalAmount?.toLocaleString()} 🍯</span>
+                                    <span className="value">{(reportData.totalAmount ?? 0).toLocaleString('uk-UA')} 🍯</span>
                                 </div>
                                 {viewMode === 'team' && (
                                     <div className="summary-item">

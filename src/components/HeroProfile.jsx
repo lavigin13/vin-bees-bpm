@@ -30,12 +30,12 @@ const HeroProfile = ({ user, onInboxClick, onShopClick, onSendHoneyClick, onOrgC
 
                     <div className="xp-compact-container">
                         <div className="xp-info-compact">
-                            {user.xp} / {user.nextLevelXp} XP
+                            {user.xp ?? 0} / {user.nextLevelXp ?? 0} XP
                         </div>
                         <div className="xp-track-compact">
                             <div
                                 className="xp-fill-compact"
-                                style={{ width: `${(user.xp / user.nextLevelXp) * 100}%` }}
+                                style={{ width: `${Math.min(100, Math.max(0, (user.nextLevelXp > 0 ? (user.xp / user.nextLevelXp) * 100 : 0) || 0))}%` }}
                             />
                         </div>
                     </div>

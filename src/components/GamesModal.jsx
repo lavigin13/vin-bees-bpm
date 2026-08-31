@@ -27,8 +27,16 @@ const GAMES = [
 const GamesModal = ({ isOpen, onClose }) => {
     const [selectedGameId, setSelectedGameId] = useState(null);
 
+    // Suspend the shared AudioContext when leaving the games — otherwise the
+    // OS audio session stays active for the whole PWA lifetime. Dynamic import
+    // keeps AudioEngine out of the main bundle (it ships with the game chunks).
+    const suspendAudio = () => {
+        import('./AudioEngine').then(m => m.audioEngine.suspend()).catch(() => {});
+    };
+
     const handleClose = () => {
         setSelectedGameId(null);
+        suspendAudio();
         onClose();
     };
 
@@ -49,7 +57,7 @@ const GamesModal = ({ isOpen, onClose }) => {
                 <div className="games-body">
                     {selectedGame ? (
                         <>
-                            <button className="back-to-games-btn" onClick={() => setSelectedGameId(null)}>
+                            <button className="back-to-games-btn" onClick={() => { setSelectedGameId(null); suspendAudio(); }}>
                                 <ArrowLeft size={16} /> Назад до списку
                             </button>
                             <Suspense fallback={<div className="games-list">Завантаження гри…</div>}>

@@ -12,13 +12,13 @@ const ShopModal = ({ isOpen, onClose, items, userHoney, onBuy, onSellClick }) =>
     const filteredItems = items.filter(item => {
         const isCompany = item.seller === 'system';
         const matchesTab = activeTab === 'company' ? isCompany : !isCompany;
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = String(item.name || '').toLowerCase().includes(searchTerm.toLowerCase());
         return matchesTab && matchesSearch;
     });
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content shop-modal-content">
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content shop-modal-content" onClick={e => e.stopPropagation()}>
                 <button className="close-btn" onClick={onClose}><X size={24} /></button>
                 
                 <h2 className="modal-title">
@@ -76,12 +76,12 @@ const ShopModal = ({ isOpen, onClose, items, userHoney, onBuy, onSellClick }) =>
                         filteredItems.map(item => {
                             const canAfford = userHoney >= item.price;
                             return (
-                                <div key={item.id} className={`shop-item rarity-${item.rarity.toLowerCase()}`}>
+                                <div key={item.id} className={`shop-item rarity-${(item.rarity || 'common').toLowerCase()}`}>
                                     <div className="shop-item-header">
                                         <span className="shop-rarity-tag">{item.rarity}</span>
                                         {item.seller !== 'system' && (
                                             <span className="seller-tag">
-                                                <User size={10} /> {item.seller.split(' ')[0]}
+                                                <User size={10} /> {String(item.seller || '').split(' ')[0]}
                                             </span>
                                         )}
                                     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
     X, ArrowLeft, Search, Loader2, RefreshCw, Receipt, Plus,
     Paperclip, FileText, Trash2, Eye, Send
@@ -6,31 +6,8 @@ import {
 import './SupplierOrders.css';
 import './ExpenseReports.css';
 import { fetchIndividualExpenseReports, createIndividualExpenseReport, fetchExpenseArticles } from '../services/api';
-
-// Read a File into a base64 string (strips the "data:*;base64," prefix).
-const fileToBase64 = (file) =>
-    new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            const result = reader.result || '';
-            resolve(String(result).split(',')[1] || '');
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-
-const formatSize = (bytes) => {
-    if (!bytes && bytes !== 0) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-// 'YYYY-MM-DD' (input[type=date]) → 'DD.MM.YYYY' (1C API)
-const toApiDate = (isoDate) => {
-    const [y, m, d] = (isoDate || '').split('-');
-    return y && m && d ? `${d}.${m}.${y}` : '';
-};
+import { fileToBase64, formatSize, openBase64File } from '../utils/files';
+import { isoToApiDate as toApiDate, toIsoDate as toIso, currentMonthPeriod } from '../utils/period';
 
 // '2026-01-30T00:00:00' → '30.01.2026'
 const displayDate = (isoDateTime) => {
@@ -39,64 +16,25 @@ const displayDate = (isoDateTime) => {
     return y && m && d ? `${d}.${m}.${y}` : (isoDateTime || '—');
 };
 
-const toIso = (date) => {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-};
-
-const monthStartIso = () => {
-    const now = new Date();
-    return toIso(new Date(now.getFullYear(), now.getMonth(), 1));
-};
-
-const monthEndIso = () => {
-    const now = new Date();
-    return toIso(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-};
-
 const formatAmount = (amount) =>
     (Number(amount) || 0).toLocaleString('uk-UA', { maximumFractionDigits: 2 });
-
-// Detect the MIME type of a bare base64 payload by its magic-number prefix.
-const sniffBase64Mime = (base64) => {
-    if (base64.startsWith('JVBERi')) return 'application/pdf';
-    if (base64.startsWith('/9j/')) return 'image/jpeg';
-    if (base64.startsWith('iVBOR')) return 'image/png';
-    if (base64.startsWith('R0lGOD')) return 'image/gif';
-    return 'application/octet-stream';
-};
-
-// Open a report attachment in a new tab. `File` is either a URL or bare base64.
-const openReportFile = (fileValue) => {
-    if (!fileValue) return;
-    if (/^https?:\/\//i.test(fileValue)) {
-        window.open(fileValue, '_blank', 'noopener');
-        return;
-    }
-    try {
-        const byteChars = atob(fileValue);
-        const bytes = new Uint8Array(byteChars.length);
-        for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
-        const blob = new Blob([bytes], { type: sniffBase64Mime(fileValue) });
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank', 'noopener');
-        // Give the new tab time to load the blob before revoking.
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch (e) {
-        alert('Не вдалося відкрити файл: ' + (e.message || e));
-    }
-};
 
 const ExpenseReportsModal = ({ isOpen, onClose }) => {
     const [reports, setReports]   = useState([]);
     const [isLoading, setLoading] = useState(false);
+    const [loadError, setLoadError] = useState(false);
 
     // Articles catalog: [{ UUID, Name }]
     const [articles, setArticles]             = useState([]);
     const [articlesLoaded, setArticlesLoaded] = useState(false);
 
-    const [startDate, setStartDate] = useState(monthStartIso);
-    const [endDate, setEndDate]     = useState(monthEndIso);
+    const [startDate, setStartDate] = useState(() => currentMonthPeriod().startDate);
+    const [endDate, setEndDate]     = useState(() => currentMonthPeriod().endDate);
     const [search, setSearch]       = useState('');
+
+    // Monotonic id of the latest list load — rapid period edits must not let an
+    // out-of-order response overwrite the newest list.
+    const loadSeqRef = useRef(0);
 
     // view: 'list' | 'create'
     const [view, setView] = useState('list');
@@ -113,24 +51,37 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
         const start = toApiDate(startDate);
         const end = toApiDate(endDate);
         if (!start || !end) return;
+        const seq = ++loadSeqRef.current;
         setLoading(true);
+        setLoadError(false);
         fetchIndividualExpenseReports(start, end)
-            .then(data => setReports(Array.isArray(data) ? data : []))
-            .catch(console.error)
-            .finally(() => setLoading(false));
+            .then(data => {
+                if (seq !== loadSeqRef.current) return; // stale response
+                setReports(Array.isArray(data) ? data : []);
+            })
+            .catch(e => {
+                if (seq !== loadSeqRef.current) return;
+                console.error(e);
+                setReports([]);
+                setLoadError(true);
+            })
+            .finally(() => { if (seq === loadSeqRef.current) setLoading(false); });
     }, [startDate, endDate]);
 
     useEffect(() => {
         if (isOpen) load();
     }, [isOpen, load]);
 
-    // The articles catalog is small and static — load it once per modal open.
+    // The articles catalog is small and static — load it once until it
+    // succeeds (a failed attempt is retried on the next modal open).
     useEffect(() => {
         if (!isOpen || articlesLoaded) return;
         fetchExpenseArticles()
             .then(data => {
-                setArticles(Array.isArray(data) ? data : []);
-                setArticlesLoaded(true);
+                if (Array.isArray(data) && data.length) {
+                    setArticles(data);
+                    setArticlesLoaded(true);
+                }
             })
             .catch(console.error);
     }, [isOpen, articlesLoaded]);
@@ -173,7 +124,7 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
                 data: await fileToBase64(picked),
             });
         } catch (err) {
-            alert('Не вдалося прочитати файл: ' + (err.message || err));
+            alert(err.message || 'Не вдалося прочитати файл');
         } finally {
             e.target.value = '';
         }
@@ -208,6 +159,9 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
     };
 
     const handleClose = () => {
+        // Don't let a stray overlay tap silently discard a half-filled form.
+        const isDirty = view === 'create' && (articleUuid || description.trim() || amount || file);
+        if (isDirty && !confirm('Закрити без збереження? Введені дані буде втрачено.')) return;
         setView('list');
         resetCreateForm();
         onClose();
@@ -264,6 +218,13 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
                                     <Loader2 size={22} className="so-spin" />
                                     Завантаження звітів...
                                 </div>
+                            ) : loadError ? (
+                                <div className="so-no-docs">
+                                    Не вдалося завантажити звіти.{' '}
+                                    <button className="er-file-btn" style={{ display: 'inline-flex', marginLeft: 8 }} onClick={load}>
+                                        Спробувати ще раз
+                                    </button>
+                                </div>
                             ) : visibleReports.length === 0 ? (
                                 <div className="so-no-docs">Немає звітів за вибраний період</div>
                             ) : (
@@ -285,7 +246,7 @@ const ExpenseReportsModal = ({ isOpen, onClose }) => {
                                                 {r.File ? (
                                                     <button
                                                         className="er-file-btn"
-                                                        onClick={() => openReportFile(r.File)}
+                                                        onClick={() => openBase64File(r.File)}
                                                         title="Переглянути файл"
                                                     >
                                                         <Eye size={14} /> Файл
