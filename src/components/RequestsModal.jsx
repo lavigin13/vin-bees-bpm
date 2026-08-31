@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Calendar, FileText, ArrowLeft, Users, User, Paperclip, Trash2, Download } from 'lucide-react';
+import { X, Plus, Calendar, FileText, ArrowLeft, Users, User, Paperclip, Trash2, Download, RefreshCw, Loader2 } from 'lucide-react';
 import './CraftingModal.css'; // Reusing base modal styles
 import './RequestsModal.css';
 import { REQUEST_CATEGORIES } from '../data/constants';
 import { fetchRequestCategories } from '../services/api';
+import { currentMonthPeriod } from '../utils/period';
 
 // Read a File into a base64 string (strips the "data:*;base64," prefix).
 const fileToBase64 = (file) =>
@@ -38,12 +39,43 @@ const downloadFile = (f) => {
     a.remove();
 };
 
+// Quick status filters for the "Заявки команди" tab. `statuses` lists the raw
+// backend statuses each chip matches; 'all' matches everything.
+const TEAM_STATUS_FILTERS = [
+    { id: 'all',      label: 'Всі',            statuses: null },
+    { id: 'pending',  label: 'На погодженні',  statuses: ['new', 'pending'] },
+    { id: 'approved', label: 'Погоджені',      statuses: ['approved'] },
+    { id: 'rejected', label: 'Відхилені',      statuses: ['rejected'] },
+];
+
+const matchesStatusFilter = (req, filterId) => {
+    const f = TEAM_STATUS_FILTERS.find(x => x.id === filterId);
+    if (!f || !f.statuses) return true;
+    return f.statuses.includes(String(req.status || '').toLowerCase());
+};
+
 const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApprove, onReject, currentUser, initialFilter = 'my', onViewChange }) => {
     const [view, setView] = useState('list'); // 'list' or 'edit'
     const [listFilter, setListFilter] = useState(initialFilter); // 'my' or 'subordinates'
+    const [teamStatusFilter, setTeamStatusFilter] = useState('all'); // id from TEAM_STATUS_FILTERS
     const [currentRequest, setCurrentRequest] = useState(null);
     const [categories, setCategories] = useState(REQUEST_CATEGORIES);
     const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+    // Period the list is fetched for (ISO dates); defaults to the current month.
+    const [period, setPeriod] = useState(currentMonthPeriod);
+    const [isLoadingList, setIsLoadingList] = useState(false);
+
+    // Ask the parent to (re)load the list for a view + period. The parent's
+    // onViewChange may or may not return a promise — handle both.
+    const reloadList = async (view, nextPeriod) => {
+        if (!nextPeriod.startDate || !nextPeriod.endDate) return;
+        setIsLoadingList(true);
+        try {
+            await onViewChange(view, nextPeriod);
+        } finally {
+            setIsLoadingList(false);
+        }
+    };
 
     // Fetch categories on mount
     useEffect(() => {
@@ -68,16 +100,23 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
         if (isOpen) {
             setView('list');
             setListFilter(initialFilter);
+            setTeamStatusFilter('all');
             setCurrentRequest(null);
-            // Trigger fetch for initial filter
-            onViewChange(initialFilter);
+            // Trigger fetch for initial filter and the current period
+            reloadList(initialFilter, period);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- onViewChange is an inline callback from App; re-run only on open
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- onViewChange/period are read at open time; re-run only on open
     }, [isOpen, initialFilter]);
 
     const handleFilterChange = (newFilter) => {
         setListFilter(newFilter);
-        onViewChange(newFilter);
+        reloadList(newFilter, period);
+    };
+
+    const handlePeriodChange = (field, value) => {
+        const next = { ...period, [field]: value };
+        setPeriod(next);
+        reloadList(listFilter, next);
     };
 
     const handleCreateNew = () => {
@@ -165,9 +204,14 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
         setView('list');
     };
 
-    // Filter requests based on toggle
-    // Filter requests based on toggle
-    const filteredRequests = requests; // Now we assume requests are already filtered by the API/Parent based on the view
+    // The list is already scoped by view + period on the server; the team tab
+    // additionally narrows it by status on the client.
+    const filteredRequests = listFilter === 'subordinates'
+        ? requests.filter(r => matchesStatusFilter(r, teamStatusFilter))
+        : requests;
+    const teamStatusCounts = listFilter === 'subordinates'
+        ? Object.fromEntries(TEAM_STATUS_FILTERS.map(f => [f.id, requests.filter(r => matchesStatusFilter(r, f.id)).length]))
+        : {};
 
     // Check if current request is editable (only new/drats are editable)
     const isEditable = currentRequest && (!currentRequest.id || currentRequest.status === 'draft');
@@ -209,10 +253,64 @@ const RequestsModal = ({ isOpen, onClose, requests = [], onSave, onSubmit, onApp
                             </button>
                         </div>
 
+                        <div className="requests-period">
+                            <input
+                                type="date"
+                                className="requests-date-input"
+                                value={period.startDate}
+                                max={period.endDate || undefined}
+                                onChange={(e) => handlePeriodChange('startDate', e.target.value)}
+                                title="Початок періоду"
+                            />
+                            <span className="requests-period-sep">—</span>
+                            <input
+                                type="date"
+                                className="requests-date-input"
+                                value={period.endDate}
+                                min={period.startDate || undefined}
+                                onChange={(e) => handlePeriodChange('endDate', e.target.value)}
+                                title="Кінець періоду"
+                            />
+                            <button
+                                type="button"
+                                className="requests-refresh"
+                                onClick={() => reloadList(listFilter, period)}
+                                disabled={isLoadingList}
+                                title="Оновити"
+                            >
+                                <RefreshCw size={15} className={isLoadingList ? 'requests-spin' : ''} />
+                            </button>
+                        </div>
+
+                        {listFilter === 'subordinates' && (
+                            <div className="requests-status-filters">
+                                {TEAM_STATUS_FILTERS.map(f => (
+                                    <button
+                                        key={f.id}
+                                        type="button"
+                                        className={`requests-status-chip ${f.id} ${teamStatusFilter === f.id ? 'active' : ''}`}
+                                        onClick={() => setTeamStatusFilter(f.id)}
+                                    >
+                                        {f.label}
+                                        {!isLoadingList && (
+                                            <span className="requests-status-chip-count">{teamStatusCounts[f.id] ?? 0}</span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="requests-list">
-                            {filteredRequests.length === 0 ? (
+                            {isLoadingList ? (
+                                <div className="requests-loading">
+                                    <Loader2 size={22} className="requests-spin" />
+                                    Завантаження заявок...
+                                </div>
+                            ) : filteredRequests.length === 0 ? (
                                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 20 }}>
-                                    Заявок не знайдено.
+                                    {listFilter === 'subordinates' && teamStatusFilter !== 'all' && requests.length > 0
+                                        ? 'Немає заявок з таким статусом за вибраний період.'
+                                        : 'Заявок за вибраний період не знайдено.'}
                                 </div>
                             ) : (
                                 filteredRequests.map(req => (

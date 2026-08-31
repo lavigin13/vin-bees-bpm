@@ -256,10 +256,15 @@ export const createListing = async (itemData) => {
 
 // --- Requests ---
 
-export const fetchRequests = async (view = 'my') => {
+export const fetchRequests = async (view = 'my', startDate = '', endDate = '') => {
+    // startDate / endDate: 'DD.MM.YYYY'. The backend holds a lot of requests,
+    // so the list is always fetched for a bounded period.
     const headers = getHeaders();
+    const params = new URLSearchParams({ view });
+    if (startDate) params.set('StartDate', startDate);
+    if (endDate) params.set('EndDate', endDate);
     try {
-        const response = await apiFetch(`${API_BASE_URL}/requests?view=${view}`, { method: 'GET', headers: headers });
+        const response = await apiFetch(`${API_BASE_URL}/requests?${params.toString()}`, { method: 'GET', headers: headers });
         if (!response.ok) {
             console.warn('Requests API not ready');
             return null;

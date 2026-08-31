@@ -28,14 +28,19 @@ import {
   saveWarehouseInventory, fetchRequests, createOrUpdateRequest, submitRequest
 } from './services/api';
 
+import { currentMonthPeriod, isoToApiDate } from './utils/period';
+
 import './index.css';
 
-// Fetch "my" and "subordinates" requests in parallel and merge them into one
-// list deduplicated by id.
-const loadAllRequests = async () => {
+// Fetch "my" and "subordinates" requests for a period in parallel and merge
+// them into one list deduplicated by id. The backend holds a lot of requests,
+// so lists are always bounded by a period (default: current month).
+const loadAllRequests = async (period = currentMonthPeriod()) => {
+  const start = isoToApiDate(period.startDate);
+  const end = isoToApiDate(period.endDate);
   const [myRequests, subRequests] = await Promise.all([
-    fetchRequests('my'),
-    fetchRequests('subordinates')
+    fetchRequests('my', start, end),
+    fetchRequests('subordinates', start, end)
   ]);
   const allRequests = [
     ...(Array.isArray(myRequests) ? myRequests : []),
@@ -127,18 +132,6 @@ const App = () => {
     window.addEventListener('auth:unauthorized', handleUnauthorized);
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
-
-  // Refresh requests when modal opens
-  useEffect(() => {
-    if (!isRequestsOpen) return;
-    loadAllRequests()
-      .then(uniqueRequests => {
-        if (uniqueRequests.length > 0) {
-          setRequests(uniqueRequests);
-        }
-      })
-      .catch(e => console.error("Failed to refresh requests", e));
-  }, [isRequestsOpen]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -674,13 +667,10 @@ const App = () => {
         onReject={handleRejectRequest}
         currentUser={user}
         initialFilter={initialRequestsFilter}
-        onViewChange={(view) => {
-          // Fetch requests based on view
-          const loadRequests = async () => {
-            const data = await fetchRequests(view);
-            if (data) setRequests(data);
-          };
-          loadRequests();
+        onViewChange={async (view, period) => {
+          // Fetch requests for the selected view and period
+          const data = await fetchRequests(view, isoToApiDate(period?.startDate), isoToApiDate(period?.endDate));
+          setRequests(Array.isArray(data) ? data : []);
         }}
       />
 

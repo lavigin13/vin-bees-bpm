@@ -19,7 +19,9 @@ The request body includes a `files` array. Each file's `data` is base64 **withou
 }
 ```
 
-**Get Requests** — **GET** `/requests?view=my`
+**Get Requests** — **GET** `/requests?view=my&StartDate=DD.MM.YYYY&EndDate=DD.MM.YYYY`
+`view` is `my` or `subordinates`. `StartDate` / `EndDate` bound the list by request date (inclusive) — the backend holds a lot of requests, so the frontend **always** sends a period (default: current calendar month; the user can change it in the UI). Return only requests whose `date` falls inside the period.
+
 Each returned request echoes its attachments in the same shape, with `data` as base64 so the client can preview/download them:
 ```json
 {
