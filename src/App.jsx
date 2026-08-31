@@ -11,6 +11,7 @@ import OrgChartModal from './components/OrgChartModal';
 import TimesheetModal from './components/TimesheetModal';
 import ExpenseReportsModal from './components/ExpenseReportsModal';
 import CarUsageReportsModal from './components/CarUsageReportsModal';
+import ProductionPlanModal from './components/ProductionPlanModal';
 import TimesheetApprovalModal from './components/TimesheetApprovalModal';
 import RequestsModal from './components/RequestsModal';
 import RewardReportModal from './components/RewardReportModal';
@@ -27,14 +28,19 @@ import {
   saveWarehouseInventory, fetchRequests, createOrUpdateRequest, submitRequest
 } from './services/api';
 
+import { currentMonthPeriod, isoToApiDate } from './utils/period';
+
 import './index.css';
 
-// Fetch "my" and "subordinates" requests in parallel and merge them into one
-// list deduplicated by id.
-const loadAllRequests = async () => {
+// Fetch "my" and "subordinates" requests for a period in parallel and merge
+// them into one list deduplicated by id. The backend holds a lot of requests,
+// so lists are always bounded by a period (default: current month).
+const loadAllRequests = async (period = currentMonthPeriod()) => {
+  const start = isoToApiDate(period.startDate);
+  const end = isoToApiDate(period.endDate);
   const [myRequests, subRequests] = await Promise.all([
-    fetchRequests('my'),
-    fetchRequests('subordinates')
+    fetchRequests('my', start, end),
+    fetchRequests('subordinates', start, end)
   ]);
   const allRequests = [
     ...(Array.isArray(myRequests) ? myRequests : []),
@@ -79,6 +85,7 @@ const App = () => {
   const [isTimesheetOpen, setIsTimesheetOpen] = useState(false);
   const [isExpenseReportsOpen, setIsExpenseReportsOpen] = useState(false);
   const [isCarUsageOpen, setIsCarUsageOpen] = useState(false);
+  const [isProductionPlanOpen, setIsProductionPlanOpen] = useState(false);
 
   // Requests State
   const [isRequestsOpen, setIsRequestsOpen] = useState(false);
@@ -125,18 +132,6 @@ const App = () => {
     window.addEventListener('auth:unauthorized', handleUnauthorized);
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
-
-  // Refresh requests when modal opens
-  useEffect(() => {
-    if (!isRequestsOpen) return;
-    loadAllRequests()
-      .then(uniqueRequests => {
-        if (uniqueRequests.length > 0) {
-          setRequests(uniqueRequests);
-        }
-      })
-      .catch(e => console.error("Failed to refresh requests", e));
-  }, [isRequestsOpen]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -580,6 +575,7 @@ const App = () => {
           onApprovalClick={() => setIsApprovalOpen(true)}
           onExpenseReportsClick={() => setIsExpenseReportsOpen(true)}
           onCarUsageClick={() => setIsCarUsageOpen(true)}
+          onProductionPlanClick={() => setIsProductionPlanOpen(true)}
           isSectionAvailable={isSectionAvailable}
           onRequestsClick={() => setIsRequestsOpen(true)}
           onInventoryClick={() => setIsWarehouseInventoryOpen(true)}
@@ -671,13 +667,10 @@ const App = () => {
         onReject={handleRejectRequest}
         currentUser={user}
         initialFilter={initialRequestsFilter}
-        onViewChange={(view) => {
-          // Fetch requests based on view
-          const loadRequests = async () => {
-            const data = await fetchRequests(view);
-            if (data) setRequests(data);
-          };
-          loadRequests();
+        onViewChange={async (view, period) => {
+          // Fetch requests for the selected view and period
+          const data = await fetchRequests(view, isoToApiDate(period?.startDate), isoToApiDate(period?.endDate));
+          setRequests(Array.isArray(data) ? data : []);
         }}
       />
 
@@ -694,6 +687,11 @@ const App = () => {
       <CarUsageReportsModal
         isOpen={isCarUsageOpen}
         onClose={() => setIsCarUsageOpen(false)}
+      />
+
+      <ProductionPlanModal
+        isOpen={isProductionPlanOpen}
+        onClose={() => setIsProductionPlanOpen(false)}
       />
 
       <TimesheetApprovalModal

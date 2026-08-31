@@ -256,10 +256,15 @@ export const createListing = async (itemData) => {
 
 // --- Requests ---
 
-export const fetchRequests = async (view = 'my') => {
+export const fetchRequests = async (view = 'my', startDate = '', endDate = '') => {
+    // startDate / endDate: 'DD.MM.YYYY'. The backend holds a lot of requests,
+    // so the list is always fetched for a bounded period.
     const headers = getHeaders();
+    const params = new URLSearchParams({ view });
+    if (startDate) params.set('StartDate', startDate);
+    if (endDate) params.set('EndDate', endDate);
     try {
-        const response = await apiFetch(`${API_BASE_URL}/requests?view=${view}`, { method: 'GET', headers: headers });
+        const response = await apiFetch(`${API_BASE_URL}/requests?${params.toString()}`, { method: 'GET', headers: headers });
         if (!response.ok) {
             console.warn('Requests API not ready');
             return null;
@@ -1087,6 +1092,27 @@ export const createCarUsageReport = async (payload) => {
     } catch {
         // 1C may reply with an empty body on success
         return { success: true };
+    }
+};
+
+// --- Production Plan (План виробництва) ---
+
+export const fetchProductionPlan = async (startDate, endDate) => {
+    // startDate / endDate: 'DD.MM.YYYY' (Monday..Sunday of the selected week)
+    // Returns: [{ UUID, Date, Product: { UUID, Name } | string, Quantity, Unit, Info }]
+    const headers = getHeaders();
+    try {
+        const response = await apiFetch(
+            `${API_BASE_URL}/ProductionPlan?StartDate=${startDate}&EndDate=${endDate}`,
+            { method: 'GET', headers }
+        );
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        const data = await response.json();
+        return Array.isArray(data) ? data : (data.items || data.plan || []);
+    } catch (error) {
+        if (error instanceof UnauthorizedError) throw error;
+        console.error('Failed to fetch production plan:', error);
+        return [];
     }
 };
 

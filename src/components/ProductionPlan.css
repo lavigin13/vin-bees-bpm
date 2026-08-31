@@ -1,0 +1,268 @@
+/* Production Plan (План виробництва) — additions on top of the shared SupplierOrders.css */
+
+/* Week switcher */
+.pp-week-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.pp-week-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.pp-week-btn:hover { color: var(--accent-gold); border-color: var(--accent-gold); }
+
+.pp-week-label {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    text-align: center;
+}
+
+.pp-week-range {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.pp-week-current {
+    font-size: 11px;
+    color: var(--accent-gold);
+}
+
+.pp-week-today {
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.pp-week-today:hover { color: var(--accent-gold); }
+
+/* Search */
+.pp-search { margin-bottom: 12px; }
+
+.pp-search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.pp-search-clear:hover { color: var(--text-primary); }
+
+/* Days */
+.pp-days {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.pp-day-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.pp-day-header.today .pp-day-name { color: var(--accent-gold); }
+
+.pp-day-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pp-day-date {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.pp-day-count {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+}
+
+/* Cards */
+.pp-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pp-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+}
+
+.pp-card.is-done { border-color: rgba(52, 211, 153, 0.35); }
+
+.pp-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.pp-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.pp-workflow {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.pp-status {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.pp-status.new       { color: #94a3b8; border-color: #94a3b8; }
+.pp-status.confirmed { color: #60a5fa; border-color: #60a5fa; }
+.pp-status.inwork    { color: #fbbf24; border-color: #fbbf24; }
+.pp-status.done      { color: #34d399; border-color: #34d399; }
+.pp-status.cancelled { color: #f87171; border-color: #f87171; }
+.pp-status.other     { color: #c084fc; border-color: #c084fc; }
+
+.pp-product {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+    min-width: 0;
+    line-height: 1.35;
+}
+
+.pp-qty {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.pp-qty-done { color: var(--text-primary); }
+.pp-qty-done.ok { color: #34d399; }
+.pp-qty-sep { color: var(--text-secondary); font-weight: 400; }
+.pp-qty-plan { color: var(--accent-gold); }
+
+.pp-unit {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.pp-progress {
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.pp-progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent-gold);
+    transition: width 0.3s ease;
+}
+
+.pp-progress-bar.ok { background: #34d399; }
+
+.pp-note {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.pp-comment {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(251, 191, 36, 0.06);
+    border-left: 2px solid rgba(251, 191, 36, 0.5);
+    color: var(--text-primary);
+}
+
+.pp-note-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    opacity: 0.7;
+}
+
+.pp-footer {
+    justify-content: flex-start;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    .pp-cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
